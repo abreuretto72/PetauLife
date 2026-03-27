@@ -1,0 +1,2 @@
+-- PetauLife+ seed data
+-- Run after migrations to populate initial data
