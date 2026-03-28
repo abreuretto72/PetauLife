@@ -6,7 +6,8 @@
       "Bash(ls -la /e/aa_projetos_claude/PetsauLife/app/\\\\\\(auth\\\\\\)/)",
       "Bash(npm install:*)",
       "Bash(npx expo:*)",
-      "Bash(EXPO_NO_INTERACTIVE=0 npx expo start --tunnel)"
+      "Bash(EXPO_NO_INTERACTIVE=0 npx expo start --tunnel)",
+      "Bash(ls \"e:/aa_projetos_claude/PetsauLife/app/\\(app\\)/pet/[id]/\")"
     ],
     "additionalDirectories": [
       "\\tmp"
