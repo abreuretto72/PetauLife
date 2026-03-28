@@ -23,16 +23,21 @@ import {
   Stethoscope,
   Scissors,
   AlertTriangle,
+  Pill,
 } from 'lucide-react-native';
 
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
-import { useVaccines, useAllergies } from '../../../../hooks/useHealth';
+import { useVaccines, useAllergies, useExams, useMedications, useConsultations, useSurgeries } from '../../../../hooks/useHealth';
 import { HealthScoreCircle } from '../../../../components/HealthScoreCircle';
 import { Skeleton } from '../../../../components/Skeleton';
 import AddVaccineModal from '../../../../components/AddVaccineModal';
+import AddExamModal from '../../../../components/AddExamModal';
+import AddMedicationModal from '../../../../components/AddMedicationModal';
+import AddConsultationModal from '../../../../components/AddConsultationModal';
+import AddSurgeryModal from '../../../../components/AddSurgeryModal';
 import { useToast } from '../../../../components/Toast';
 import { useAuthStore } from '../../../../stores/authStore';
 import { getErrorMessage } from '../../../../utils/errorMessages';
@@ -179,19 +184,27 @@ export default function HealthScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: pet, isLoading: petLoading, refetch: refetchPet } = usePet(id!);
-  const { vaccines, overdueCount, isLoading: vaccinesLoading, refetch: refetchVaccines, addVaccine, isAdding } = useVaccines(id!);
+  const { vaccines, overdueCount, isLoading: vaccinesLoading, refetch: refetchVaccines, addVaccine, isAdding: isAddingVaccine } = useVaccines(id!);
   const { allergies, isLoading: allergiesLoading, refetch: refetchAllergies } = useAllergies(id!);
+  const { exams, refetch: refetchExams, addExam, isAdding: isAddingExam } = useExams(id!);
+  const { medications, refetch: refetchMeds, addMedication, isAdding: isAddingMed } = useMedications(id!);
+  const { consultations, refetch: refetchCons, addConsultation, isAdding: isAddingCons } = useConsultations(id!);
+  const { surgeries, refetch: refetchSurg, addSurgery, isAdding: isAddingSurg } = useSurgeries(id!);
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
+  const [showAddExam, setShowAddExam] = useState(false);
+  const [showAddMed, setShowAddMed] = useState(false);
+  const [showAddCons, setShowAddCons] = useState(false);
+  const [showAddSurg, setShowAddSurg] = useState(false);
 
   const isLoading = petLoading || vaccinesLoading || allergiesLoading;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refetchPet(), refetchVaccines(), refetchAllergies()]);
+    await Promise.all([refetchPet(), refetchVaccines(), refetchAllergies(), refetchExams(), refetchMeds(), refetchCons(), refetchSurg()]);
     setRefreshing(false);
-  }, [refetchPet, refetchVaccines, refetchAllergies]);
+  }, [refetchPet, refetchVaccines, refetchAllergies, refetchExams, refetchMeds, refetchCons, refetchSurg]);
 
   const upToDateCount = useMemo(() => {
     return vaccines.filter((v) => {
@@ -371,6 +384,38 @@ export default function HealthScreen() {
     }
   }, [addVaccine, id, user?.id, toast, t]);
 
+  const handleAddExam = useCallback(async (data: Record<string, unknown>) => {
+    try {
+      await addExam({ ...data, pet_id: id, user_id: user?.id });
+      setShowAddExam(false);
+      toast(t('toast.petCreated', { name: data.name }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addExam, id, user?.id, toast, t]);
+
+  const handleAddMedication = useCallback(async (data: Record<string, unknown>) => {
+    try {
+      await addMedication({ ...data, pet_id: id, user_id: user?.id });
+      setShowAddMed(false);
+      toast(t('toast.petCreated', { name: data.name }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addMedication, id, user?.id, toast, t]);
+
+  const handleAddConsultation = useCallback(async (data: Record<string, unknown>) => {
+    try {
+      await addConsultation({ ...data, pet_id: id, user_id: user?.id });
+      setShowAddCons(false);
+      toast(t('toast.petCreated', { name: data.veterinarian }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addConsultation, id, user?.id, toast, t]);
+
+  const handleAddSurgery = useCallback(async (data: Record<string, unknown>) => {
+    try {
+      await addSurgery({ ...data, pet_id: id, user_id: user?.id });
+      setShowAddSurg(false);
+      toast(t('toast.petCreated', { name: data.name }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addSurgery, id, user?.id, toast, t]);
+
   const renderVaccines = useCallback(() => {
     return (
       <>
@@ -476,29 +521,89 @@ export default function HealthScreen() {
   // TAB: EXAMS (empty state)
   // ──────────────────────────────────────
   const renderExams = useCallback(() => {
-    return <EmptyState message={t('health.emptyExams')} hint={t('health.emptyHint')} />;
-  }, [t]);
+    return (
+      <>
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddExam(true)} activeOpacity={0.7}>
+          <FileText size={rs(18)} color="#fff" strokeWidth={2} />
+          <Text style={styles.addButtonText}>{t('health.addExam', 'Adicionar exame')}</Text>
+        </TouchableOpacity>
+        {exams.length === 0 ? (
+          <EmptyState message={t('health.emptyExams')} hint={t('health.emptyHint')} />
+        ) : (
+          exams.map((ex: Record<string, unknown>, i: number) => (
+            <View key={String(ex.id ?? i)} style={styles.simpleCard}>
+              <Text style={styles.simpleCardTitle}>{String(ex.name ?? '')}</Text>
+              <Text style={styles.simpleCardSub}>{formatDate(String(ex.date ?? ''))}</Text>
+            </View>
+          ))
+        )}
+      </>
+    );
+  }, [exams, t]);
 
-  // ──────────────────────────────────────
-  // TAB: MEDICATIONS (empty state)
-  // ──────────────────────────────────────
   const renderMedications = useCallback(() => {
-    return <EmptyState message={t('health.emptyMedications')} hint={t('health.emptyHint')} />;
-  }, [t]);
+    return (
+      <>
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddMed(true)} activeOpacity={0.7}>
+          <Pill size={rs(18)} color="#fff" strokeWidth={2} />
+          <Text style={styles.addButtonText}>{t('health.addMedication', 'Adicionar remédio')}</Text>
+        </TouchableOpacity>
+        {medications.length === 0 ? (
+          <EmptyState message={t('health.emptyMedications')} hint={t('health.emptyHint')} />
+        ) : (
+          medications.map((m: Record<string, unknown>, i: number) => (
+            <View key={String(m.id ?? i)} style={styles.simpleCard}>
+              <Text style={styles.simpleCardTitle}>{String(m.name ?? '')}</Text>
+              <Text style={styles.simpleCardSub}>{String(m.frequency ?? '')} · {formatDate(String(m.start_date ?? ''))}</Text>
+            </View>
+          ))
+        )}
+      </>
+    );
+  }, [medications, t]);
 
-  // ──────────────────────────────────────
-  // TAB: CONSULTATIONS (empty state)
-  // ──────────────────────────────────────
   const renderConsultations = useCallback(() => {
-    return <EmptyState message={t('health.emptyConsultations')} hint={t('health.emptyHint')} />;
-  }, [t]);
+    return (
+      <>
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddCons(true)} activeOpacity={0.7}>
+          <Stethoscope size={rs(18)} color="#fff" strokeWidth={2} />
+          <Text style={styles.addButtonText}>{t('health.addConsultation', 'Adicionar consulta')}</Text>
+        </TouchableOpacity>
+        {consultations.length === 0 ? (
+          <EmptyState message={t('health.emptyConsultations')} hint={t('health.emptyHint')} />
+        ) : (
+          consultations.map((c: Record<string, unknown>, i: number) => (
+            <View key={String(c.id ?? i)} style={styles.simpleCard}>
+              <Text style={styles.simpleCardTitle}>{String(c.veterinarian ?? '')} — {String(c.type ?? '')}</Text>
+              <Text style={styles.simpleCardSub}>{formatDate(String(c.date ?? ''))}</Text>
+              {c.summary ? <Text style={styles.simpleCardBody}>{String(c.summary)}</Text> : null}
+            </View>
+          ))
+        )}
+      </>
+    );
+  }, [consultations, t]);
 
-  // ──────────────────────────────────────
-  // TAB: SURGERIES (empty state)
-  // ──────────────────────────────────────
   const renderSurgeries = useCallback(() => {
-    return <EmptyState message={t('health.emptySurgeries')} hint={t('health.emptyHint')} />;
-  }, [t]);
+    return (
+      <>
+        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddSurg(true)} activeOpacity={0.7}>
+          <Scissors size={rs(18)} color="#fff" strokeWidth={2} />
+          <Text style={styles.addButtonText}>{t('health.addSurgery', 'Adicionar cirurgia')}</Text>
+        </TouchableOpacity>
+        {surgeries.length === 0 ? (
+          <EmptyState message={t('health.emptySurgeries')} hint={t('health.emptyHint')} />
+        ) : (
+          surgeries.map((s: Record<string, unknown>, i: number) => (
+            <View key={String(s.id ?? i)} style={styles.simpleCard}>
+              <Text style={styles.simpleCardTitle}>{String(s.name ?? '')}</Text>
+              <Text style={styles.simpleCardSub}>{formatDate(String(s.date ?? ''))} · {String(s.status ?? '')}</Text>
+            </View>
+          ))
+        )}
+      </>
+    );
+  }, [surgeries, t]);
 
   // ──────────────────────────────────────
   // Tab content renderer
@@ -603,7 +708,39 @@ export default function HealthScreen() {
         onSubmit={handleAddVaccine}
         petId={id!}
         userId={user?.id ?? ''}
-        isSubmitting={isAdding}
+        isSubmitting={isAddingVaccine}
+      />
+      <AddExamModal
+        visible={showAddExam}
+        onClose={() => setShowAddExam(false)}
+        onSubmit={handleAddExam}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingExam}
+      />
+      <AddMedicationModal
+        visible={showAddMed}
+        onClose={() => setShowAddMed(false)}
+        onSubmit={handleAddMedication}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingMed}
+      />
+      <AddConsultationModal
+        visible={showAddCons}
+        onClose={() => setShowAddCons(false)}
+        onSubmit={handleAddConsultation}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingCons}
+      />
+      <AddSurgeryModal
+        visible={showAddSurg}
+        onClose={() => setShowAddSurg(false)}
+        onSubmit={handleAddSurgery}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingSurg}
       />
     </View>
   );
@@ -668,6 +805,32 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     fontSize: fs(14),
     color: '#fff',
+  },
+  simpleCard: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.xxl,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  simpleCardTitle: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(14),
+    color: colors.text,
+  },
+  simpleCardSub: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(12),
+    color: colors.textDim,
+    marginTop: rs(4),
+  },
+  simpleCardBody: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(12),
+    color: colors.textSec,
+    marginTop: rs(8),
+    lineHeight: fs(18),
   },
 
   // ── Content ──

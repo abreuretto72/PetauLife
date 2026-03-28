@@ -132,6 +132,90 @@ export async function createVaccine(
 }
 
 // ══════════════════════════════════════
+// EXAMS
+// ══════════════════════════════════════
+
+export async function fetchExams(petId: string) {
+  const { data, error } = await supabase
+    .from('exams')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createExam(exam: Record<string, unknown>) {
+  const { data, error } = await supabase.from('exams').insert(exam).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ══════════════════════════════════════
+// MEDICATIONS
+// ══════════════════════════════════════
+
+export async function fetchMedications(petId: string) {
+  const { data, error } = await supabase
+    .from('medications')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('start_date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createMedication(medication: Record<string, unknown>) {
+  const { data, error } = await supabase.from('medications').insert(medication).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ══════════════════════════════════════
+// CONSULTATIONS
+// ══════════════════════════════════════
+
+export async function fetchConsultations(petId: string) {
+  const { data, error } = await supabase
+    .from('consultations')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createConsultation(consultation: Record<string, unknown>) {
+  const { data, error } = await supabase.from('consultations').insert(consultation).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ══════════════════════════════════════
+// SURGERIES
+// ══════════════════════════════════════
+
+export async function fetchSurgeries(petId: string) {
+  const { data, error } = await supabase
+    .from('surgeries')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function createSurgery(surgery: Record<string, unknown>) {
+  const { data, error } = await supabase.from('surgeries').insert(surgery).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ══════════════════════════════════════
 // ALLERGIES
 // ══════════════════════════════════════
 

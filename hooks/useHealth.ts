@@ -46,6 +46,50 @@ export function useVaccines(petId: string) {
   };
 }
 
+export function useExams(petId: string) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ['pets', petId, 'exams'], queryFn: () => api.fetchExams(petId), enabled: isAuthenticated && !!petId });
+  const addMutation = useMutation({
+    mutationFn: (exam: Record<string, unknown>) => api.createExam(exam),
+    onSuccess: (newExam) => { qc.setQueryData(['pets', petId, 'exams'], (old: unknown[]) => old ? [newExam, ...old] : [newExam]); },
+  });
+  return { exams: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addExam: addMutation.mutateAsync, isAdding: addMutation.isPending };
+}
+
+export function useMedications(petId: string) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ['pets', petId, 'medications'], queryFn: () => api.fetchMedications(petId), enabled: isAuthenticated && !!petId });
+  const addMutation = useMutation({
+    mutationFn: (med: Record<string, unknown>) => api.createMedication(med),
+    onSuccess: (newMed) => { qc.setQueryData(['pets', petId, 'medications'], (old: unknown[]) => old ? [newMed, ...old] : [newMed]); },
+  });
+  return { medications: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addMedication: addMutation.mutateAsync, isAdding: addMutation.isPending };
+}
+
+export function useConsultations(petId: string) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ['pets', petId, 'consultations'], queryFn: () => api.fetchConsultations(petId), enabled: isAuthenticated && !!petId });
+  const addMutation = useMutation({
+    mutationFn: (cons: Record<string, unknown>) => api.createConsultation(cons),
+    onSuccess: (newCons) => { qc.setQueryData(['pets', petId, 'consultations'], (old: unknown[]) => old ? [newCons, ...old] : [newCons]); },
+  });
+  return { consultations: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addConsultation: addMutation.mutateAsync, isAdding: addMutation.isPending };
+}
+
+export function useSurgeries(petId: string) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ['pets', petId, 'surgeries'], queryFn: () => api.fetchSurgeries(petId), enabled: isAuthenticated && !!petId });
+  const addMutation = useMutation({
+    mutationFn: (surg: Record<string, unknown>) => api.createSurgery(surg),
+    onSuccess: (newSurg) => { qc.setQueryData(['pets', petId, 'surgeries'], (old: unknown[]) => old ? [newSurg, ...old] : [newSurg]); },
+  });
+  return { surgeries: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addSurgery: addMutation.mutateAsync, isAdding: addMutation.isPending };
+}
+
 export function useAllergies(petId: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
