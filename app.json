@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "AuExpert",
-    "slug": "petaulife-plus",
+    "slug": "auexpert",
     "scheme": "auexpert",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -85,7 +85,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "887ce224-1ce4-4088-b561-fb38151c234f"
+        "projectId": "258d535c-fa78-4aa1-a5cf-29ebbe499aec"
       }
     },
     "owner": "abreuretto"
