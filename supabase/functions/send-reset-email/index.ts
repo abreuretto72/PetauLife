@@ -4,6 +4,6 @@
 // Or via MCP Supabase tool
 
 // See the deployed version on Supabase Dashboard > Edge Functions
-// Template: email branded PetauLife+ com voz do pet
+// Template: email branded AuExpert com voz do pet
 
 export {}; // placeholder — real code is deployed via MCP

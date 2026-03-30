@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import ptBR from '../i18n/pt-BR.json';
 
-const CACHE_PREFIX = 'petaulife_i18n_';
-const CACHE_VERSION_KEY = 'petaulife_i18n_version';
+const CACHE_PREFIX = 'auexpert_i18n_';
+const CACHE_VERSION_KEY = 'auexpert_i18n_version';
 // Incrementar ao alterar pt-BR.json para forçar retradução
 const CURRENT_VERSION = '1';
 

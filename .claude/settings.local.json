@@ -7,7 +7,8 @@
       "Bash(npm install:*)",
       "Bash(npx expo:*)",
       "Bash(EXPO_NO_INTERACTIVE=0 npx expo start --tunnel)",
-      "Bash(ls \"e:/aa_projetos_claude/PetsauLife/app/\\(app\\)/pet/[id]/\")"
+      "Bash(ls \"e:/aa_projetos_claude/PetsauLife/app/\\(app\\)/pet/[id]/\")",
+      "Bash(wc -l \"E:/aa_projetos_claude/PetsauLife/app/\\(app\\)/pet/[id]/happiness.tsx\")"
     ],
     "additionalDirectories": [
       "\\tmp"

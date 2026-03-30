@@ -18,7 +18,7 @@ export async function signOut() {
 
 export async function resetPassword(email: string) {
   return supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'petaulife://reset-password',
+    redirectTo: 'auexpert://reset-password',
   });
 }
 

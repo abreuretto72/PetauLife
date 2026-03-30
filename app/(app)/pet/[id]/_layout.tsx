@@ -13,9 +13,9 @@ import { usePet } from '../../../../hooks/usePets';
 
 const TABS = [
   { key: 'index', icon: Heart, labelKey: 'common.home' },
+  { key: 'diary', icon: BookOpen, labelKey: 'common.diary' },
   { key: 'health', icon: ShieldCheck, labelKey: 'common.health' },
   { key: 'photo-analysis', icon: Sparkles, labelKey: 'common.ia' },
-  { key: 'diary', icon: BookOpen, labelKey: 'common.diary' },
 ] as const;
 
 export default function PetTabLayout() {

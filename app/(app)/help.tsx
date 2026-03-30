@@ -39,11 +39,11 @@ export default function HelpScreen() {
   ];
 
   const handleContact = () => {
-    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=PetauLife%2B%20-%20Suporte');
+    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=AuExpert%20-%20Suporte');
   };
 
   const handleReportBug = () => {
-    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=PetauLife%2B%20-%20Problema');
+    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=AuExpert%20-%20Problema');
   };
 
   return (

@@ -19,8 +19,8 @@ const getSecureStore = () => {
   };
 };
 
-const BIO_EMAIL_KEY = 'petaulife_bio_email';
-const BIO_PASS_KEY = 'petaulife_bio_pass';
+const BIO_EMAIL_KEY = 'auexpert_bio_email';
+const BIO_PASS_KEY = 'auexpert_bio_pass';
 
 interface AuthState {
   user: User | null;

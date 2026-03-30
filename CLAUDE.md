@@ -1,5 +1,5 @@
-# CLAUDE.md — PetauLife+ Project Rules (v5 — Definitivo)
-# Última atualização: 27/03/2026
+# CLAUDE.md — auExpert Project Rules (v7)
+# Última atualização: 29/03/2026
 
 > Fonte de verdade para o Claude Code. Toda decisão segue estas diretrizes.
 
@@ -8,10 +8,10 @@
 ## 1. IDENTIDADE DO PROJETO
 
 ### Nome
-- **PetauLife+** — grafado EXATAMENTE assim, sempre
-- P e L maiúsculos, "au" minúsculo, "+" no final em cor accent (laranja)
-- O "+" é caractere de texto em cor accent — SEM badge, SEM caixa
-- Em código: `petaulife-plus` (kebab) ou `PetauLifePlus` (Pascal)
+- **auExpert** — grafado EXATAMENTE assim, sempre
+- "au" minúsculo (referência ao latido), "Expert" com E maiúsculo, sem espaço
+- Em código: `au-expert` (kebab) ou `AuExpert` (Pascal)
+- Nome anterior: PetauLife+ (descontinuado — não usar em nenhum lugar)
 
 ### Tagline
 - PT-BR: **"Uma inteligência única para o seu pet"**
@@ -244,50 +244,68 @@ export const radii = {
 };
 ```
 
-### 2.6 Logo — OFICIAL E DEFINITIVO
+### 2.6 Identidade Visual — ÍCONE + LOGOTIPO (duas peças separadas)
 
-O logo da tela de login v5 (`petaulife_login_v5.jsx`) é o **logo oficial do app**.
-Toda tela que exibir o logo DEVE usar exatamente este visual, variando APENAS o tamanho
-e mantendo a proporcionalidade entre ícone, texto e espaçamento.
+O app tem **duas imagens oficiais**. São peças distintas — nunca misturar.
 
-**Composição (da esquerda para a direita):**
-1. **Ícone pata:** quadrado arredondado (radius proporcional) com gradiente `accent (#E8813A) → accentDark (#CC6E2E)`, sombra `0 6px 24px accent30`. Pata branca SVG centralizada.
-2. **Gap:** espaçamento proporcional entre ícone e texto.
-3. **Texto:** "Pet" em `text` (#E8EDF2) + "au" em `petrol` (#1B8EAD) + "Life" em `text` (#E8EDF2) + "+" em `accent` (#E8813A). Font Sora 700, letter-spacing -0.8 proporcional.
+#### A) Ícone do App (lojas e sistema)
 
-**3 tamanhos oficiais (escala proporcional via multiplicador `s`):**
+**Arquivo:** `assets/images/icon_app_ok.png`
 
-| Tamanho | Onde usar | `s` | Ícone | Radius | Pata SVG | Font | Gap |
-|---------|----------|-----|-------|--------|----------|------|-----|
-| **large** | Tela de login, onboarding, splash | 1.35 | 68px | 22px | 38px | 35px | 16px |
-| **normal** | Header do hub, telas internas | 1.0 | 42px | 14px | 22px | 23px | 10px |
-| **small** | Drawer menu, footer, badges | 0.7 | 29px | 10px | 15px | 16px | 7px |
+**Composição visual:**
+- Cachorrinho estilizado em azul petróleo e laranja (cores da marca)
+- Balão de fala com "au" saindo da boca (referência ao nome auExpert)
+- Fundo mint/teal suave com cantos arredondados (padrão iOS/Android)
+- Fundo preto atrás (transparente no uso real)
+
+**Onde usar:**
+- Play Store e App Store (ícone da listagem)
+- Ícone do app no celular do usuário
+- Notificações push
+- Favicon web (se houver versão web)
+
+**Onde NÃO usar:**
+- Dentro das telas do app (lá usa o logotipo)
+- Como logo em header ou drawer
+- Em documentos ou apresentações (lá usa o logotipo)
+
+#### B) Logotipo do App (telas internas)
+
+**Arquivo:** `assets/images/logotipotrans.png` (PNG com transparência)
+
+**Composição visual:**
+- Cachorro cartoon estilizado (versão menor do mascote do ícone)
+- Balão de fala com "au" (conecta com o ícone)
+- Texto "Expert" em laranja bold (#E8813A) ao lado direito
+- Fundo transparente — funciona sobre fundo escuro (bg #0F1923)
+
+**3 tamanhos oficiais:**
+
+| Tamanho | Onde usar | Largura | Altura |
+|---------|----------|---------|--------|
+| **large** | Tela de login, onboarding, splash | rs(260) | rs(80) |
+| **normal** | Header do hub, telas internas | rs(180) | rs(55) |
+| **small** | Drawer menu, footer, badges | rs(130) | rs(40) |
 
 **Regras obrigatórias:**
-- O logo é SEMPRE horizontal (ícone + texto lado a lado) — nunca empilhado
-- O "+" é SEMPRE caractere de texto em `accent` — nunca dentro de badge ou caixa
-- O "au" é SEMPRE em `petrol` — nunca na mesma cor do resto
-- O gradiente do ícone é SEMPRE `accent → accentDark` — nunca flat, nunca outra cor
-- A pata é SEMPRE branca (#fff) — nunca colorida
-- Proporções são SEMPRE mantidas — nunca esticar, achatar ou distorcer
-- Em fundo escuro (`bg` #0F1923): logo padrão como descrito
-- Em fundo claro (se houver): mesmas cores (o contraste já funciona)
+- SEMPRE usar o componente `AuExpertLogo` — nunca referenciar a imagem diretamente
+- SEMPRE `resizeMode="contain"` — nunca esticar ou distorcer
+- Proporções são SEMPRE mantidas automaticamente pelo contain
+- Nunca adicionar sombras, bordas ou efeitos ao logotipo
+- Nunca reconstruir o logotipo em código (SVG/texto) — usar a imagem PNG oficial
 
 **Implementação (componente reutilizável):**
 ```typescript
-// components/PetauLogo.tsx
-// Aceita prop size: 'large' | 'normal' | 'small'
-// Calcula TUDO proporcionalmente via multiplicador s
-// large = 1.35, normal = 1.0, small = 0.7
+// components/AuExpertLogo.tsx
+import { Image } from 'react-native';
+import { rs } from '../hooks/useResponsive';
 
-const PetauLogo = ({ size = 'normal' }) => {
-  const s = size === 'large' ? 1.35 : size === 'small' ? 0.7 : 1;
-  // ícone: 50*s x 50*s, radius 16*s
-  // pata SVG: 28*s
-  // sombra: 0 6px 24px accent30
-  // texto: fontSize 26*s, weight 700, letterSpacing -0.8
-  // gap entre ícone e texto: 12*s
-};
+// Aceita prop size: 'large' | 'normal' | 'small'
+// Renderiza a imagem logotipotrans.png com dimensões proporcionais
+
+<AuExpertLogo size="large" />   // Login
+<AuExpertLogo size="normal" />  // Hub header
+<AuExpertLogo size="small" />   // Drawer, footer
 ```
 
 **Tagline (apenas na tela de login, abaixo do logo large):**
@@ -346,7 +364,7 @@ import { Dog, Cat, Heart, Shield, Camera, Bell, Zap } from 'lucide-react-native'
 <Cat size={24} color={colors.purple} strokeWidth={1.8} />
 ```
 
-**Ícones padrão do PetauLife+:**
+**Ícones padrão do auExpert:**
 | Contexto | Ícone Lucide | Cor | Clicável? |
 |---|---|---|---|
 | Cão | `Dog` | accent (laranja) | Sim |
@@ -604,7 +622,7 @@ Tamanho no balao: 56x56px com borderRadius 16.
 ## 5. ESTRUTURA DO PROJETO
 
 ```
-E:\@projetos_claude\PetauLife+\
+E:\aa_projetos_claude\auExpert\
 ├── CLAUDE.md                    # Este arquivo
 ├── docs/
 │   └── prototypes/              # JSX de referência visual (NÃO produção)
@@ -635,7 +653,7 @@ E:\@projetos_claude\PetauLife+\
 │   │   ├── Modal.tsx
 │   │   ├── Alert.tsx
 │   │   └── ...
-│   ├── PetauLogo.tsx
+│   ├── AuExpertLogo.tsx
 │   ├── PawIcon.tsx              # SVG customizado da pata
 │   ├── PetCard.tsx
 │   ├── DiaryEntry.tsx
@@ -670,6 +688,13 @@ E:\@projetos_claude\PetauLife+\
 │   ├── functions/
 │   └── seed.sql
 └── assets/
+    └── images/
+        ├── icon_app_ok.png          # Ícone do app (lojas, celular, push)
+        ├── logotipotrans.png        # Logotipo (header, login, drawer)
+        ├── pata_verde.png
+        ├── pata_vermelha.png
+        ├── pata_amarela.png
+        └── pata_rosa.png
 ```
 
 ---
@@ -711,13 +736,104 @@ notifications_queue, media_files
 
 - Senha: min 8 chars, 1 maiúscula, 1 número, 1 especial. Lock após 5 falhas (15min)
 - Pets: APENAS dog/cat. Sem limite por tutor. Microchip UNIQUE
-- Diário: 3-2000 chars, max 5 fotos, mood obrigatório, narração IA <5s
+- Diário: 3-2000 chars ou 1 foto ou 5s áudio, max 5 fotos, mood obrigatório, narração IA <5s
 - Análise foto: max 12MB, NUNCA diagnosticar, confidence <0.5 = disclaimer
 - RAG: isolado por pet_id, importance (vaccine=0.9, photo=0.8, diary=0.5, mood=0.3)
 - Vacinas: CRON diário 08:00, push 7d/1d antes
 - Storage: pet-photos (WebP 80%, 3 tamanhos), avatars (WebP 75%, 400px)
 - Push: vaccine_reminder, diary_reminder (19h), ai_insight, welcome
 - MVP: apenas tutor_owner (sem assistentes)
+
+---
+
+## 8.1 FLUXO DO DIÁRIO DE VIDA — Especificação Completa
+
+### Hierarquia de Input (AI-first obrigatório)
+
+A tela de nova entrada oferece 3 formas de input nesta ordem de prioridade visual:
+
+```
+1º  FALAR (botão grande, Mic)  → STT transcreve → IA interpreta
+2º  FOTO/VÍDEO (Camera)       → Vision analisa → IA gera texto automaticamente
+3º  DIGITAR (TextInput)        → Último recurso, campo de texto livre
+```
+
+O botão "Falar" deve ser o maior e mais proeminente da tela.
+O campo de texto é visível mas secundário — a hierarquia visual guia o tutor para voz/foto.
+
+### Cenário 1 — Tutor conta por voz ou texto
+
+1. Tutor fala ou digita o que aconteceu
+2. Seleciona humor do pet (6 ícones: Eufórico/Feliz/Calmo/Cansado/Ansioso/Triste)
+3. IA processa em 2-5s:
+   - STT transcreve (se voz)
+   - Busca RAG: top 5 memórias relevantes do pet
+   - Monta prompt: texto + nome/raça/idade/personalidade + humor + contexto RAG + idioma
+   - Claude API gera narração 1ª pessoa do pet (max 150 palavras)
+   - Em paralelo: sugere tags, infere mood_score 0-100, detecta momento especial
+4. Preview: texto do tutor + narração IA (Caveat italic) + tags + humor
+5. Tutor pode: publicar, refazer narração, editar texto, mudar humor
+6. Ao publicar: salva diary_entry + mood_log + atualiza pet + comprime fotos + gera embedding
+
+### Cenário 2 — Tutor tira foto e IA gera tudo
+
+1. Tutor abre nova entrada e escolhe "Foto"
+2. Claude Vision analisa: saúde visual, humor pela expressão/postura, ambiente, acessórios
+3. Busca RAG: últimas fotos (comparar mudanças), histórico de saúde
+4. Gera automaticamente: narração do pet, humor inferido, tags, mini-relatório de saúde
+5. Tela mostra: foto + narração + achados de saúde (score, checks, warnings) + humor + tags
+6. Tutor não precisa digitar nada — uma foto gera entrada completa
+
+### Cenário 3 — Tutor fala no microfone
+
+1. Toca no botão grande "Falar" → animação pulsante laranja
+2. Fala naturalmente (sem formato fixo)
+3. STT transcreve → IA interpreta contexto emocional
+4. Sugere humor baseado no conteúdo emocional da fala
+5. Narra com nuance: reflete o contexto emocional (solidão, reconexão, alegria)
+6. Preview → tutor ajusta se quiser → publica
+
+### Cenário 4 — Eventos automáticos (sem ação do tutor)
+
+Entradas geradas automaticamente pelo sistema:
+- **Vacina vencendo:** narração do pet lembrando o tutor (7 dias antes)
+- **Aniversário:** narração especial marcada como "Momento Especial"
+- **Marco de conquista:** badge desbloqueada, narração celebratória
+- **Insight semanal:** resumo de atividade + humor dominante
+
+Aparecem na timeline com badge diferenciada (IA automático vs entrada manual).
+
+### Regras do Diário
+
+| Regra | Valor |
+|---|---|
+| Input mínimo | 3 chars (texto) ou 1 foto ou 5s áudio |
+| Input máximo | 2000 caracteres |
+| Fotos por entrada | Máximo 5, comprimidas WebP |
+| Narração IA | Máximo 150 palavras, 1ª pessoa do pet |
+| Humor | Obrigatório (seleção manual ou inferência IA) |
+| Tags | Sugeridas pela IA, editáveis pelo tutor |
+| Tempo de geração | Menos de 5 segundos |
+| Embedding | Gerado automaticamente ao publicar |
+| RAG context | Top 5 memórias relevantes na narração |
+| Idioma | Segue idioma do tutor via i18n.language |
+| Momento especial | Tutor marca ou IA detecta automaticamente |
+| Edição posterior | Tutor pode editar texto, narração regenera |
+| Exclusão | Soft delete, embedding mantido no RAG |
+
+### Pipeline de publicação (sequência)
+
+```
+1. Salva diary_entry no banco
+2. Salva mood_log
+3. Atualiza pets.current_mood
+4. Incrementa pets.total_diary_entries
+5. Comprime fotos (WebP 3 tamanhos)
+6. Gera embedding do texto → pet_embeddings
+7. Registra rag_conversation (auditoria)
+8. Verifica se deve gerar insight semanal
+9. Verifica se é marco para conquista
+```
 
 ---
 
@@ -744,6 +860,102 @@ no parâmetro `language` de toda chamada a Edge Functions que usam IA.
 - Análise foto: JSON completo (identificação, saúde, humor, ambiente), NUNCA diagnosticar, comparar via RAG
 - Insight semanal: max 60 palavras, específico, acionável
 - Model: `claude-sonnet-4-20250514`
+
+---
+
+## 9.3 ALDEIA — Rede Solidária (pós-MVP)
+
+### Conceito
+Micro-rede de proteção hiperlocal onde tutores, pets, parceiros e a IA colaboram.
+3 modos: Escudo (passivo), Círculo (ativo — SOS/favores), Praça (social — feed/eventos).
+5 participantes: Tutores, Pets (com presença própria), Parceiros, Guardiões, ONGs.
+5 níveis: Observador → Membro → Guardião → Ancião → Fundador.
+
+### Documentação completa
+| Arquivo | Conteúdo |
+|---------|----------|
+| `aldeia_spec_unificada.md` | Spec completa: 15 seções, conceito, participantes, 3 modos, motivação/vaidade, 9 funcionalidades inéditas, eventos, Pet-Credits, confiança, rankings, avatares IA, i18n, integração, notificações, tabelas, diferenciais |
+| `aldeia_db_telas_spec.md` | Modelo de dados: 22 tabelas SQL (~328 colunas), mapa de navegação (7 telas + 9 modais), mapa SQL→TypeScript (25+ types), ordem de criação (26 passos) |
+| `aldeia_avatares_spec.md` | Sistema de avatares IA: cold start, templates 12 países, i18n, jornada 7 dias, transição gradual |
+| `aldeia_vaidade_avatares_spec.md` | Vaidade do tutor: Admirar, galeria IA, cartão QR, retrospectiva, rankings por cuidado real, avatares ultra-realistas |
+
+### Banco de dados da Aldeia (22 tabelas)
+```
+-- Core
+aldeia_communities        -- Aldeias (nome, polígono geo, stats, avatar_count)
+aldeia_members            -- Tutores na Aldeia (level, karma, trust, credits, verificação)
+
+-- Feed e social
+aldeia_feed               -- Posts (post, story, alert, event_share, achievement, ai_generated)
+aldeia_feed_reactions      -- Admirações e comentários (1 admiração/user/pet/dia)
+aldeia_pet_graph          -- Grafo social dos pets (best_friend, friend, acquaintance, neutral, avoid)
+
+-- Favores e SOS
+aldeia_favors             -- Favores (walk, care, transport, feeding, grooming, other)
+aldeia_sos                -- Emergências (medical, lost_pet, urgent_help) com proxy_data JSONB
+aldeia_sos_responses      -- Respostas ao SOS (on_my_way, can_help, sighting, info, found)
+aldeia_reviews            -- Avaliações mútuas pós-favor (4 dimensões + overall)
+
+-- Eventos
+aldeia_events             -- Eventos (walk, fair, vaccination, social, rescue, workshop, adoption)
+aldeia_event_attendees    -- Confirmações + check-in GPS
+
+-- Alertas e classificados
+aldeia_alerts             -- Alertas comunitários (danger, warning, info, noise, health)
+aldeia_classifieds        -- Classificados solidários (donation, exchange, lend)
+
+-- Economia e parceiros
+aldeia_partners           -- Parceiros verificados (vet, pet_shop, groomer, walker, hotel, trainer, ong)
+aldeia_pet_credits_log    -- Histórico de créditos (ganho/gasto/saldo)
+aldeia_rankings           -- Rankings mensais (5 tipos)
+
+-- IA e memória
+aldeia_health_alerts      -- Epidemiologia IA (outbreak, poisoning, seasonal, parasite, behavioral)
+aldeia_memorials          -- Memoriais de pets falecidos
+aldeia_memorial_messages  -- Mensagens no memorial
+
+-- Avatares
+avatar_templates          -- Templates por região/idioma (country_code, locale, writing_style, vocabulary)
+avatar_interactions       -- Log interações tutor real × avatar
+
+-- Colunas extras em tabelas existentes
+pets                      -- +is_avatar, +avatar_template_id, +aldeia_friends_count, +aldeia_admirations, +is_deceased
+users                     -- +is_avatar, +avatar_persona, +proof_of_love, +aldeia_id
+```
+
+### Funcionalidades exclusivas (ninguém no mundo tem)
+1. Grafo social DO PET (não do tutor)
+2. Inteligência coletiva de saúde (epidemiologia IA)
+3. Contágio emocional (mapa de humor coletivo)
+4. SOS com proxy automático de prontuário
+5. Busca de pet perdido com IA preditiva de rota
+6. Match de afinidade pet-pet por IA
+7. Memória coletiva da Aldeia (RAG comunitário)
+8. Previsão de necessidade (IA preditiva)
+9. Memorial comunitário de pets falecidos
+10. Aldeia Viva com avatares IA desde dia 1 (resolve cold start)
+11. Avatares ultra-realistas com i18n regional (12 países)
+12. Tutorial vivencial (aprende fazendo, não lendo)
+13. Vaidade baseada em cuidado real (Admirar, não like)
+14. Cartão compartilhável com QR Code (marketing viral)
+15. Retrospectiva anual gerada por IA
+
+### Protótipos da Aldeia (13 telas — identidade v6)
+| Arquivo | Tela | Interatividade |
+|---------|------|----------------|
+| `aldeia_home_screen.jsx` | Home com 4 abas (Feed, Mapa, SOS, Mais) | 4 abas clicáveis, admirar, SOS banner |
+| `aldeia_pet_profile_screen.jsx` | Perfil Público do Pet (vitrine) | 4 abas, admirar, cartão compartilhável QR |
+| `aldeia_sos_details_screen.jsx` | Detalhes do SOS (busca em tempo real) | 4 abas (mapa, prontuário, timeline, equipe) |
+| `aldeia_event_details_screen.jsx` | Detalhes do Evento | 4 abas, RSVP confirmar/talvez, IA alertas |
+| `aldeia_rankings_screen.jsx` | Rankings da Aldeia | 5 abas, pódio visual, comparação entre Aldeias |
+| `aldeia_partner_list_screen.jsx` | Lista de Parceiros | Filtros por tipo, busca |
+| `aldeia_partner_profile_screen.jsx` | Perfil do Parceiro | Descontos PoL, avaliações, ligar/ir |
+| `aldeia_modal_new_post.jsx` | Modal: Novo Post | Seletor pet, voz/foto AI-first |
+| `aldeia_modal_sos_type.jsx` | Modal: Tipo de SOS | 3 cards (médico, perdido, urgente) |
+| `aldeia_modal_new_event.jsx` | Modal: Criar Evento | 6 chips tipo, data/hora/local |
+| `aldeia_modal_new_favor.jsx` | Modal: Pedir Favor | Tipo, voz AI-first, urgente toggle, créditos |
+| `aldeia_modal_new_classified.jsx` | Modal: Oferecer Item | Categoria, condição, oferta, foto IA |
+| `aldeia_modal_review.jsx` | Modal: Avaliação Pós-Favor | 4 ratings estrelas interativas |
 
 ---
 
@@ -870,7 +1082,7 @@ errors.*     → mensagens de erro (voz do pet)
 ### 11.1 Princípio Fundamental
 > **Cada arquivo tem uma única razão para mudar. Cada camada tem uma única responsabilidade.**
 
-O app VAI escalar — de 12 tabelas MVP para 37+ tabelas, de 2 telas para 25+, de 1 tutor para
+O app VAI escalar — de 12 tabelas MVP para 59+ tabelas (37 core + 22 Aldeia), de 2 telas para 30+, de 1 tutor para
 milhões. Toda decisão de código DEVE considerar esse crescimento. Código que "funciona hoje"
 mas não escala é débito técnico — evitar desde o início.
 
@@ -1271,9 +1483,13 @@ A ordem dos providers no `app/_layout.tsx` é CRÍTICA e DEVE ser mantida:
 | Narração | Texto gerado pela IA na voz do pet |
 | Mood | Humor: ecstatic, happy, calm, tired, anxious, sad, playful, sick |
 | Health Score | 0-100 calculado pela IA |
-| Aldeia | Comunidade local (pós-MVP) |
-| Pet-Credits | Moeda solidária (pós-MVP) |
-| Proof of Love | Score de cuidado ativo (pós-MVP) |
+| Aldeia | Micro-rede solidária hiperlocal (pós-MVP — 22 tabelas, 13 telas) |
+| Aldeia Viva | Sistema de avatares IA para cold start |
+| Admirar | Reconhecimento de cuidado real (substitui o like) |
+| Pet-Credits | Moeda solidária de reciprocidade (não é dinheiro) |
+| Proof of Love | Score de cuidado ativo (none → bronze → silver → gold → diamond) |
+| Grafo Social do Pet | Rede de amizades entre pets (não tutores) |
+| SOS Proxy | Compartilhamento automático de dados médicos em emergência |
 | Bucket | Pasta no Supabase Storage |
 | Edge Function | Função serverless Supabase (Deno) |
 | RLS | Row Level Security — PostgreSQL |
@@ -1286,11 +1502,30 @@ Todos em `docs/prototypes/`. São referência de **layout e dados**, NÃO de cor
 A paleta deste CLAUDE.md (laranja + azul petróleo, dark) prevalece SEMPRE.
 Os protótipos antigos usam emojis — no código real, substituir por ícones Lucide.
 
-### Protótipos com identidade v5 (DEFINITIVA):
+### Protótipos com identidade v5/v6 (DEFINITIVA):
 | Arquivo | Conteúdo | Status |
 |---------|----------|--------|
 | `petaulife_login_v5.jsx` | Login + Biometria + Cadastro completo | ✅ v5 definitivo |
-| `petaulife_hub_v4.jsx` | Hub Meus Pets + Drawer Menu + Add Pet | ✅ v4 zero emojis |
+| `petaulife_hub_v6.jsx` | Hub com card Aldeia + card Tutor + cards Pets | ✅ v6 definitivo |
+| `petaulife_pet_dashboard.jsx` | Dashboard do Pet conectando 12 funcionalidades | ✅ v6 |
+| `petaulife_diary_new_entry.jsx` | Diário nova entrada (5 etapas AI-first) | ✅ v6 |
+
+### Protótipos da Aldeia (identidade v6 — 13 telas):
+| Arquivo | Conteúdo | Status |
+|---------|----------|--------|
+| `aldeia_home_screen.jsx` | Home 4 abas (Feed, Mapa, SOS, Mais) | ✅ v6 |
+| `aldeia_pet_profile_screen.jsx` | Perfil Público do Pet (vitrine + Admirar) | ✅ v6 |
+| `aldeia_sos_details_screen.jsx` | SOS (mapa busca, prontuário proxy, timeline) | ✅ v6 |
+| `aldeia_event_details_screen.jsx` | Evento (confirmações, check-in, IA alertas) | ✅ v6 |
+| `aldeia_rankings_screen.jsx` | Rankings (5 abas, pódio, Aldeia vs Aldeia) | ✅ v6 |
+| `aldeia_partner_list_screen.jsx` | Lista Parceiros (filtros, busca) | ✅ v6 |
+| `aldeia_partner_profile_screen.jsx` | Perfil Parceiro (descontos PoL, avaliações) | ✅ v6 |
+| `aldeia_modal_new_post.jsx` | Modal: Novo Post (pet, voz/foto AI-first) | ✅ v6 |
+| `aldeia_modal_sos_type.jsx` | Modal: Tipo SOS (médico, perdido, urgente) | ✅ v6 |
+| `aldeia_modal_new_event.jsx` | Modal: Criar Evento (tipo, data, local) | ✅ v6 |
+| `aldeia_modal_new_favor.jsx` | Modal: Pedir Favor (tipo, voz, urgente) | ✅ v6 |
+| `aldeia_modal_new_classified.jsx` | Modal: Oferecer Item (categoria, foto IA) | ✅ v6 |
+| `aldeia_modal_review.jsx` | Modal: Avaliação Pós-Favor (4 estrelas) | ✅ v6 |
 
 ### Especificação técnica:
 | Arquivo | Conteúdo |
@@ -1300,8 +1535,13 @@ Os protótipos antigos usam emojis — no código real, substituir por ícones L
 | `erd_completo_petaulife.jsx` | ERD 37 tabelas com views/triggers/functions |
 | `pets_table_master.jsx` | Tabela pets: 95 campos, 33 filhas |
 | `tutor_table_master.jsx` | Tabela users: ~170 campos, medalhas |
-| `rede_solidaria_schema.jsx` | Rede solidária: 26 tabelas (pós-MVP) |
+| `rede_solidaria_schema.jsx` | Rede solidária: 26 tabelas (substituído por Aldeia) |
 | `media_translation_arch.jsx` | Buckets, compressão, tradução |
+| `diary_spec_completa.md` | Diário: 7 tipos, 5 tabelas SQL, Edge Functions, RAG |
+| `aldeia_spec_unificada.md` | Aldeia completa: 15 seções, merge de 4 docs |
+| `aldeia_db_telas_spec.md` | Aldeia: 22 tabelas SQL, mapa telas, types TS |
+| `aldeia_avatares_spec.md` | Avatares IA: cold start, i18n 12 países |
+| `aldeia_vaidade_avatares_spec.md` | Vaidade tutor + avatares ultra-realistas |
 
 ### Protótipos de tela (layout de referência, paleta v1 — usar cores deste CLAUDE.md):
 | Arquivo | Conteúdo |

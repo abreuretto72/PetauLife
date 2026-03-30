@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
     const schema = schemas[document_type] ?? schemas.general;
 
-    const systemPrompt = `You are a veterinary document OCR specialist for PetauLife+.
+    const systemPrompt = `You are a veterinary document OCR specialist for AuExpert.
 Extract ALL text and data from the document photo with maximum accuracy.
 Return ONLY valid JSON matching the schema. No markdown, no explanation.
 Dates must be in YYYY-MM-DD format. Convert any date format to this.

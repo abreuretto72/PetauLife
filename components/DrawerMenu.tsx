@@ -270,7 +270,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.versionText}>PetauLife+ v1.0.0-beta</Text>
+            <Text style={styles.versionText}>AuExpert v1.0.0-beta</Text>
           </View>
         </ScrollView>
       </Animated.View>

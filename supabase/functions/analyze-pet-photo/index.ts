@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
     };
     const lang = LANG_NAMES[language] ?? LANG_NAMES[language.split('-')[0]] ?? 'English';
 
-    const systemPrompt = `You are a veterinary AI visual analyst for PetauLife+, a pet care app.
+    const systemPrompt = `You are a veterinary AI visual analyst for AuExpert, a pet care app.
 Analyze the photo with maximum detail. Extract EVERYTHING visible.
 NEVER diagnose diseases — only describe what you SEE. Use terms like "suggestive of", "consistent with", "may indicate".
 If something is not visible or not assessable from the photo, set it to null.

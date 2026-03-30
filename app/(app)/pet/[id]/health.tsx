@@ -23,7 +23,6 @@ import {
   Stethoscope,
   Scissors,
   AlertTriangle,
-  Pill,
 } from 'lucide-react-native';
 
 import { rs, fs } from '../../../../hooks/useResponsive';

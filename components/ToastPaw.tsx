@@ -8,7 +8,7 @@ interface ToastPawProps {
 }
 
 /**
- * Patinha estilo logo PetauLife+ com fundo colorido arredondado.
+ * Patinha estilo logo AuExpert com fundo colorido arredondado.
  * Usada exclusivamente nos baloes de toast.
  * - Fundo verde = mensagem boa
  * - Fundo vermelho = mensagem ruim

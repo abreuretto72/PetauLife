@@ -118,14 +118,20 @@ Entradas do diário do pet. PK = `id`. FKs = `pet_id`, `user_id`.
 | **pet_id** | uuid | NO | — | FK → pets.id |
 | **user_id** | uuid | NO | — | FK → users.id |
 | **content** | text | NO | — | Texto da entrada (3-2000 chars) |
+| **input_method** | varchar(10) | NO | 'text' | 'voice', 'photo', 'text' |
 | narration | text | YES | null | Narração gerada pela IA |
 | **mood_id** | varchar(20) | NO | — | ID do humor |
+| mood_score | integer | YES | null | Score 0-100 inferido pela IA |
+| mood_source | varchar(15) | YES | 'manual' | 'manual', 'ai_suggested' |
+| **entry_type** | varchar(20) | NO | 'manual' | manual, photo_analysis, vaccine, allergy, ai_insight, milestone, mood_change |
 | tags | jsonb | YES | '[]' | Tags |
 | photos | jsonb | YES | '[]' | URLs das fotos |
 | is_special | boolean | NO | false | Entrada especial |
+| linked_photo_analysis_id | uuid | YES | null | FK → photo_analyses.id |
 | entry_date | date | NO | CURRENT_DATE | Data da entrada |
 | is_active | boolean | NO | true | Soft delete |
 | created_at | timestamptz | NO | now() | Criação |
+| updated_at | timestamptz | NO | now() | Última atualização (trigger automático) |
 
 ---
 

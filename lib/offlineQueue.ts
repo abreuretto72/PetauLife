@@ -1,11 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 
-const QUEUE_KEY = '@petaulife/offline-queue';
+const QUEUE_KEY = '@auexpert/offline-queue';
 
 export interface QueuedMutation {
   id: string;
-  type: 'createPet' | 'updatePet' | 'deletePet' | 'createDiaryEntry';
+  type: 'createPet' | 'updatePet' | 'deletePet' | 'createDiaryEntry' | 'updateDiaryEntry' | 'deleteDiaryEntry' | 'createMoodLog';
   payload: Record<string, unknown>;
   createdAt: string;
   retries: number;

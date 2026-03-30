@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueryClient } from '@tanstack/react-query';
 
-const CACHE_KEY = '@petaulife/react-query-cache';
+const CACHE_KEY = '@auexpert/react-query-cache';
 
 /**
  * Persiste o cache do React Query no AsyncStorage.
