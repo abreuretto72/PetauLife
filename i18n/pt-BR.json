@@ -1014,7 +1014,15 @@
     "recentTitle": "Conquistas recentes",
     "level": "Nivel {{level}}",
     "xpToNext": "{{xp}} XP para o proximo nivel",
-    "unlockedCount": "{{count}} / {{total}} emblemas"
+    "unlockedCount": "{{count}} / {{total}} emblemas",
+    "category_saude": "Saude",
+    "category_comportamento": "Comportamento",
+    "category_peso": "Peso",
+    "category_financeiro": "Financeiro",
+    "category_nutricao": "Nutricao",
+    "category_social": "Social",
+    "category_aventura": "Aventura",
+    "category_legado": "Legado"
   },
   "travels": {
     "screenTitle": "VIAGENS DO {{name}}",
@@ -1064,7 +1072,12 @@
     "distributionTitle": "Distribuicao de humor",
     "emptyTitle": "Nenhum dado de humor ainda",
     "emptyHint": "Adicione entradas no diario com humores para ver o grafico",
-    "streak": "{{days}} dias seguidos"
+    "streak": "{{days}} dias seguidos",
+    "trend_up": "Melhorando",
+    "trend_down": "Caindo",
+    "trend_stable": "Estavel",
+    "moodPlayful": "Brincalhao",
+    "moodSick": "Adoentado"
   },
   "plans": {
     "screenTitle": "PLANOS DO {{name}}",

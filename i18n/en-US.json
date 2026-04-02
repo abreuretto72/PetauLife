@@ -1014,7 +1014,15 @@
     "recentTitle": "Recent achievements",
     "level": "Level {{level}}",
     "xpToNext": "{{xp}} XP to next level",
-    "unlockedCount": "{{count}} / {{total}} badges"
+    "unlockedCount": "{{count}} / {{total}} badges",
+    "category_saude": "Health",
+    "category_comportamento": "Behavior",
+    "category_peso": "Weight",
+    "category_financeiro": "Expenses",
+    "category_nutricao": "Nutrition",
+    "category_social": "Social",
+    "category_aventura": "Adventure",
+    "category_legado": "Legacy"
   },
   "travels": {
     "screenTitle": "{{name}}'S TRAVELS",
@@ -1064,7 +1072,12 @@
     "distributionTitle": "Mood distribution",
     "emptyTitle": "No mood data yet",
     "emptyHint": "Add diary entries with moods to see the happiness chart",
-    "streak": "{{days}} days in a row"
+    "streak": "{{days}} days in a row",
+    "trend_up": "Improving",
+    "trend_down": "Declining",
+    "trend_stable": "Stable",
+    "moodPlayful": "Playful",
+    "moodSick": "Unwell"
   },
   "plans": {
     "screenTitle": "{{name}}'S PLANS",
