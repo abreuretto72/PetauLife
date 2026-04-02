@@ -86,7 +86,7 @@ async function saveToModule(
           const { data } = await supabase.from('vaccines').insert({
             pet_id:           petId,
             user_id:          userId,
-            name:             (extracted.vaccine_name as string) ?? (extracted.vaccine_type as string) ?? 'Vacina',
+            name:             (extracted.vaccine_name as string) ?? (extracted.vaccine_type as string) ?? i18n.t('ai.default.vaccine'),
             laboratory:       (extracted.laboratory as string) ?? null,
             batch_number:     (extracted.batch_number as string) ?? (extracted.batch as string) ?? null,
             date_administered:(extracted.date as string) ?? today,
@@ -100,9 +100,10 @@ async function saveToModule(
             linkedField.linked_vaccine_id = data.id;
             const nextDue = extracted.next_due as string | undefined;
             if (nextDue) {
+              const vaccineNameSuffix = extracted.vaccine_name ? ` ${extracted.vaccine_name}` : '';
               createFutureEvent(
                 petId, userId, diaryEntryId, 'vaccine',
-                `Revacinação ${extracted.vaccine_name ?? ''}`.trim(),
+                `${i18n.t('ai.event.revaccination')}${vaccineNameSuffix}`.trim(),
                 nextDue, true,
                 (extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? null,
                 (extracted.clinic as string) ?? null,
@@ -118,10 +119,10 @@ async function saveToModule(
             pet_id:      petId,
             user_id:     userId,
             date:        (extracted.date as string) ?? today,
-            veterinarian:(extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? 'Veterinário',
+            veterinarian:(extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? i18n.t('ai.default.veterinarian'),
             clinic:      (extracted.clinic as string) ?? (extracted.clinic_name as string) ?? null,
             type:        'checkup',
-            summary:     (extracted.diagnosis as string) ?? (extracted.summary as string) ?? classification.narration ?? 'Consulta',
+            summary:     (extracted.diagnosis as string) ?? (extracted.summary as string) ?? classification.narration ?? i18n.t('ai.expense.consultation'),
             diagnosis:   (extracted.diagnosis as string) ?? null,
             prescriptions:(extracted.prescriptions as string) ?? null,
             follow_up_at:(extracted.return_date as string) ?? null,
@@ -134,7 +135,7 @@ async function saveToModule(
               const vetName = (extracted.veterinarian as string) ?? (extracted.vet_name as string);
               createFutureEvent(
                 petId, userId, diaryEntryId, 'return_visit',
-                `Retorno${vetName ? ` · ${vetName}` : ''}`,
+                vetName ? `${i18n.t('ai.event.returnVisit')} · ${vetName}` : i18n.t('ai.event.returnVisit'),
                 returnDate, false,
                 vetName ?? null,
                 (extracted.clinic as string) ?? null,
@@ -148,9 +149,9 @@ async function saveToModule(
           const { data } = await supabase.from('medications').insert({
             pet_id:       petId,
             user_id:      userId,
-            name:         (extracted.medication_name as string) ?? 'Medicamento',
+            name:         (extracted.medication_name as string) ?? i18n.t('ai.default.medication'),
             dosage:       (extracted.dosage as string) ?? null,
-            frequency:    (extracted.frequency as string) ?? 'conforme prescrito',
+            frequency:    (extracted.frequency as string) ?? i18n.t('ai.expense.medicationFrequency'),
             start_date:   (extracted.date as string) ?? today,
             end_date:     (extracted.end_date as string) ?? null,
             prescribed_by:(extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? null,
@@ -162,7 +163,7 @@ async function saveToModule(
             if (endDate) {
               createFutureEvent(
                 petId, userId, diaryEntryId, 'medication_series',
-                `Fim do ${extracted.medication_name ?? 'medicamento'}`,
+                i18n.t('ai.event.medicationEnd'),
                 endDate, true, null, null,
               ).catch(() => {});
             }
@@ -174,7 +175,7 @@ async function saveToModule(
           const { data } = await supabase.from('exams').insert({
             pet_id:      petId,
             user_id:     userId,
-            name:        (extracted.exam_name as string) ?? 'Exame',
+            name:        (extracted.exam_name as string) ?? i18n.t('ai.default.exam'),
             date:        (extracted.date as string) ?? today,
             laboratory:  (extracted.laboratory as string) ?? (extracted.lab_name as string) ?? null,
             veterinarian:(extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? null,
@@ -187,7 +188,7 @@ async function saveToModule(
             if (examDate && new Date(examDate).getTime() > Date.now()) {
               createFutureEvent(
                 petId, userId, diaryEntryId, 'exam',
-                (extracted.exam_name as string) ?? 'Exame',
+                (extracted.exam_name as string) ?? i18n.t('ai.default.exam'),
                 examDate, false,
                 (extracted.veterinarian as string) ?? (extracted.vet_name as string) ?? null,
                 (extracted.laboratory as string) ?? (extracted.lab_name as string) ?? null,
@@ -363,9 +364,10 @@ async function saveToModule(
         case 'grooming': {
           const groomDate = (extracted.date as string) ?? today;
           const groomTime = (extracted.time as string) ?? null;
+          const groomBase = i18n.t('ai.event.grooming');
           createFutureEvent(
             petId, userId, diaryEntryId, 'grooming',
-            `Banho e tosa${extracted.establishment ? ` · ${extracted.establishment}` : ''}`,
+            extracted.establishment ? `${groomBase} · ${extracted.establishment}` : groomBase,
             groomTime ? `${groomDate}T${groomTime}:00` : `${groomDate}T09:00:00`, !groomTime,
             (extracted.professional as string) ?? null,
             (extracted.establishment as string) ?? null,
@@ -381,7 +383,7 @@ async function saveToModule(
               category:      'cuidados',
               total:         groomPrice,
               currency:      'BRL',
-              description:   (extracted.service_type as string) ?? 'Banho e tosa',
+              description:   (extracted.service_type as string) ?? i18n.t('ai.expense.grooming'),
               source:        'ai',
             });
           }
@@ -391,9 +393,10 @@ async function saveToModule(
         case 'boarding': {
           const checkIn = (extracted.check_in_date as string) ?? today;
           const checkOut = (extracted.check_out_date as string) ?? null;
+          const boardingBase = i18n.t('ai.event.boarding');
           createFutureEvent(
             petId, userId, diaryEntryId, 'boarding',
-            `Hospedagem${extracted.establishment ? ` · ${extracted.establishment}` : ''}`,
+            extracted.establishment ? `${boardingBase} · ${extracted.establishment}` : boardingBase,
             `${checkIn}T12:00:00`, true,
             (extracted.professional as string) ?? null,
             (extracted.establishment as string) ?? null,
@@ -415,7 +418,7 @@ async function saveToModule(
               category:      'hospedagem',
               total:         boardingTotal,
               currency:      'BRL',
-              description:   'Hospedagem pet',
+              description:   i18n.t('ai.expense.boarding'),
               source:        'ai',
             });
           }
@@ -424,9 +427,10 @@ async function saveToModule(
 
         case 'pet_sitter': {
           const sitterDate = (extracted.date as string) ?? today;
+          const sitterBase = i18n.t('ai.event.petSitter');
           createFutureEvent(
             petId, userId, diaryEntryId, 'pet_sitter',
-            `Pet sitter${extracted.caretaker_name ? ` · ${extracted.caretaker_name}` : ''}`,
+            extracted.caretaker_name ? `${sitterBase} · ${extracted.caretaker_name}` : sitterBase,
             `${sitterDate}T09:00:00`, true,
             (extracted.caretaker_name as string) ?? null,
             null,
@@ -442,7 +446,7 @@ async function saveToModule(
               category:      'cuidados',
               total:         sitterPrice,
               currency:      'BRL',
-              description:   'Pet sitter',
+              description:   i18n.t('ai.expense.petSitter'),
               source:        'ai',
             });
           }
@@ -452,9 +456,10 @@ async function saveToModule(
         case 'dog_walker': {
           const walkDate = (extracted.date as string) ?? today;
           const walkTime = (extracted.start_time as string) ?? null;
+          const walkerBase = i18n.t('ai.event.dogWalker');
           createFutureEvent(
             petId, userId, diaryEntryId, 'dog_walker',
-            `Passeio${extracted.walker_name ? ` · ${extracted.walker_name}` : ''}`,
+            extracted.walker_name ? `${walkerBase} · ${extracted.walker_name}` : walkerBase,
             walkTime ? `${walkDate}T${walkTime}:00` : `${walkDate}T08:00:00`, !walkTime,
             (extracted.walker_name as string) ?? null,
             null,
@@ -470,7 +475,7 @@ async function saveToModule(
               category:      'cuidados',
               total:         walkerPrice,
               currency:      'BRL',
-              description:   'Dog walker',
+              description:   i18n.t('ai.expense.dogWalker'),
               source:        'ai',
             });
           }
@@ -479,9 +484,10 @@ async function saveToModule(
 
         case 'training': {
           const trainDate = (extracted.date as string) ?? today;
+          const trainingBase = i18n.t('ai.event.training');
           createFutureEvent(
             petId, userId, diaryEntryId, 'training',
-            `Adestramento${extracted.trainer_name ? ` · ${extracted.trainer_name}` : ''}`,
+            extracted.trainer_name ? `${trainingBase} · ${extracted.trainer_name}` : trainingBase,
             `${trainDate}T10:00:00`, true,
             (extracted.trainer_name as string) ?? null,
             null,
@@ -497,7 +503,7 @@ async function saveToModule(
               category:      'treinamento',
               total:         trainPrice,
               currency:      'BRL',
-              description:   (extracted.session_type as string) ?? 'Adestramento',
+              description:   (extracted.session_type as string) ?? i18n.t('ai.expense.training'),
               source:        'ai',
             });
           }
@@ -534,7 +540,7 @@ async function saveToModule(
               category:      'funerario',
               total:         funeralCost,
               currency:      'BRL',
-              description:   (extracted.plan_name as string) ?? 'Plano funeral pet',
+              description:   (extracted.plan_name as string) ?? i18n.t('ai.expense.funeralPlan'),
               source:        'ai',
             });
           }
@@ -565,7 +571,7 @@ async function saveToModule(
               category:       purchaseExpCat,
               total:          purchaseAmount,
               currency:       'BRL',
-              description:    (extracted.product_name as string) ?? 'Compra',
+              description:    (extracted.product_name as string) ?? i18n.t('ai.expense.purchase'),
               source:         'ai',
             });
           }
@@ -655,47 +661,47 @@ async function checkMetricAlert(
   switch (metricType) {
     case 'temperature':
       if (opts.isFever) {
-        title = `Febre detectada (${value}°C)`;
-        body  = `A temperatura registrada de ${value}°C está acima do normal. Consulte um veterinário se persistir.`;
+        title = i18n.t('ai.alert.feverTitle', { value });
+        body  = i18n.t('ai.alert.feverBody', { value });
         urgency = value >= 40.5 ? 'high' : 'medium';
       }
       break;
     case 'blood_glucose':
       if (value < 60) {
-        title = `Hipoglicemia detectada (${value} mg/dL)`;
-        body  = `Glicemia baixa (${value} mg/dL). Atenção imediata necessária.`;
+        title = i18n.t('ai.alert.hypoTitle', { value });
+        body  = i18n.t('ai.alert.hypoBody', { value });
         urgency = 'high';
       } else if (value > 200) {
-        title = `Hiperglicemia detectada (${value} mg/dL)`;
-        body  = `Glicemia elevada (${value} mg/dL). Recomenda-se consulta veterinária.`;
+        title = i18n.t('ai.alert.hyperTitle', { value });
+        body  = i18n.t('ai.alert.hyperBody', { value });
         urgency = 'high';
       }
       break;
     case 'oxygen_saturation':
       if (value < 95) {
-        title = `Saturação de O₂ baixa (${value}%)`;
-        body  = `SpO2 de ${value}% está abaixo do normal. Avalie com urgência.`;
+        title = i18n.t('ai.alert.spo2Title', { value });
+        body  = i18n.t('ai.alert.spo2Body', { value });
         urgency = value < 90 ? 'high' : 'medium';
       }
       break;
     case 'blood_pressure':
       if (value > 160) {
-        title = `Pressão arterial elevada (${value} mmHg)`;
-        body  = `Pressão sistólica de ${value} mmHg está alta. Agende uma consulta.`;
+        title = i18n.t('ai.alert.bpTitle', { value });
+        body  = i18n.t('ai.alert.bpBody', { value });
         urgency = 'medium';
       }
       break;
     case 'lab_result':
       if (opts.isAbnormal && opts.markerName) {
-        title = `${opts.markerName} fora do intervalo normal (${value})`;
-        body  = `O marcador ${opts.markerName} está alterado. Verifique com seu veterinário.`;
+        title = i18n.t('ai.alert.labTitle', { marker: opts.markerName, value });
+        body  = i18n.t('ai.alert.labBody', { marker: opts.markerName });
         urgency = 'medium';
       }
       break;
     default:
       if (opts.isAbnormal) {
-        title = `Métrica clínica alterada: ${metricType}`;
-        body  = `Valor registrado: ${value}. Verificar com veterinário se necessário.`;
+        title = i18n.t('ai.alert.metricTitle', { type: metricType });
+        body  = i18n.t('ai.alert.metricBody', { value });
         urgency = 'low';
       }
   }
@@ -721,7 +727,7 @@ async function checkMetricAlert(
     title,
     body,
     action_route: `/pet/${petId}/health`,
-    action_label: 'Ver prontuário',
+    action_label: i18n.t('ai.alert.actionLabel'),
     source,
     is_active:    true,
   });

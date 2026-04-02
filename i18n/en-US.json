@@ -857,7 +857,51 @@
     "confidence": "Confidence",
     "suggestedByAI": "Suggested by AI",
     "newPhoto": "New photo",
-    "photoAnalysis": "Photo Analysis"
+    "photoAnalysis": "Photo Analysis",
+    "alert": {
+      "feverTitle": "Fever detected ({{value}}°C)",
+      "feverBody": "Recorded temperature of {{value}}°C is above normal. Consult a vet if it persists.",
+      "hypoTitle": "Hypoglycemia detected ({{value}} mg/dL)",
+      "hypoBody": "Low blood glucose ({{value}} mg/dL). Immediate attention needed.",
+      "hyperTitle": "Hyperglycemia detected ({{value}} mg/dL)",
+      "hyperBody": "High blood glucose ({{value}} mg/dL). A vet visit is recommended.",
+      "spo2Title": "Low O₂ saturation ({{value}}%)",
+      "spo2Body": "SpO2 of {{value}}% is below normal. Evaluate urgently.",
+      "bpTitle": "Elevated blood pressure ({{value}} mmHg)",
+      "bpBody": "Systolic pressure of {{value}} mmHg is high. Schedule a consultation.",
+      "labTitle": "{{marker}} out of normal range ({{value}})",
+      "labBody": "Marker {{marker}} is abnormal. Check with your vet.",
+      "metricTitle": "Clinical metric altered: {{type}}",
+      "metricBody": "Recorded value: {{value}}. Check with a vet if needed.",
+      "actionLabel": "View health record"
+    },
+    "event": {
+      "revaccination": "Revaccination",
+      "returnVisit": "Return visit",
+      "medicationEnd": "End of treatment",
+      "grooming": "Grooming",
+      "boarding": "Boarding",
+      "petSitter": "Pet sitter",
+      "dogWalker": "Walk",
+      "training": "Training"
+    },
+    "expense": {
+      "grooming": "Grooming",
+      "boarding": "Pet boarding",
+      "petSitter": "Pet sitter",
+      "dogWalker": "Dog walker",
+      "training": "Training",
+      "funeralPlan": "Pet funeral plan",
+      "purchase": "Purchase",
+      "medicationFrequency": "as prescribed",
+      "consultation": "Consultation"
+    },
+    "default": {
+      "vaccine": "Vaccine",
+      "veterinarian": "Veterinarian",
+      "medication": "Medication",
+      "exam": "Exam"
+    }
   },
   "lenses": {
     "title": "{{name}}'S LENSES",

@@ -857,7 +857,51 @@
     "confidence": "Confiança",
     "suggestedByAI": "Sugerido pela IA",
     "newPhoto": "Nova foto",
-    "photoAnalysis": "Análise de Foto"
+    "photoAnalysis": "Análise de Foto",
+    "alert": {
+      "feverTitle": "Febre detectada ({{value}}°C)",
+      "feverBody": "A temperatura registrada de {{value}}°C está acima do normal. Consulte um veterinário se persistir.",
+      "hypoTitle": "Hipoglicemia detectada ({{value}} mg/dL)",
+      "hypoBody": "Glicemia baixa ({{value}} mg/dL). Atenção imediata necessária.",
+      "hyperTitle": "Hiperglicemia detectada ({{value}} mg/dL)",
+      "hyperBody": "Glicemia elevada ({{value}} mg/dL). Recomenda-se consulta veterinária.",
+      "spo2Title": "Saturação de O₂ baixa ({{value}}%)",
+      "spo2Body": "SpO2 de {{value}}% está abaixo do normal. Avalie com urgência.",
+      "bpTitle": "Pressão arterial elevada ({{value}} mmHg)",
+      "bpBody": "Pressão sistólica de {{value}} mmHg está alta. Agende uma consulta.",
+      "labTitle": "{{marker}} fora do intervalo normal ({{value}})",
+      "labBody": "O marcador {{marker}} está alterado. Verifique com seu veterinário.",
+      "metricTitle": "Métrica clínica alterada: {{type}}",
+      "metricBody": "Valor registrado: {{value}}. Verificar com veterinário se necessário.",
+      "actionLabel": "Ver prontuário"
+    },
+    "event": {
+      "revaccination": "Revacinação",
+      "returnVisit": "Retorno",
+      "medicationEnd": "Fim do tratamento",
+      "grooming": "Banho e tosa",
+      "boarding": "Hospedagem",
+      "petSitter": "Pet sitter",
+      "dogWalker": "Passeio",
+      "training": "Adestramento"
+    },
+    "expense": {
+      "grooming": "Banho e tosa",
+      "boarding": "Hospedagem pet",
+      "petSitter": "Pet sitter",
+      "dogWalker": "Dog walker",
+      "training": "Adestramento",
+      "funeralPlan": "Plano funeral pet",
+      "purchase": "Compra",
+      "medicationFrequency": "conforme prescrito",
+      "consultation": "Consulta"
+    },
+    "default": {
+      "vaccine": "Vacina",
+      "veterinarian": "Veterinário",
+      "medication": "Medicamento",
+      "exam": "Exame"
+    }
   },
   "lenses": {
     "title": "LENTES DO {{name}}",
