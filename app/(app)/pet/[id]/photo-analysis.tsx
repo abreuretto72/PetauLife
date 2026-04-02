@@ -264,7 +264,7 @@ export default function PhotoAnalysisScreen() {
                     <ShieldCheck size={rs(14)} color={colors.success} strokeWidth={1.8} />
                     <Text style={s.healthTitle}>{t('health.score')}</Text>
                     {health.body_condition_score != null && (
-                      <Text style={s.bcsText}>BCS {health.body_condition_score}/9</Text>
+                      <Text style={s.bcsText}>{t('health.bcsLabel')} {health.body_condition_score}/9</Text>
                     )}
                   </View>
                   {['skin_coat', 'eyes', 'ears', 'mouth_teeth', 'posture_body'].map((cat) => {

@@ -190,11 +190,11 @@ export default function IdCardScreen() {
           </View>
           <View style={s.chipItem}>
             <Text style={s.chipLabel}>{t('idCard.chipImplanted')}</Text>
-            <Text style={s.chipValue}>Mar 2023</Text>
+            <Text style={s.chipValue}>—</Text>
           </View>
           <View style={s.chipItem}>
             <Text style={s.chipLabel}>{t('idCard.chipRegisteredBy')}</Text>
-            <Text style={s.chipValue}>Dra. Carla</Text>
+            <Text style={s.chipValue}>—</Text>
           </View>
         </View>
       </View>

@@ -25,18 +25,7 @@ import { supabase } from '../../lib/supabase';
 import { getErrorMessage } from '../../utils/errorMessages';
 
 const SOCIAL_TYPES = ['whatsapp', 'telegram', 'messenger', 'wechat', 'line', 'signal', 'kakaotalk', 'viber', 'discord', 'other'] as const;
-const SOCIAL_PLACEHOLDERS: Record<string, string> = {
-  whatsapp: '+55 11 99999-9999',
-  telegram: '@seuusuario',
-  messenger: 'facebook.com/seuusuario',
-  wechat: 'WeChat ID',
-  line: 'LINE ID ou @seuusuario',
-  signal: '+55 11 99999-9999',
-  kakaotalk: 'KakaoTalk ID',
-  viber: '+55 11 99999-9999',
-  discord: 'usuario#1234',
-  other: '@usuario ou link',
-};
+// Social placeholders are fetched via t('profile.socialPlaceholders.<type>') at render time
 const PROOF_DISCOUNTS: Record<string, number> = { bronze: 5, silver: 10, gold: 15, diamond: 25 };
 
 interface TutorData {
@@ -352,7 +341,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <Input label={t('tutor.socialHandle')} value={data.social_network_handle} onChangeText={(v) => update('social_network_handle', v)} placeholder={SOCIAL_PLACEHOLDERS[data.social_network_type] ?? '@usuario'} showMic={false} />
+        <Input label={t('tutor.socialHandle')} value={data.social_network_handle} onChangeText={(v) => update('social_network_handle', v)} placeholder={t(`profile.socialPlaceholders.${data.social_network_type}`, { defaultValue: t('profile.socialHandle') })} showMic={false} />
 
         {/* Privacidade */}
         <Text style={s.sectionLabel}>{t('tutor.privacy').toUpperCase()}</Text>

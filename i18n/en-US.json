@@ -143,6 +143,18 @@
       "discord": "Discord",
       "other": "Other"
     },
+    "socialPlaceholders": {
+      "whatsapp": "+1 555 999-9999",
+      "telegram": "@yourusername",
+      "messenger": "facebook.com/yourusername",
+      "wechat": "WeChat ID",
+      "line": "LINE ID or @yourusername",
+      "signal": "+1 555 999-9999",
+      "kakaotalk": "KakaoTalk ID",
+      "viber": "+1 555 999-9999",
+      "discord": "username#1234",
+      "other": "@username or link"
+    },
     "privacy": "Privacy",
     "privacyPublicProfile": "Public profile",
     "privacyPublicProfileDesc": "Other tutors can see your profile",
