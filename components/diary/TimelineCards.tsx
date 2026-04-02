@@ -12,6 +12,7 @@ import {
 } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
+import i18n from '../../i18n';
 import { getPublicUrl } from '../../lib/storage';
 import type { TimelineEvent } from './timelineTypes';
 import { DiaryModuleCard, DiaryModuleSeparator, type ModuleRow } from './DiaryModuleCard';
@@ -96,8 +97,8 @@ export const MonthSummaryCard = React.memo(({ event, t }: CardProps) => {
 export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, onRetry, onNarrationUpdated, onModuleUpdated }: DiaryCardProps) => {
   const moodData = getMoodData(event.moodId);
   const dateObj = new Date(event.date);
-  const dateStr = dateObj.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
-  const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
   // ── Pending state (saved offline, waiting for sync) ───────────────────────
   if (event.processingStatus === 'pending') {
@@ -300,8 +301,8 @@ const INTENSITY_COLOR: Record<string, string> = {
 export const AudioAnalysisCard = React.memo(({ event, t }: CardProps) => {
   const pa = event.petAudioAnalysis;
   const dateObj = new Date(event.date);
-  const dateStr = dateObj.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
-  const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -401,8 +402,8 @@ export const PhotoAnalysisCard = React.memo(({ event, t }: CardProps) => (
 export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
   const va = event.videoAnalysis;
   const dateObj = new Date(event.date);
-  const dateStr = dateObj.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
-  const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);

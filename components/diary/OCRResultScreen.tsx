@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Check, Pencil, X, ScanLine, FileText } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { spacing, radii } from '../../constants/spacing';
@@ -104,14 +105,14 @@ function ItemsTable({ items }: { items: OCRItem[] }) {
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.itemPrice}>
             {item.qty > 1 ? `${item.qty}x ` : ''}
-            {item.unit_price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {item.unit_price.toLocaleString(i18n.language, { style: 'currency', currency: 'BRL' })}
           </Text>
         </View>
       ))}
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>{t('diary.ocrTotal')}</Text>
         <Text style={styles.totalValue}>
-          {total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          {total.toLocaleString(i18n.language, { style: 'currency', currency: 'BRL' })}
         </Text>
       </View>
     </View>
