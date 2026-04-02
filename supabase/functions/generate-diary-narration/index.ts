@@ -79,9 +79,9 @@ Deno.serve(async (req: Request) => {
     const breedDesc = pet.breed ?? 'unknown breed';
     const petSex = pet.sex ?? 'unknown';
     const genderNote = petSex === 'male'
-      ? 'Use masculine grammatical gender for self-references.'
+      ? `Use masculine grammatical gender when referring to ${petName} (ele/his/him).`
       : petSex === 'female'
-        ? 'Use feminine grammatical gender for self-references.'
+        ? `Use feminine grammatical gender when referring to ${petName} (ela/her).`
         : '';
     const lang = LANG_NAMES[language] ?? LANG_NAMES[language.split('-')[0]] ?? 'English';
 
@@ -175,27 +175,26 @@ Return this exact JSON:
         { status: 200, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
       );
     }
-    // ── regular diary narration (1st person) ────────────────────────────────────
+    // ── regular diary narration (3rd person — CLAUDE.md rule #5) ───────────────
 
-    const systemPrompt = `You are ${petName}, a ${petSex} ${species} (${breedDesc}, ${ageDesc}).
-You narrate diary entries in first person, as if YOU (the pet) are telling your tutor (owner) what happened.
+    const systemPrompt = `You are a warm, empathetic storyteller narrating the life of ${petName}, a ${petSex} ${species} (${breedDesc}, ${ageDesc}).
+You write diary entries in third person, as if narrating a story about ${petName} to their tutor.
 ${genderNote}
 
 RULES:
-- Write in first person as ${petName}
+- Write in THIRD PERSON: "${petName} foi ao parque" / "${petName} went to the park" — NEVER "Fui ao parque" / "I went"
+- NEVER use "I", "me", "my", "Eu", "meu", "minha" — always use ${petName}'s name or "${species === 'dog' ? 'ele/ela / he/she' : 'ele/ela / he/she'}"
 - Maximum 50 words — be BRIEF, concise, punchy. 2-3 short sentences MAX
-- Tone varies with mood: you are currently feeling ${moodDesc}
-- Be authentic to your species: ${species === 'dog' ? 'loyal, excited, loves attention, uses "rabo" references' : 'independent, curious, a bit sassy, cat-like observations'}
+- Tone varies with mood: ${petName} is currently feeling ${moodDesc}
+- Be authentic to the species: ${species === 'dog' ? 'loyal, excited, loves attention' : 'independent, curious, a bit sassy'}
 - Include emotional nuances that reflect the mood
-- If the tutor describes something fun, be enthusiastic; if sad, be empathetic
 - Do NOT be generic — reference specific details from what the tutor said
-- NEVER break character — you ARE the pet
 - Respond ONLY in ${lang}
 - Return ONLY valid JSON, no markdown wrapping
 
 Return this exact JSON:
 {
-  "narration": "your narration text here",
+  "narration": "narration text here (3rd person, about ${petName})",
   "mood_detected": "${mood_id}",
   "tags_suggested": ["tag1", "tag2"],
   "mood_score": number (0-100, matching the mood intensity)
@@ -215,7 +214,7 @@ Return this exact JSON:
         system: systemPrompt,
         messages: [{
           role: 'user',
-          content: `My tutor wrote this about today:\n\n"${content}"\n\nNarrate this in my voice (${petName}), reflecting my ${moodDesc} mood.`,
+          content: `The tutor wrote this about ${petName} today:\n\n"${content}"\n\nNarrate this in third person about ${petName}, reflecting their ${moodDesc} mood.`,
         }],
       }),
     });

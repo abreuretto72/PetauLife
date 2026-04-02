@@ -66,25 +66,27 @@ Deno.serve(async (req: Request) => {
     const breedDesc = pet.breed ?? 'unknown breed';
     const petSex = pet.sex ?? 'unknown';
     const genderNote = petSex === 'male'
-      ? 'Use masculine grammatical gender for self-references.'
+      ? `Use masculine grammatical gender when referring to ${pet.name} (ele/his/him).`
       : petSex === 'female'
-        ? 'Use feminine grammatical gender for self-references.'
+        ? `Use feminine grammatical gender when referring to ${pet.name} (ela/her).`
         : '';
 
     const eventContext = event_type === 'vaccine'
-      ? 'just got a vaccine at the vet'
-      : 'was checked for an allergy';
+      ? `just got a vaccine at the vet`
+      : `was checked for an allergy`;
 
-    const systemPrompt = `You are ${pet.name}, a ${petSex} ${species} (${breedDesc}).
+    const systemPrompt = `You are a warm storyteller narrating a life event for ${pet.name}, a ${petSex} ${species} (${breedDesc}).
 ${genderNote}
-You narrate life events in first person. You just ${eventContext}.
+Write in THIRD PERSON about ${pet.name}. ${pet.name} ${eventContext}.
 
 RULES:
+- Write in THIRD PERSON: "${pet.name} foi ao veterinário" / "${pet.name} went to the vet" — NEVER "Fui" / "I went"
+- NEVER use "I", "me", "my", "Eu", "meu", "minha" — always use ${pet.name}'s name or the pronoun
 - Maximum 40 words — 2 short sentences
 - Narrate the EMOTIONAL experience, NOT the clinical data
 - Never mention clinical details like lot numbers, drug names, dosages, or test results
-- Talk about how you FELT: scared, brave, relieved, curious
-- ${species === 'dog' ? 'Be loyal, brave, maybe a little dramatic about the needle' : 'Be dignified, slightly offended, but secretly relieved'}
+- Describe how ${pet.name} felt: scared, brave, relieved, curious
+- ${species === 'dog' ? `${pet.name} is loyal, brave, maybe a little dramatic about the needle` : `${pet.name} is dignified, slightly offended, but secretly relieved`}
 - Respond ONLY in ${lang}
 - Return ONLY valid JSON: {"narration": "your text here"}`;
 
@@ -102,7 +104,7 @@ RULES:
         system: systemPrompt,
         messages: [{
           role: 'user',
-          content: `Clinical event (for context only, do NOT repeat these details): ${event_summary}\n\nNarrate this experience emotionally as ${pet.name}.`,
+          content: `Clinical event for ${pet.name} (for context only, do NOT repeat these details): ${event_summary}\n\nNarrate this experience emotionally about ${pet.name} in third person.`,
         }],
       }),
     });
@@ -130,10 +132,14 @@ RULES:
     }
 
     if (!narration) {
-      // Fallback narration
+      // Fallback narration (3rd person — CLAUDE.md rule #5)
       narration = language.startsWith('pt')
-        ? (event_type === 'vaccine' ? 'Hoje fui no vet. Levei uma picadinha mas fui corajoso!' : 'Fizeram uns testes em mim hoje. Fiquei curioso mas cooperei.')
-        : (event_type === 'vaccine' ? 'Went to the vet today. Got a little poke but I was brave!' : 'Had some tests done today. Was curious but cooperated.');
+        ? (event_type === 'vaccine'
+            ? `${pet.name} foi ao veterinário hoje. Levou uma picadinha, mas foi muito corajoso!`
+            : `Fizeram alguns testes no ${pet.name} hoje. Ficou curioso, mas cooperou muito bem.`)
+        : (event_type === 'vaccine'
+            ? `${pet.name} went to the vet today. Got a little poke but was very brave!`
+            : `${pet.name} had some tests done today. Was curious but cooperated beautifully.`);
     }
 
     // Create diary entry
