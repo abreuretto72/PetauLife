@@ -18,6 +18,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { validateAuth } from '../_shared/validate-auth.ts';
 
 const OPENAI_API_KEY       = Deno.env.get('OPENAI_API_KEY')!;
 const SUPABASE_URL         = Deno.env.get('SUPABASE_URL')!;
@@ -62,15 +63,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const authResult = await validateAuth(req, CORS);
+    if (authResult instanceof Response) return authResult;
+
     const {
       text,
       pet_id,
-      user_id,
+      user_id: _user_id,
       diary_entry_id,
       category,
       importance = 0.5,
       save       = true,
     } = await req.json();
+    const user_id = authResult.userId;
 
     if (!text || !pet_id) {
       return new Response(
