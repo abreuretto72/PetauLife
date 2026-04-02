@@ -846,7 +846,9 @@
     "catOther": "Other",
     "records": "records",
     "empty": "No expenses recorded",
-    "emptyHint": "Scan receipts or invoices via the diary to track your pet's expenses here."
+    "emptyHint": "Scan receipts or invoices via the diary to track your pet's expenses here.",
+    "screenTitle": "{{name}}'S EXPENSES",
+    "screenSubtitle": "Vet, food, pharmacy and care costs"
   },
   "ai": {
     "analyzing": "Analyzing...",

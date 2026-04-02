@@ -846,7 +846,9 @@
     "catOther": "Outros",
     "records": "registros",
     "empty": "Sem gastos registrados",
-    "emptyHint": "Escaneie notas fiscais ou comprovantes pelo diário para registrar gastos do seu pet aqui."
+    "emptyHint": "Escaneie notas fiscais ou comprovantes pelo diário para registrar gastos do seu pet aqui.",
+    "screenTitle": "GASTOS DE {{name}}",
+    "screenSubtitle": "Consultas, alimentacao, farmacia e cuidados"
   },
   "ai": {
     "analyzing": "Analisando...",
