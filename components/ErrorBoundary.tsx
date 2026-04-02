@@ -29,7 +29,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // TODO: log to Supabase or external service
     console.error('[ErrorBoundary]', error, info.componentStack);
   }
 

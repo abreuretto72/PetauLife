@@ -26,6 +26,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/Toast';
 import { getErrorMessage } from '../../utils/errorMessages';
 import { useConsent } from '../../hooks/useConsent';
+import { supabase } from '../../lib/supabase';
 
 type ConfirmOptions = {
   text: string;
@@ -68,7 +69,21 @@ export default function SettingsScreen() {
       noLabel: t('common.cancel'),
     });
     if (!yes) return;
-    // TODO: implementar exclusao de conta
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('No session');
+
+      const { error } = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+
+      await logout();
+      router.replace('/(auth)/login');
+    } catch (err) {
+      toast(getErrorMessage(err), 'error');
+    }
   };
 
   return (
