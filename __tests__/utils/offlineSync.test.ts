@@ -152,6 +152,57 @@ describe('processQueue — successful mutations', () => {
     expect(mockCreateDiaryEntry).toHaveBeenCalled();
   });
 
+  it('syncs updateDiaryEntry — splats id out, passes rest as updates', async () => {
+    const mutation = makeMutation({
+      type: 'updateDiaryEntry',
+      payload: { id: 'entry-1', text: 'updated', mood: 'happy' },
+    });
+    mockGetQueue.mockResolvedValueOnce([mutation]).mockResolvedValueOnce([]);
+    mockUpdateDiaryEntry.mockResolvedValue({});
+
+    await processQueue();
+
+    expect(mockUpdateDiaryEntry).toHaveBeenCalledWith('entry-1', { text: 'updated', mood: 'happy' });
+  });
+
+  it('syncs deleteDiaryEntry', async () => {
+    const mutation = makeMutation({ type: 'deleteDiaryEntry', payload: { id: 'entry-xyz' } });
+    mockGetQueue.mockResolvedValueOnce([mutation]).mockResolvedValueOnce([]);
+    mockDeleteDiaryEntry.mockResolvedValue({});
+
+    await processQueue();
+
+    expect(mockDeleteDiaryEntry).toHaveBeenCalledWith('entry-xyz');
+  });
+
+  it.each([
+    ['createMoodLog', 'mockCreateMoodLog'],
+    ['createVaccine', 'mockCreateVaccine'],
+    ['createExam', 'mockCreateExam'],
+    ['createMedication', 'mockCreateMedication'],
+    ['createConsultation', 'mockCreateConsultation'],
+    ['createSurgery', 'mockCreateSurgery'],
+    ['createAllergy', 'mockCreateAllergy'],
+  ] as const)('syncs %s', async (mutationType) => {
+    const mockFnMap: Record<string, jest.Mock> = {
+      createMoodLog: mockCreateMoodLog,
+      createVaccine: mockCreateVaccine,
+      createExam: mockCreateExam,
+      createMedication: mockCreateMedication,
+      createConsultation: mockCreateConsultation,
+      createSurgery: mockCreateSurgery,
+      createAllergy: mockCreateAllergy,
+    };
+    const mutation = makeMutation({ type: mutationType as QueuedMutation['type'], payload: { pet_id: 'p1' } });
+    mockGetQueue.mockResolvedValueOnce([mutation]).mockResolvedValueOnce([]);
+    mockFnMap[mutationType].mockResolvedValue({});
+
+    const result = await processQueue();
+
+    expect(mockFnMap[mutationType]).toHaveBeenCalled();
+    expect(result.synced).toBe(1);
+  });
+
   it('invalidates pets cache when synced > 0', async () => {
     const mutation = makeMutation({ type: 'createPet', payload: { name: 'Rex' } });
     mockGetQueue.mockResolvedValueOnce([mutation]).mockResolvedValueOnce([]);

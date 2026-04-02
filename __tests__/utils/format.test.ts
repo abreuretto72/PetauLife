@@ -4,10 +4,13 @@
  */
 
 import {
+  formatDate,
+  formatRelativeDate,
   formatWeight,
   formatAge,
   truncateText,
   getHealthLevel,
+  calcAgeMonths,
   getDateOrder,
   getDatePlaceholder,
   formatDateInput,
@@ -204,5 +207,117 @@ describe('isoToDateInput', () => {
   it('returns empty string for missing ISO segments', () => {
     // split('-') on '' gives [''], so yyyy exists but mm/dd are undefined
     expect(isoToDateInput('', 'pt-BR')).toBe('');
+  });
+});
+
+// ── formatDate ────────────────────────────────────────────────────────────────
+
+describe('formatDate', () => {
+  it('returns em dash for null', () => expect(formatDate(null)).toBe('—'));
+  it('returns em dash for undefined', () => expect(formatDate(undefined)).toBe('—'));
+  it('returns em dash for empty string', () => expect(formatDate('')).toBe('—'));
+  it('returns em dash for invalid date string', () => expect(formatDate('not-a-date')).toBe('—'));
+
+  it('formats a valid ISO date (result contains year)', () => {
+    const result = formatDate('2024-06-15', 'pt-BR');
+    expect(result).toContain('2024');
+    expect(result.length).toBeGreaterThan(4);
+  });
+
+  it('accepts en-US locale without throwing', () => {
+    const result = formatDate('2024-06-15', 'en-US');
+    expect(result).toContain('2024');
+  });
+});
+
+// ── formatRelativeDate ────────────────────────────────────────────────────────
+
+describe('formatRelativeDate', () => {
+  it('returns em dash for null', () => expect(formatRelativeDate(null)).toBe('—'));
+  it('returns em dash for undefined', () => expect(formatRelativeDate(undefined)).toBe('—'));
+  it('returns em dash for invalid date', () => expect(formatRelativeDate('bad')).toBe('—'));
+
+  it('returns "agora" for a date < 1 min ago (pt-BR)', () => {
+    const justNow = new Date(Date.now() - 30_000).toISOString();
+    expect(formatRelativeDate(justNow, 'pt-BR')).toBe('agora');
+  });
+
+  it('returns "just now" for < 1 min ago (en-US)', () => {
+    const justNow = new Date(Date.now() - 30_000).toISOString();
+    expect(formatRelativeDate(justNow, 'en-US')).toBe('just now');
+  });
+
+  it('returns "há X min" for 30 minutes ago (pt-BR)', () => {
+    const thirtyMin = new Date(Date.now() - 30 * 60_000).toISOString();
+    expect(formatRelativeDate(thirtyMin, 'pt-BR')).toBe('há 30 min');
+  });
+
+  it('returns "Xm ago" for 30 minutes ago (en-US)', () => {
+    const thirtyMin = new Date(Date.now() - 30 * 60_000).toISOString();
+    expect(formatRelativeDate(thirtyMin, 'en-US')).toBe('30m ago');
+  });
+
+  it('returns "há Xh" for 3 hours ago (pt-BR)', () => {
+    const threeHours = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    expect(formatRelativeDate(threeHours, 'pt-BR')).toBe('há 3h');
+  });
+
+  it('returns "Xh ago" for 3 hours ago (en-US)', () => {
+    const threeHours = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    expect(formatRelativeDate(threeHours, 'en-US')).toBe('3h ago');
+  });
+
+  it('returns "ontem" for exactly 1 day ago (pt-BR)', () => {
+    const yesterday = new Date(Date.now() - 25 * 3_600_000).toISOString();
+    expect(formatRelativeDate(yesterday, 'pt-BR')).toBe('ontem');
+  });
+
+  it('returns "yesterday" for 1 day ago (en-US)', () => {
+    const yesterday = new Date(Date.now() - 25 * 3_600_000).toISOString();
+    expect(formatRelativeDate(yesterday, 'en-US')).toBe('yesterday');
+  });
+
+  it('returns "há X dias" for 3 days ago (pt-BR)', () => {
+    const threeDays = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    expect(formatRelativeDate(threeDays, 'pt-BR')).toBe('há 3 dias');
+  });
+
+  it('returns "Xd ago" for 3 days ago (en-US)', () => {
+    const threeDays = new Date(Date.now() - 3 * 86_400_000).toISOString();
+    expect(formatRelativeDate(threeDays, 'en-US')).toBe('3d ago');
+  });
+
+  it('falls back to formatDate for dates >= 7 days ago (result contains year)', () => {
+    const twoWeeks = new Date(Date.now() - 14 * 86_400_000).toISOString();
+    const result = formatRelativeDate(twoWeeks, 'pt-BR');
+    expect(result).toContain(new Date(twoWeeks).getFullYear().toString());
+  });
+});
+
+// ── calcAgeMonths ─────────────────────────────────────────────────────────────
+
+describe('calcAgeMonths', () => {
+  it('returns 0 for today', () => {
+    const today = new Date().toISOString().split('T')[0];
+    expect(calcAgeMonths(today)).toBe(0);
+  });
+
+  it('returns positive months for a past date', () => {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const iso = oneYearAgo.toISOString().split('T')[0];
+    // Allow ±1 month for day-of-month edge cases
+    const result = calcAgeMonths(iso);
+    expect(result).toBeGreaterThanOrEqual(11);
+    expect(result).toBeLessThanOrEqual(13);
+  });
+
+  it('returns ~24 months for 2 years ago', () => {
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const iso = twoYearsAgo.toISOString().split('T')[0];
+    const result = calcAgeMonths(iso);
+    expect(result).toBeGreaterThanOrEqual(23);
+    expect(result).toBeLessThanOrEqual(25);
   });
 });
