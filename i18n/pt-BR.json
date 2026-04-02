@@ -1203,7 +1203,22 @@
     "status_missed": "Não realizado",
     "actionConfirm": "Confirmar",
     "actionReschedule": "Reagendar",
-    "actionDone": "Concluído"
+    "actionDone": "Concluído",
+    "typeVaccine": "Vacinação",
+    "typeExam": "Exame",
+    "typeMedication": "Medicação",
+    "typeConsultation": "Consulta veterinária",
+    "typeWeight": "Peso registrado: {{value}} {{unit}}",
+    "typeExpense": "Gasto",
+    "typeTravel": "Viagem registrada",
+    "typeTravelTo": "Viagem: {{destination}}",
+    "typeConnection": "Encontro registrado",
+    "typeConnectionWith": "Encontro com {{name}}",
+    "typeSurgery": "Cirurgia registrada",
+    "typeAllergy": "Alergia registrada",
+    "typeDiaryEntry": "Registro no diário",
+    "subRecurring": "Recorrente diário",
+    "subWith": "Com {{name}}"
   },
   "friends": {
     "screenTitle": "AMIGOS DO {{name}}",

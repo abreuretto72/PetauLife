@@ -1203,7 +1203,22 @@
     "status_missed": "Missed",
     "actionConfirm": "Confirm",
     "actionReschedule": "Reschedule",
-    "actionDone": "Done"
+    "actionDone": "Done",
+    "typeVaccine": "Vaccination",
+    "typeExam": "Exam",
+    "typeMedication": "Medication",
+    "typeConsultation": "Vet consultation",
+    "typeWeight": "Weight recorded: {{value}} {{unit}}",
+    "typeExpense": "Expense",
+    "typeTravel": "Travel logged",
+    "typeTravelTo": "Trip: {{destination}}",
+    "typeConnection": "Meeting logged",
+    "typeConnectionWith": "Meeting with {{name}}",
+    "typeSurgery": "Surgery logged",
+    "typeAllergy": "Allergy logged",
+    "typeDiaryEntry": "Diary entry",
+    "subRecurring": "Daily recurring",
+    "subWith": "With {{name}}"
   },
   "friends": {
     "screenTitle": "{{name}}'S FRIENDS",

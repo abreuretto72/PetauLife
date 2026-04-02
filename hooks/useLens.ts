@@ -7,6 +7,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import i18n from '../i18n';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -644,7 +645,7 @@ export async function fetchDayItems(
         sub = [d.exam_name, d.lab_name].filter(Boolean).join(' · ');
         break;
       case 'medication':
-        sub = (d.is_recurring ? `Recorrente diário` : d.medication_name ?? '') as string;
+        sub = (d.is_recurring ? i18n.t('agenda.subRecurring') : d.medication_name ?? '') as string;
         break;
       case 'weight':
         sub = `${d.value ?? ''} ${d.unit ?? 'kg'}`.trim();
@@ -656,7 +657,7 @@ export async function fetchDayItems(
         sub = [d.destination, d.travel_type].filter(Boolean).join(' · ');
         break;
       case 'connection':
-        sub = d.friend_name ? `Com ${d.friend_name}` : '';
+        sub = d.friend_name ? i18n.t('agenda.subWith', { name: d.friend_name }) : '';
         break;
       default:
         sub = e.narration ? e.narration.slice(0, 60) : '';
@@ -704,18 +705,19 @@ export async function fetchDayItems(
 }
 
 function buildDiaryTitle(primaryType: string, d: Record<string, unknown>): string {
+  const t = (key: string, opts?: Record<string, unknown>) => i18n.t(key, opts);
   switch (primaryType) {
-    case 'vaccine':      return `Vacinação · ${d.vaccine_name ?? ''}`.trimEnd().replace(/ ·$/, '');
-    case 'exam':         return `Exame · ${d.exam_name ?? ''}`.trimEnd().replace(/ ·$/, '');
-    case 'medication':   return `Medicação · ${d.medication_name ?? ''}`.trimEnd().replace(/ ·$/, '');
-    case 'consultation': return d.clinic ? `Consulta · ${d.clinic}` : 'Consulta veterinária';
-    case 'weight':       return `Peso registrado: ${d.value ?? '?'} ${d.unit ?? 'kg'}`;
-    case 'expense':      return `${d.merchant_name ?? 'Gasto'} · ${d.total ? `R$ ${d.total}` : ''}`.trimEnd().replace(/ ·$/, '');
-    case 'travel':       return d.destination ? `Viagem: ${d.destination}` : 'Viagem registrada';
-    case 'connection':   return d.friend_name ? `Encontro com ${d.friend_name}` : 'Encontro registrado';
-    case 'surgery':      return 'Cirurgia registrada';
-    case 'allergy':      return 'Alergia registrada';
-    default:             return 'Registro no diário';
+    case 'vaccine':      return `${t('agenda.typeVaccine')}${d.vaccine_name ? ` · ${d.vaccine_name}` : ''}`;
+    case 'exam':         return `${t('agenda.typeExam')}${d.exam_name ? ` · ${d.exam_name}` : ''}`;
+    case 'medication':   return `${t('agenda.typeMedication')}${d.medication_name ? ` · ${d.medication_name}` : ''}`;
+    case 'consultation': return d.clinic ? `${t('agenda.typeConsultation').split(' ')[0]} · ${d.clinic}` : t('agenda.typeConsultation');
+    case 'weight':       return t('agenda.typeWeight', { value: d.value ?? '?', unit: d.unit ?? 'kg' });
+    case 'expense':      return `${d.merchant_name ?? t('agenda.typeExpense')}${d.total ? ` · ${d.total}` : ''}`.trimEnd().replace(/ ·$/, '');
+    case 'travel':       return d.destination ? t('agenda.typeTravelTo', { destination: d.destination }) : t('agenda.typeTravel');
+    case 'connection':   return d.friend_name ? t('agenda.typeConnectionWith', { name: d.friend_name }) : t('agenda.typeConnection');
+    case 'surgery':      return t('agenda.typeSurgery');
+    case 'allergy':      return t('agenda.typeAllergy');
+    default:             return t('agenda.typeDiaryEntry');
   }
 }
 
