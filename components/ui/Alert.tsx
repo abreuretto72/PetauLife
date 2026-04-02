@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
+import { fs } from '../../hooks/useResponsive';
 
 type AlertVariant = 'success' | 'danger' | 'warning' | 'info';
 
@@ -43,6 +44,6 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontFamily: 'Sora_400Regular',
-    fontSize: 13,
+    fontSize: fs(13),
   },
 });

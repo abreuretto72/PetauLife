@@ -82,6 +82,6 @@ const styles = StyleSheet.create({
     fontSize: fs(10),
     color: colors.textDim,
     letterSpacing: 0.5,
-    marginTop: 2,
+    marginTop: rs(2),
   },
 });

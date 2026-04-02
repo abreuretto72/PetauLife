@@ -12,6 +12,7 @@ import {
 import { X } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
+import { rs, fs } from '../../hooks/useResponsive';
 
 interface ModalProps {
   visible: boolean;
@@ -73,9 +74,9 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
   },
   handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
+    width: rs(40),
+    height: rs(5),
+    borderRadius: rs(3),
     backgroundColor: colors.textGhost,
     alignSelf: 'center',
     marginTop: spacing.sm,
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 18,
+    fontSize: fs(18),
     color: colors.text,
   },
 });

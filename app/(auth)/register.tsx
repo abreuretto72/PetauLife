@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: rs(4),
-    borderRadius: 2,
+    borderRadius: rs(2),
     backgroundColor: colors.border,
   },
   progressActive: {

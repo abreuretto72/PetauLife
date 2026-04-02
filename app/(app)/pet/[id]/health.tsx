@@ -1351,7 +1351,7 @@ const styles = StyleSheet.create({
     fontFamily: 'JetBrainsMono_500Medium',
     fontSize: fs(10),
     color: colors.textDim,
-    marginTop: 2,
+    marginTop: rs(2),
   },
   vaccineDetails: {
     backgroundColor: colors.bgCard,

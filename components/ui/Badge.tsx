@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { radii, spacing } from '../../constants/spacing';
+import { rs, fs } from '../../hooks/useResponsive';
 
 interface BadgeProps {
   label: string;
@@ -25,10 +26,10 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   icon: {
-    marginRight: 4,
+    marginRight: rs(4),
   },
   text: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontSize: fs(10),
   },
 });

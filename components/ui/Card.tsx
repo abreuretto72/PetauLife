@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, View, StyleSheet, ViewStyle } from 'react-native';
 import { colors } from '../../constants/colors';
 import { radii } from '../../constants/spacing';
+import { rs } from '../../hooks/useResponsive';
 
 interface CardProps {
   children: React.ReactNode;
@@ -31,7 +32,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.card,
-    padding: 16,
+    padding: rs(16),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

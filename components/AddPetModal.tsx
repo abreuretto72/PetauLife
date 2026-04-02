@@ -825,8 +825,8 @@ const styles = StyleSheet.create({
   alertText: { fontFamily: 'Sora_500Medium', fontSize: fs(13), flex: 1, lineHeight: rs(20) },
   bcsRow: { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: spacing.md, paddingHorizontal: rs(4) },
   bcsLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(11), color: colors.textDim, width: rs(30) },
-  bcsBar: { flex: 1, flexDirection: 'row', gap: 2, height: rs(8) },
-  bcsSegment: { flex: 1, borderRadius: 2, backgroundColor: colors.border },
+  bcsBar: { flex: 1, flexDirection: 'row', gap: rs(2), height: rs(8) },
+  bcsSegment: { flex: 1, borderRadius: rs(2), backgroundColor: colors.border },
   bcsValue: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(11), color: colors.textSec, width: rs(80), textAlign: 'right' },
 
   // Mood + Health

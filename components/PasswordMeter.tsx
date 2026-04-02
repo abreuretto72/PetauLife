@@ -1,24 +1,29 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../constants/colors';
 import { spacing } from '../constants/spacing';
+import { rs, fs } from '../hooks/useResponsive';
 
 interface PasswordMeterProps {
   password: string;
 }
 
-const checks = [
-  { test: (p: string) => p.length >= 8, label: '8+ chars' },
-  { test: (p: string) => /[A-Z]/.test(p), label: 'Maiúscula' },
-  { test: (p: string) => /[0-9]/.test(p), label: 'Número' },
-  { test: (p: string) => /[^A-Za-z0-9]/.test(p), label: 'Especial' },
-];
-
 const barColors = ['', colors.danger, colors.danger, colors.warning, colors.success];
-const barLabels = ['', 'Fraca', 'Fraca', 'Média', 'Forte'];
 
 const PasswordMeter: React.FC<PasswordMeterProps> = ({ password }) => {
+  const { t } = useTranslation();
+
+  const checks = [
+    { test: (p: string) => p.length >= 8, label: t('auth.pwCheck8chars') },
+    { test: (p: string) => /[A-Z]/.test(p), label: t('auth.pwCheckUpper') },
+    { test: (p: string) => /[0-9]/.test(p), label: t('auth.pwCheckNumber') },
+    { test: (p: string) => /[^A-Za-z0-9]/.test(p), label: t('auth.pwCheckSpecial') },
+  ];
+
+  const barLabels = ['', t('auth.pwStrengthWeak'), t('auth.pwStrengthWeak'), t('auth.pwStrengthMedium'), t('auth.pwStrengthStrong')];
+
   if (!password) return null;
 
   const results = checks.map((c) => c.test(password));
@@ -42,7 +47,7 @@ const PasswordMeter: React.FC<PasswordMeterProps> = ({ password }) => {
           {checks.map((c, i) => (
             <View key={i} style={styles.checkItem}>
               {results[i] ? (
-                <Check size={10} color={colors.success} strokeWidth={2.5} />
+                <Check size={rs(10)} color={colors.success} strokeWidth={2.5} />
               ) : (
                 <View style={styles.uncheckedBox} />
               )}
@@ -71,17 +76,17 @@ const styles = StyleSheet.create({
   container: {
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
-    paddingHorizontal: 2,
+    paddingHorizontal: rs(2),
   },
   barRow: {
     flexDirection: 'row',
-    gap: 4,
+    gap: rs(4),
     marginBottom: spacing.sm,
   },
   bar: {
     flex: 1,
-    height: 3,
-    borderRadius: 2,
+    height: rs(3),
+    borderRadius: rs(2),
   },
   checksRow: {
     flexDirection: 'row',
@@ -90,27 +95,27 @@ const styles = StyleSheet.create({
   },
   checksLeft: {
     flexDirection: 'row',
-    gap: 10,
+    gap: rs(10),
   },
   checkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: rs(3),
   },
   uncheckedBox: {
-    width: 10,
-    height: 10,
-    borderRadius: 3,
+    width: rs(10),
+    height: rs(10),
+    borderRadius: rs(3),
     borderWidth: 1.5,
     borderColor: colors.textDim,
   },
   checkLabel: {
     fontFamily: 'Sora_600SemiBold',
-    fontSize: 10,
+    fontSize: fs(10),
   },
   scoreLabel: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontSize: fs(10),
   },
 });
 

@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
+import { rs, fs } from '../../hooks/useResponsive';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -90,7 +91,7 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   base: {
     borderRadius: radii.xl,
-    height: 52,
+    height: rs(52),
     overflow: 'hidden',
   },
   gradient: {
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontFamily: 'Sora_700Bold',
-    fontSize: 15,
+    fontSize: fs(15),
     color: '#fff',
   },
   disabled: {

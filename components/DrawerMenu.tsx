@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_400Regular',
     fontSize: fs(12),
     color: colors.textDim,
-    marginTop: 2,
+    marginTop: rs(2),
   },
   divider: {
     height: 1,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     marginVertical: rs(12),
   },
   menuList: {
-    gap: 2,
+    gap: rs(2),
   },
   menuItem: {
     flexDirection: 'row',
