@@ -68,7 +68,8 @@
     "newPassword": "New password",
     "confirmNewPassword": "Confirm new password",
     "registerStep1Subtitle": "Step 1 of 2 — Personal details",
-    "emailSentPrefix": "We sent a link to"
+    "emailSentPrefix": "We sent a link to",
+    "biometricPrompt": "Sign in to auExpert"
   },
   "pets": {
     "myPets": "My Pets",

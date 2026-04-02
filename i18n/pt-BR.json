@@ -68,7 +68,8 @@
     "newPassword": "Nova senha",
     "confirmNewPassword": "Confirmar nova senha",
     "registerStep1Subtitle": "Passo 1 de 2 — Dados pessoais",
-    "emailSentPrefix": "Enviamos um link para"
+    "emailSentPrefix": "Enviamos um link para",
+    "biometricPrompt": "Entrar no auExpert"
   },
   "pets": {
     "myPets": "Meus Pets",
