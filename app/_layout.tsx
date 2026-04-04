@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore, getSecureStore, BIO_EMAIL_KEY, BIO_PASS_KEY } from '../stores/authStore';
 import { isFirstRun, markAsLaunched } from '../lib/firstRun';
 import { useTranslation } from 'react-i18next';
+import InviteModal, { type InviteInfo, type InviteMemberRole } from '../components/InviteModal';
 import '../i18n';
 
 // Activates the SQLite sync queue inside the QueryClientProvider context
@@ -50,7 +51,43 @@ function InviteLinkHandler() {
   const userId = useAuthStore((s) => s.user?.id);
   const userEmail = useAuthStore((s) => s.user?.email);
 
-  const acceptInvite = async (token: string, uid: string) => {
+  const [pendingInvite, setPendingInvite] = useState<InviteInfo | null>(null);
+
+  // Busca os detalhes do convite pelo token e exibe o modal
+  const showInviteModal = async (token: string) => {
+    const { data: invite } = await supabase
+      .from('pet_members')
+      .select('invite_token, role, invited_by, pets(name)')
+      .eq('invite_token', token)
+      .is('accepted_at', null)
+      .maybeSingle();
+
+    if (!invite) return; // token inválido ou já aceito
+
+    const petName = (invite.pets as { name: string } | null)?.name ?? '—';
+    let inviterName = 'Tutor';
+
+    if (invite.invited_by) {
+      const { data: inviter } = await supabase
+        .from('users')
+        .select('full_name, email')
+        .eq('id', invite.invited_by)
+        .maybeSingle();
+      inviterName =
+        (inviter as { full_name: string | null; email: string } | null)?.full_name ??
+        (inviter as { full_name: string | null; email: string } | null)?.email?.split('@')[0] ??
+        'Tutor';
+    }
+
+    setPendingInvite({
+      token,
+      petName,
+      inviterName,
+      role: (invite.role as InviteMemberRole) ?? 'co_parent',
+    });
+  };
+
+  const doAcceptInvite = async (token: string, uid: string) => {
     try {
       const { error } = await supabase
         .from('pet_members')
@@ -77,21 +114,35 @@ function InviteLinkHandler() {
     }
   };
 
-  // Processar convite pendente quando usuário logar:
-  // 1. token salvo via deep link (AsyncStorage)
-  // 2. convite pendente no banco pelo email (TestFlight / instalação direta)
+  const handleAccept = async (token: string) => {
+    setPendingInvite(null);
+    await doAcceptInvite(token, userId!);
+  };
+
+  const handleDecline = async (token: string) => {
+    setPendingInvite(null);
+    await AsyncStorage.removeItem(PENDING_INVITE_KEY).catch(() => {});
+    await supabase
+      .from('pet_members')
+      .update({ is_active: false })
+      .eq('invite_token', token);
+    toast(t('invite.declined'), 'info');
+  };
+
+  // Detectar convite pendente após login:
+  // 1. token salvo localmente (deep link aberto antes de logar)
+  // 2. convite no banco pelo email (TestFlight / instalação direta)
   useEffect(() => {
     if (!isAuthenticated || !userId || !userEmail) return;
 
     (async () => {
-      // 1. Token local salvo antes do login (deep link)
       const pendingToken = await AsyncStorage.getItem(PENDING_INVITE_KEY).catch(() => null);
+
       if (pendingToken) {
-        await acceptInvite(pendingToken, userId);
+        await showInviteModal(pendingToken);
         return;
       }
 
-      // 2. Convite pendente no banco pelo email — cobre TestFlight e qualquer instalação
       const { data: invite } = await supabase
         .from('pet_members')
         .select('invite_token')
@@ -103,11 +154,12 @@ function InviteLinkHandler() {
         .maybeSingle();
 
       if (invite?.invite_token) {
-        await acceptInvite(invite.invite_token, userId);
+        await showInviteModal(invite.invite_token);
       }
     })();
   }, [isAuthenticated, userId, userEmail]);
 
+  // Deep link recebido enquanto o app está aberto ou ao abrir
   useEffect(() => {
     const handleUrl = async (url: string) => {
       const token = extractInviteToken(url);
@@ -116,14 +168,13 @@ function InviteLinkHandler() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // Salvar token e mandar para login — será processado após autenticação
         await AsyncStorage.setItem(PENDING_INVITE_KEY, token);
         toast(t('members.inviteLoginRequired'), 'info');
         router.push('/(auth)/login');
         return;
       }
 
-      await acceptInvite(token, user.id);
+      await showInviteModal(token);
     };
 
     Linking.getInitialURL().then((url) => { if (url) handleUrl(url); });
@@ -131,7 +182,13 @@ function InviteLinkHandler() {
     return () => sub.remove();
   }, []);
 
-  return null;
+  return (
+    <InviteModal
+      invite={pendingInvite}
+      onAccept={handleAccept}
+      onDecline={handleDecline}
+    />
+  );
 }
 
 SplashScreen.preventAutoHideAsync();

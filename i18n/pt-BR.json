@@ -1528,6 +1528,13 @@
     "inviteError":               "Não foi possível aceitar o convite",
     "emailRequiredForCoparent":  "Co-tutor tem acesso completo — e-mail obrigatório para segurança."
   },
+  "invite": {
+    "title":       "Você foi convidado!",
+    "description": "{{inviter}} te convidou para cuidar de {{pet}}",
+    "accept":      "Aceitar",
+    "decline":     "Recusar",
+    "declined":    "Convite recusado"
+  },
   "errors": {
     "network": "Opa, caí da rede! Verifica o Wi-Fi e tenta de novo?",
     "server": "Os servidores foram tirar uma soneca. Volta daqui a pouquinho!",

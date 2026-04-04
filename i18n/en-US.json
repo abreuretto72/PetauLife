@@ -1528,6 +1528,13 @@
     "inviteError":               "Could not accept the invite",
     "emailRequiredForCoparent":  "Co-parent has full access — email required for security."
   },
+  "invite": {
+    "title":       "You were invited!",
+    "description": "{{inviter}} invited you to care for {{pet}}",
+    "accept":      "Accept",
+    "decline":     "Decline",
+    "declined":    "Invite declined"
+  },
   "errors": {
     "network": "Oops, lost the signal! Check your Wi-Fi and try again?",
     "server": "The servers went for a nap. Come back in a bit!",
