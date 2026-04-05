@@ -295,6 +295,8 @@
     "processingVideo": "✦ Salvando vídeo...",
     "processingAudio": "✦ Analisando sons...",
     "processingError": "Não foi possível gerar a narração",
+    "analyzing": "Salvando no diário...",
+    "analyzingWait": "A IA vai narrar tudo em segundos.",
     "retryEntry": "Tentar novamente",
     "pendingSync": "⏳ Aguardando conexão",
     "editTitle": "Editar Entrada",

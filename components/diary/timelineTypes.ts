@@ -81,6 +81,8 @@ export interface TimelineEvent {
   updatedAt?: string | null;
   // Raw input type — used to show the right processing message
   inputType?: string | null;
+  // Photo analysis result from analyze-pet-photo (stored as JSONB in photo_analysis_data)
+  photoAnalysisData?: Record<string, unknown> | null;
   // Optimistic UI processing state
   processingStatus?: 'pending' | 'processing' | 'done' | 'error';
   // AI classifications attached to this entry
@@ -159,6 +161,7 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
   audio_url?: string | null;
   audio_duration?: number | null;
   pet_audio_analysis?: TimelineEvent['petAudioAnalysis'];
+  photo_analysis_data?: Record<string, unknown> | null;
   expenses?: ModuleField<'expenses'>;
   vaccines?: ModuleField<'vaccines'>;
   consultations?: ModuleField<'consultations'>;
@@ -204,6 +207,7 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
     updatedByUser:    entry.updated_by_user ?? null,
     updatedAt:        entry.updated_at ?? null,
     inputType: entry.input_type ?? null,
+    photoAnalysisData: (entry as unknown as Record<string, unknown>).photo_analysis_data as Record<string, unknown> | null ?? null,
     processingStatus: entry.processing_status ?? 'done',
     classifications: Array.isArray((entry as unknown as Record<string, unknown>).classifications)
       ? (entry as unknown as Record<string, unknown>).classifications as TimelineEvent['classifications']

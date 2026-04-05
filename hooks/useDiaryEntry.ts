@@ -894,10 +894,10 @@ async function _backgroundClassifyAndSave(opts: {
         .map((r) => r.value);
 
       if (successfulAnalyses.length > 0) {
-        // Save aggregated photo_analysis_data JSONB to diary_entries
+        // Save primary photo_analysis_data JSONB to diary_entries (first/best result)
         postSavePromises.push(
           supabase.from('diary_entries')
-            .update({ photo_analysis_data: successfulAnalyses })
+            .update({ photo_analysis_data: successfulAnalyses[0] ?? null })
             .eq('id', entryId)
             .then(() => undefined).catch(() => {}),
         );

@@ -295,6 +295,8 @@
     "processingVideo": "✦ Saving video...",
     "processingAudio": "✦ Analyzing sounds...",
     "processingError": "Could not generate the narration",
+    "analyzing": "Saving to diary...",
+    "analyzingWait": "AI will narrate everything in seconds.",
     "retryEntry": "Try again",
     "pendingSync": "⏳ Waiting for connection",
     "editTitle": "Edit Entry",

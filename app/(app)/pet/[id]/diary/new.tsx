@@ -17,7 +17,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
-import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, X as XIcon } from 'lucide-react-native';
+import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -115,6 +115,7 @@ export default function NewDiaryEntryScreen() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPetAudioModal, setShowPetAudioModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const MAX_PHOTOS    = 5;
   const MAX_VIDEOS    = 1;
@@ -149,6 +150,8 @@ export default function NewDiaryEntryScreen() {
   ).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+  const pawAnim = useRef(new Animated.Value(1)).current;
+  const pawLoopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   // ── STT event handlers ───────────────────────────────────────────────────
 
@@ -383,7 +386,7 @@ export default function NewDiaryEntryScreen() {
     } else {
       // Quick OCR scan → submit immediately
       void submitEntry({ text: null, photosBase64: [base64], inputType: 'ocr_scan' });
-      router.back();
+      showAnalyzingAndBack();
     }
   }, [submitEntry, router]);
 
@@ -401,6 +404,23 @@ export default function NewDiaryEntryScreen() {
     setStep('audio_preview');
   }, []);
 
+  // ── Analyzing overlay (shown 2s after Gravar no Diário) ─────────────────
+
+  const showAnalyzingAndBack = useCallback(() => {
+    setIsAnalyzing(true);
+    pawLoopRef.current = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pawAnim, { toValue: 1.25, duration: 450, useNativeDriver: true }),
+        Animated.timing(pawAnim, { toValue: 0.85, duration: 450, useNativeDriver: true }),
+      ]),
+    );
+    pawLoopRef.current.start();
+    setTimeout(() => {
+      pawLoopRef.current?.stop();
+      router.back();
+    }, 2000);
+  }, [pawAnim, router]);
+
   // ── Confirm handlers (from preview steps) ────────────────────────────────
 
   const handleConfirmPhoto = useCallback(() => {
@@ -410,8 +430,8 @@ export default function NewDiaryEntryScreen() {
       inputType: 'photo',
       mediaUris: [capturedPhotoUri!],
     });
-    router.back();
-  }, [captureCaption, capturedPhotoBase64, capturedPhotoUri, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [captureCaption, capturedPhotoBase64, capturedPhotoUri, submitEntry, showAnalyzingAndBack]);
 
   const handleConfirmGallery = useCallback(() => {
     void submitEntry({
@@ -420,8 +440,8 @@ export default function NewDiaryEntryScreen() {
       inputType: 'gallery',
       mediaUris: capturedGalleryUris,
     });
-    router.back();
-  }, [captureCaption, capturedGalleryBase64s, capturedGalleryUris, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [captureCaption, capturedGalleryBase64s, capturedGalleryUris, submitEntry, showAnalyzingAndBack]);
 
   const handleConfirmVideo = useCallback(() => {
     void submitEntry({
@@ -431,8 +451,8 @@ export default function NewDiaryEntryScreen() {
       mediaUris: [capturedVideoUri!],
       videoDuration: capturedVideoDuration,
     });
-    router.back();
-  }, [captureCaption, capturedVideoUri, capturedVideoDuration, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [captureCaption, capturedVideoUri, capturedVideoDuration, submitEntry, showAnalyzingAndBack]);
 
   const handleConfirmAudio = useCallback(() => {
     void submitEntry({
@@ -442,8 +462,8 @@ export default function NewDiaryEntryScreen() {
       mediaUris: [capturedAudioUri!],
       audioDuration: capturedAudioDuration,
     });
-    router.back();
-  }, [captureCaption, capturedAudioUri, capturedAudioDuration, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [captureCaption, capturedAudioUri, capturedAudioDuration, submitEntry, showAnalyzingAndBack]);
 
   const handleConfirmDocument = useCallback(() => {
     // Pass docType as text so the classifier has explicit context
@@ -452,8 +472,8 @@ export default function NewDiaryEntryScreen() {
       photosBase64: [capturedDocBase64!],
       inputType: 'ocr_scan',
     });
-    router.back();
-  }, [docType, capturedDocBase64, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [docType, capturedDocBase64, submitEntry, showAnalyzingAndBack]);
 
   // ── Attachment handlers (text/voice step) ───────────────────────────────
 
@@ -644,8 +664,8 @@ export default function NewDiaryEntryScreen() {
     const mediaUris = attachments.map((a) => a.localUri);
     const inputType = photoAttachments.length > 0 ? 'gallery' : 'text';
     void submitEntry({ text: text || null, photosBase64, inputType, mediaUris });
-    router.back();
-  }, [tutorText, attachments, toast, t, submitEntry, router]);
+    showAnalyzingAndBack();
+  }, [tutorText, attachments, toast, t, submitEntry, showAnalyzingAndBack]);
 
   // ── Edit mode handlers ────────────────────────────────────────────────────
 
@@ -1016,6 +1036,17 @@ export default function NewDiaryEntryScreen() {
         </KeyboardAvoidingView>
       )}
 
+      {/* ── Analyzing overlay (shown 2s after Gravar no Diário) ── */}
+      {isAnalyzing && (
+        <View style={styles.analyzingOverlay}>
+          <Animated.View style={[styles.analyzingPawContainer, { transform: [{ scale: pawAnim }] }]}>
+            <PawPrint size={rs(52)} color={colors.accent} strokeWidth={1.6} />
+          </Animated.View>
+          <Text style={styles.analyzingTitle}>{t('diary.analyzing')}</Text>
+          <Text style={styles.analyzingSubtitle}>{t('diary.analyzingWait')}</Text>
+        </View>
+      )}
+
     </View>
   );
 }
@@ -1294,5 +1325,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: fs(15),
     fontFamily: 'Sora_700Bold',
+  },
+
+  // Analyzing overlay
+  analyzingOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(11,18,25,0.88)',
+    alignItems: 'center', justifyContent: 'center',
+    gap: rs(16), zIndex: 999,
+  },
+  analyzingPawContainer: {
+    width: rs(104), height: rs(104),
+    borderRadius: rs(52),
+    backgroundColor: colors.accentGlow,
+    borderWidth: 2, borderColor: colors.accent + '30',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  analyzingTitle: {
+    fontFamily: 'Sora_700Bold', fontSize: fs(18), color: colors.text,
+  },
+  analyzingSubtitle: {
+    fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textSec,
+    textAlign: 'center', maxWidth: rs(240), lineHeight: fs(20),
   },
 });

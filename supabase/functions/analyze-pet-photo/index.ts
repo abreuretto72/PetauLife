@@ -98,7 +98,8 @@ Respond in ${lang}.`;
     "visible_risks": ["string"] | null
   },
   "alerts": [{ "message": "string", "severity": "info|attention|concern", "category": "health|safety|care" }],
-  "disclaimer": "string"
+  "disclaimer": "string",
+  "description": "1-2 sentence summary in 3rd person describing the pet's visible health and mood based on this photo"
 }`;
 
     const userPrompt = `Analyze this photo of a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}.

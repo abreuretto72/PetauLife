@@ -8,7 +8,7 @@ import React from 'react';
 import { View, Text, ScrollView, Image, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import {
   AlertCircle, Camera, Calendar, Gift, Heart, Lightbulb, Lock,
-  Mic, PawPrint, Pencil, RefreshCw, ShieldCheck, Star, Trophy, Video, WifiOff,
+  Mic, Music2, PawPrint, Pencil, RefreshCw, ShieldCheck, Star, Trophy, Video, WifiOff,
 } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
@@ -205,6 +205,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
         </View>
       )}
 
+      {/* Photos row */}
       {event.photos && event.photos.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photosRow} contentContainerStyle={styles.photosRowContent}>
           {event.photos.map((path, idx) => {
@@ -220,6 +221,34 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
             );
           })}
         </ScrollView>
+      )}
+
+      {/* Video thumbnail */}
+      {event.videoUrl && (
+        <View style={styles.mediaAttachRow}>
+          <View style={styles.videoAttachThumb}>
+            <Video size={rs(22)} color="#fff" strokeWidth={1.8} />
+            {event.videoDuration != null && (
+              <Text style={styles.mediaDurationText}>
+                {Math.floor(event.videoDuration / 60)}:{String(event.videoDuration % 60).padStart(2, '0')}
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Audio thumbnail */}
+      {event.audioUrl && (
+        <View style={styles.mediaAttachRow}>
+          <View style={styles.audioAttachThumb}>
+            <Music2 size={rs(22)} color="#fff" strokeWidth={1.8} />
+            {event.audioDuration != null && (
+              <Text style={styles.mediaDurationText}>
+                {Math.floor(event.audioDuration / 60)}:{String(event.audioDuration % 60).padStart(2, '0')}
+              </Text>
+            )}
+          </View>
+        </View>
       )}
 
       {event.narration ? (
@@ -253,6 +282,37 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
           </View>
         </View>
       )}
+
+      {/* Per-attachment analysis descriptions */}
+      {event.photoAnalysisData && (event.photoAnalysisData.description as string | undefined) && (
+        <View style={styles.analysisBlock}>
+          <View style={styles.analysisHeader}>
+            <Camera size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+            <Text style={styles.analysisLabel}>{t('diary.photoAnalysis').toUpperCase()}</Text>
+          </View>
+          <Text style={styles.analysisText}>{event.photoAnalysisData.description as string}</Text>
+        </View>
+      )}
+
+      {event.videoAnalysis?.behavior_summary ? (
+        <View style={styles.analysisBlock}>
+          <View style={styles.analysisHeader}>
+            <Video size={rs(14)} color={colors.petrol} strokeWidth={1.8} />
+            <Text style={[styles.analysisLabel, { color: colors.petrol }]}>{t('diary.videoAnalysis').toUpperCase()}</Text>
+          </View>
+          <Text style={styles.analysisText}>{event.videoAnalysis.behavior_summary}</Text>
+        </View>
+      ) : null}
+
+      {event.petAudioAnalysis?.pattern_notes ? (
+        <View style={styles.analysisBlock}>
+          <View style={styles.analysisHeader}>
+            <Music2 size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+            <Text style={[styles.analysisLabel, { color: colors.purple }]}>{t('diary.audioAnalysis').toUpperCase()}</Text>
+          </View>
+          <Text style={styles.analysisText}>{event.petAudioAnalysis.pattern_notes}</Text>
+        </View>
+      ) : null}
 
       {event.tags && event.tags.length > 0 && (
         <View style={styles.tagsRow}>
@@ -419,14 +479,6 @@ export const PhotoAnalysisCard = React.memo(({ event, t }: CardProps) => (
     </View>
     <Text style={styles.cardTitle}>{event.title}</Text>
     <Text style={styles.cardDetail}>{event.detail}</Text>
-    {event.score != null && (
-      <View style={styles.scoreBox}>
-        <Text style={styles.scoreLabel}>{t('diary.healthScore')}</Text>
-        <Text style={[styles.scoreValue, {
-          color: event.score >= 80 ? colors.success : event.score >= 60 ? colors.warning : colors.danger,
-        }]}>{event.score}</Text>
-      </View>
-    )}
   </View>
 ));
 
@@ -481,20 +533,15 @@ export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
         </View>
       )}
 
-      {va && (va.locomotion_score > 0 || va.energy_score > 0 || va.calm_score > 0) && (
-        <View style={styles.scoresRow}>
-          {[
-            { value: va.locomotion_score, label: t('diary.locomotion'), color: colors.sky },
-            { value: va.energy_score, label: t('diary.energy'), color: colors.accent },
-            { value: va.calm_score, label: t('diary.calm'), color: colors.petrol },
-          ].map((s) => (
-            <View key={s.label} style={styles.scoreItem}>
-              <Text style={[styles.scoreItemValue, { color: s.color }]}>{s.value}</Text>
-              <Text style={styles.scoreItemLabel}>{s.label}</Text>
-            </View>
-          ))}
+      {va?.behavior_summary ? (
+        <View style={styles.analysisBlock}>
+          <View style={styles.analysisHeader}>
+            <Video size={rs(14)} color={colors.sky} strokeWidth={1.8} />
+            <Text style={[styles.analysisLabel, { color: colors.sky }]}>{t('diary.videoAnalysis').toUpperCase()}</Text>
+          </View>
+          <Text style={styles.analysisText}>{va.behavior_summary}</Text>
         </View>
-      )}
+      ) : null}
 
       {va?.health_observations && va.health_observations.length > 0 && (
         <View style={styles.observationsContainer}>
@@ -697,6 +744,18 @@ const styles = StyleSheet.create({
   errorContent: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec, lineHeight: fs(18), marginBottom: rs(10) },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(6), alignSelf: 'flex-start', paddingVertical: rs(6), paddingHorizontal: rs(12), backgroundColor: colors.accentGlow, borderRadius: rs(8) },
   retryText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.accent },
+
+  // Media attachment thumbnails (video/audio in DiaryCard)
+  mediaAttachRow: { marginBottom: rs(8) },
+  videoAttachThumb: { flexDirection: 'row', alignItems: 'center', gap: rs(8), backgroundColor: colors.sky + '20', borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(8), alignSelf: 'flex-start' },
+  audioAttachThumb: { flexDirection: 'row', alignItems: 'center', gap: rs(8), backgroundColor: colors.purple + '20', borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(8), alignSelf: 'flex-start' },
+  mediaDurationText: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(11), color: colors.textSec },
+
+  // Per-attachment analysis description blocks
+  analysisBlock: { backgroundColor: colors.bgCard, borderRadius: rs(14), borderWidth: 1, borderColor: colors.border, padding: rs(12), marginTop: rs(8), gap: rs(6) },
+  analysisHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },
+  analysisLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.accent, letterSpacing: 1 },
+  analysisText: { fontFamily: 'Caveat_400Regular', fontSize: fs(15), color: colors.textSec, fontStyle: 'italic', lineHeight: fs(24) },
 
   // Audit
   auditSection: { marginTop: rs(8), gap: rs(2) },
