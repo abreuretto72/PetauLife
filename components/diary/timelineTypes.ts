@@ -79,6 +79,8 @@ export interface TimelineEvent {
   updatedBy?: string | null;
   updatedByUser?: { full_name: string | null; email: string | null } | null;
   updatedAt?: string | null;
+  // Raw input type — used to show the right processing message
+  inputType?: string | null;
   // Optimistic UI processing state
   processingStatus?: 'pending' | 'processing' | 'done' | 'error';
   // AI classifications attached to this entry
@@ -201,6 +203,7 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
     updatedBy:        entry.updated_by ?? null,
     updatedByUser:    entry.updated_by_user ?? null,
     updatedAt:        entry.updated_at ?? null,
+    inputType: entry.input_type ?? null,
     processingStatus: entry.processing_status ?? 'done',
     classifications: Array.isArray((entry as unknown as Record<string, unknown>).classifications)
       ? (entry as unknown as Record<string, unknown>).classifications as TimelineEvent['classifications']

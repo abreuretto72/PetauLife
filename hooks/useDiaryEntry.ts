@@ -819,9 +819,24 @@ async function _backgroundClassifyAndSave(opts: {
   }
 
   try {
-    const classification = await classifyDiaryEntry(
-      petId, text, photosBase64, inputType, i18n.language,
-    );
+    // ── Run text classification and per-photo analysis in parallel ────────────
+    const hasPhotos = (photosBase64?.length ?? 0) > 0 && ['photo', 'gallery', 'ocr_scan'].includes(inputType);
+
+    const [classification, photoAnalysisResults] = await Promise.all([
+      // A: unified classify — text + photos + input type (always runs)
+      classifyDiaryEntry(petId, text, photosBase64, inputType, i18n.language),
+
+      // B: per-photo deep analysis via analyze-pet-photo (parallel, non-blocking)
+      hasPhotos
+        ? Promise.allSettled(
+            (photosBase64 ?? []).map((b64) =>
+              supabase.functions
+                .invoke('analyze-pet-photo', { body: { photo_base64: b64, language: i18n.language } })
+                .then(({ data }) => data as Record<string, unknown> | null),
+            ),
+          )
+        : Promise.resolve(null),
+    ]);
 
     const inputMethod: import('../types/database').DiaryEntry['input_method'] =
       ['photo', 'gallery', 'ocr_scan'].includes(inputType) ? 'photo'
@@ -852,47 +867,103 @@ async function _backgroundClassifyAndSave(opts: {
       );
     }
 
-    // Update new diary_entries fields (non-critical)
-    try {
-      await (await import('../lib/supabase')).supabase
-        .from('diary_entries')
-        .update({
-          input_type: inputType,
-          primary_type: classification.primary_type,
-          classifications: classification.classifications,
-          mood_confidence: classification.mood_confidence,
-          urgency: classification.urgency,
-        })
-        .eq('id', entryId);
-    } catch { /* non-critical */ }
+    // ── Run all post-creation updates concurrently ────────────────────────────
+    const postSavePromises: Promise<unknown>[] = [];
 
-    // Upload video/audio media files (fire-and-forget, non-blocking)
+    // 1. Extra classification fields + video_analysis / pet_audio_analysis
+    const extraFields: Record<string, unknown> = {
+      input_type: inputType,
+      primary_type: classification.primary_type,
+      classifications: classification.classifications,
+      mood_confidence: classification.mood_confidence,
+      urgency: classification.urgency,
+    };
+    if (classification.video_analysis) extraFields.video_analysis = classification.video_analysis;
+    if (classification.pet_audio_analysis) extraFields.pet_audio_analysis = classification.pet_audio_analysis;
+
+    postSavePromises.push(
+      supabase.from('diary_entries').update(extraFields).eq('id', entryId).then(() => undefined).catch(() => {}),
+    );
+
+    // 2. Save per-photo analyses (photo_analyses table + link to entry)
+    if (photoAnalysisResults) {
+      const successfulAnalyses = (photoAnalysisResults as PromiseSettledResult<Record<string, unknown> | null>[])
+        .filter((r): r is PromiseFulfilledResult<Record<string, unknown>> =>
+          r.status === 'fulfilled' && r.value != null,
+        )
+        .map((r) => r.value);
+
+      if (successfulAnalyses.length > 0) {
+        // Save aggregated photo_analysis_data JSONB to diary_entries
+        postSavePromises.push(
+          supabase.from('diary_entries')
+            .update({ photo_analysis_data: successfulAnalyses })
+            .eq('id', entryId)
+            .then(() => undefined).catch(() => {}),
+        );
+
+        // Insert individual records into photo_analyses + link first to entry
+        postSavePromises.push(
+          (async () => {
+            try {
+              const rows = successfulAnalyses.map((data, idx) => ({
+                pet_id: petId,
+                user_id: userId,
+                photo_url: uploadedPhotos[idx] ?? uploadedPhotos[0] ?? '',
+                analysis_result: data,
+                confidence: typeof data.confidence === 'number' ? data.confidence : 0.8,
+                analysis_type: 'general' as const,
+              }));
+              const { data: inserted } = await supabase
+                .from('photo_analyses')
+                .insert(rows)
+                .select('id');
+              if (inserted?.[0]?.id) {
+                await supabase.from('diary_entries')
+                  .update({ linked_photo_analysis_id: inserted[0].id })
+                  .eq('id', entryId);
+              }
+            } catch { /* non-critical */ }
+          })(),
+        );
+      }
+    }
+
+    // 3. Video upload + URL persistence
     if (inputType === 'video' && mediaUris?.[0]) {
-      void (async () => {
-        try {
-          const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
-          const path = await uploadPetMedia(userId, petId, mediaUris[0], 'video');
-          const url = getPublicUrl('pet-photos', path);
-          await supabase.from('diary_entries').update({
-            video_url: url,
-            video_duration: videoDuration ?? null,
-          }).eq('id', entryId);
-        } catch {}
-      })();
+      postSavePromises.push(
+        (async () => {
+          try {
+            const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
+            const path = await uploadPetMedia(userId, petId, mediaUris![0], 'video');
+            const url = getPublicUrl('pet-photos', path);
+            await supabase.from('diary_entries').update({
+              video_url: url,
+              video_duration: videoDuration ?? null,
+            }).eq('id', entryId);
+          } catch { /* non-critical */ }
+        })(),
+      );
     }
+
+    // 4. Audio upload + URL persistence
     if (inputType === 'pet_audio' && mediaUris?.[0]) {
-      void (async () => {
-        try {
-          const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
-          const path = await uploadPetMedia(userId, petId, mediaUris[0], 'video');
-          const url = getPublicUrl('pet-photos', path);
-          await supabase.from('diary_entries').update({
-            audio_url: url,
-            audio_duration: audioDuration ?? null,
-          }).eq('id', entryId);
-        } catch {}
-      })();
+      postSavePromises.push(
+        (async () => {
+          try {
+            const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
+            const path = await uploadPetMedia(userId, petId, mediaUris![0], 'video');
+            const url = getPublicUrl('pet-photos', path);
+            await supabase.from('diary_entries').update({
+              audio_url: url,
+              audio_duration: audioDuration ?? null,
+            }).eq('id', entryId);
+          } catch { /* non-critical */ }
+        })(),
+      );
     }
+
+    await Promise.allSettled(postSavePromises);
 
     // Best-effort side effects
     const embeddingText = classification.narration
@@ -1292,6 +1363,7 @@ export function useDiaryEntry(petId: string) {
       user_id: user.id,
       content: params.text ?? '(media)',
       input_method: inputMethod,
+      input_type: params.inputType,
       narration: null,
       mood_id: 'calm',
       mood_score: null,

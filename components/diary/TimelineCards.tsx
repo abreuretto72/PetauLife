@@ -116,11 +116,20 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
 
   // ── Processing state ──────────────────────────────────────────────────────
   if (event.processingStatus === 'processing') {
+    const processingMsg =
+      event.inputType === 'photo' || event.inputType === 'gallery' || event.inputType === 'ocr_scan'
+        ? t('diary.processingPhoto')
+        : event.inputType === 'video'
+        ? t('diary.processingVideo')
+        : event.inputType === 'pet_audio'
+        ? t('diary.processingAudio')
+        : t('diary.processingEntry');
+
     return (
       <View style={[styles.cardBase, styles.processingCard]}>
         <View style={styles.processingRow}>
           <ActivityIndicator size="small" color={colors.purple} />
-          <Text style={styles.processingText}>{t('diary.processingEntry')}</Text>
+          <Text style={styles.processingText}>{processingMsg}</Text>
         </View>
         {!!event.content && event.content !== '(media)' && (
           <Text style={styles.processingContent} numberOfLines={2}>{event.content}</Text>
