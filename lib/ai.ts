@@ -129,6 +129,15 @@ export async function classifyDiaryEntry(
     },
   });
 
+  console.log('[AI] invoke classify-diary-entry concluído');
+  console.log('[AI] error:', error ? JSON.stringify(error).slice(0, 400) : 'nenhum');
+  console.log('[AI] data keys:', data ? Object.keys(data).join(', ') : 'null');
+  if (error) {
+    const ctx = (error as Record<string,unknown>).context as Record<string,unknown> | undefined;
+    console.log('[AI-ERR] status HTTP:', ctx?.status);
+    console.log('[AI-ERR] url:', ctx?.url);
+  }
+
   if (error) {
     console.error('[ai] classifyDiaryEntry ERRO →', error);
     throw error;

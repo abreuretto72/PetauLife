@@ -22,7 +22,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { photo_base64, species, language = 'pt-BR', media_type: inputMediaType } = await req.json();
+    const { photo_base64, species, language = 'pt-BR', media_type: inputMediaType, pet_name, pet_breed } = await req.json();
 
     if (!photo_base64) {
       return new Response(
@@ -50,37 +50,43 @@ Deno.serve(async (req: Request) => {
     };
     const lang = LANG_NAMES[language] ?? LANG_NAMES[language.split('-')[0]] ?? 'English';
 
-    const systemPrompt = `You are a veterinary AI visual analyst for AuExpert, a pet care app.
-Analyze the photo with maximum detail. Extract EVERYTHING visible.
-NEVER diagnose diseases — only describe what you SEE. Use terms like "suggestive of", "consistent with", "may indicate".
-If something is not visible or not assessable from the photo, set it to null.
-Confidence values are 0.0 to 1.0. If confidence < 0.5, add a note suggesting the tutor confirm.
-Return ONLY valid JSON. No markdown wrapping, no explanation outside the JSON.
-Respond in ${lang}.`;
+    const systemPrompt = `You are a clinical veterinary AI analyst for AuExpert.
+Apply these evidence-based frameworks when analyzing photos:
+
+PET HEALTH: Use BCS 1-9 (WSAVA). Assess pain via UNESP-Botucatu signals (orbital tightening, ear flattening, muzzle tension, hunched posture). Evaluate coat/skin primary lesions (macule, papule, pustule, plaque) and secondary (crust, scale, erosion, ulcer). Eye discharge: serous=clear, mucoid=white/gray, mucopurulent=yellow/green.
+
+FECES: Apply Purina Fecal Score 1-7. Score 1-2=constipation, 3-4=normal, 5=soft, 6-7=diarrhea. Color: brown=normal, yellow/green=rapid transit or infection, black/tarry=upper GI bleeding URGENT, red=lower GI bleeding URGENT, white/gray=pancreatic or liver issue. Check for parasites (roundworms=spaghetti-like, tapeworm=rice grains).
+
+WOUNDS: Classify as superficial/partial/full thickness. Infection signs: erythema, edema, purulent exudate, necrosis. Healing stages: inflammatory 0-4d, proliferative 4-21d, remodeling over 21d.
+
+PLANTS/FOOD: Cross-reference ASPCA Animal Poison Control Center. Identify genus+common name. Note toxicity mechanism: GI irritant, hepatotoxic, nephrotoxic, cardiotoxic, neurotoxic.
+
+Use hedged language: "consistent with", "suggestive of", "warrants veterinary evaluation".
+NEVER diagnose. Return ONLY valid JSON. No markdown. Respond in ${lang}.`;
 
     const jsonSchema = `{
   "identification": {
     "species": { "value": "dog|cat", "confidence": 0.0 },
-    "breed": { "primary": "string", "confidence": 0.0, "is_mixed": false, "secondary_breeds": ["string"] | null },
-    "size": "small|medium|large|giant",
-    "age_category": "puppy|young|adult|senior",
-    "estimated_age_months": number | null,
-    "estimated_weight_kg": number | null,
-    "sex": { "value": "male|female|unknown", "confidence": 0.0 } | null,
-    "coat": { "color": "string", "pattern": "solid|bicolor|tricolor|merle|tabby|brindle|spotted|tuxedo|other", "quality": "shiny|healthy|dull|rough|matted", "length": "short|medium|long" }
+    "breed": { "primary": "Labrador Retriever", "confidence": 0.8, "is_mixed": false, "secondary_breeds": null },
+    "size": "medium",
+    "age_category": "adult",
+    "estimated_age_months": 36,
+    "estimated_weight_kg": 10.5,
+    "sex": { "value": "female", "confidence": 0.7 },
+    "coat": { "color": "golden", "pattern": "solid", "quality": "healthy", "length": "short" }
   },
   "health": {
-    "body_condition_score": number (1-9) | null,
-    "body_condition": "underweight|ideal|overweight|obese" | null,
+    "body_condition_score": 5,
+    "body_condition": "ideal",
     "skin_coat": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
     "eyes": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
     "ears": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
     "mouth_teeth": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
     "posture_body": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "nails": { "observation": "string", "needs_trimming": boolean } | null,
-    "hygiene": "clean|moderate|dirty" | null,
-    "visible_parasites": boolean | null,
-    "visible_lumps": boolean | null
+    "nails": { "observation": "length appropriate", "needs_trimming": false },
+    "hygiene": "clean",
+    "visible_parasites": false,
+    "visible_lumps": false
   },
   "mood": {
     "primary": "ecstatic|happy|calm|tired|anxious|sad|playful|sick|alert|fearful|submissive",
@@ -90,60 +96,37 @@ Respond in ${lang}.`;
   "environment": {
     "location": "home_indoor|home_outdoor|park|beach|clinic|car|street|unknown",
     "accessories": [{ "type": "collar|leash|harness|clothes|muzzle|id_tag|other", "description": "string" }],
-    "other_animals": boolean,
-    "visible_risks": ["string"] | null
+    "other_animals": false,
+    "visible_risks": null
   },
   "alerts": [{ "message": "string", "severity": "info|attention|concern", "category": "health|safety|care|toxicity" }],
   "disclaimer": "string",
-  "description": "REQUIRED — never null. If a pet is visible: 1-2 sentence summary of health and mood. If NO pet visible (feces, plant, food, object, wound, environment): describe what is shown and its clinical or safety relevance to pet health.",
+  "description": "REQUIRED — never null. Clinical interpretation in 2-3 sentences. For pets: BCS assessment, pain signals, coat/skin condition, behavioral state. For feces: Bristol score, color significance, parasite risk. For wounds: classification, infection signs, urgency. For plants/food: toxicity risk with mechanism. For environment: safety hazards. Always actionable for the tutor.",
   "toxicity_check": {
-    "has_toxic_items": boolean,
-    "items": [{ "name": "string", "toxicity_level": "mild|moderate|severe", "description": "string" }] | null
-  }
+    "has_toxic_items": false,
+    "items": null
+  },
+  "sources": ["WSAVA Body Condition Score Guidelines (2021)"]
 }`;
 
-    const userPrompt = `Analyze this photo in the context of pet health. The photo may show the pet directly, or pet-related content (feces, food, plants, objects, wounds, or environment) belonging to a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}.
+    const petIdentity = [pet_name, pet_breed].filter(Boolean).join(', ');
+    const petContext = petIdentity ? ` (${petIdentity})` : '';
+    const userPrompt = `Perform a clinical veterinary assessment of this photo for a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}${petContext}.
 
-Return a JSON object with this EXACT structure (null for anything not visible/assessable):
+Return this JSON structure with real values (not type annotations):
 
 ${jsonSchema}
 
-Be thorough. Analyze every visible detail. The tutor relies on this to care for their pet.
-
-## TOXICITY CHECK
-Always fill toxicity_check. If plants, foods, or household items are visible:
-- Set has_toxic_items: true if any item is dangerous for ${species === 'dog' ? 'a dog' : 'a cat'}.
-- List each toxic item in items: name, toxicity_level (mild/moderate/severe), short description of risk in ${lang}.
-- If nothing toxic is visible, set has_toxic_items: false and items: null.
-
-## CLINICAL CONTENT — FECES/EXCREMENT IDENTIFICATION
-If the photo shows feces, excrement, stool, or droppings (fezes, cocô, excremento, dejetos):
-- This is clinically important data — do NOT classify it generically as "substance" or ignore it.
-- The pet may not be visible in the photo; set identification fields to null when not assessable.
-- In 'description': describe color, consistency, and any abnormal characteristics. Examples:
-  "Fezes de coloração amarelo-esverdeada, consistência pastosa, sugestivo de trânsito intestinal acelerado."
-  "Stool with dark brown color and formed consistency. No visible parasites or blood."
-- Color guide for clinical assessment:
-  • Normal brown: assess consistency only (likely normal)
-  • Yellow/green: possible rapid transit, infection, or dietary issue → add 'attention' alert
-  • Black/tarry: possible internal bleeding → add 'concern' alert, category 'health'
-  • Red/bloody streaks: possible lower GI bleeding → add 'concern' alert, category 'health'
-  • White/gray/pale: possible liver or pancreas issue → add 'attention' alert
-- Consistency: formed, soft, liquid/diarrhea, mucousy
-- Note any: visible parasites (worms, white segments), blood, unusual odor clues, or mucus
-- Add alerts for abnormal color or consistency — do not leave alerts empty if something is wrong.
-
-## DESCRIPTION FIELD — ALWAYS REQUIRED
-The 'description' field MUST NEVER be null or empty.
-- Pet visible: describe health and mood in 1-2 sentences in ${lang}.
-- No pet visible (plant, feces, food, wound, object, environment):
-  describe what is shown and its relevance to pet health/safety.
-  Examples:
-  "Petúnias (Petunia spp.) identificadas — planta moderadamente tóxica. Pode causar irritação gastrointestinal se ingerida."
-  "Fezes de coloração amarelo-esverdeada com consistência pastosa, sugestivo de trânsito intestinal acelerado ou infecção."
-  "Ferida visível na pele — área com vermelhidão e possível inflamação, recomenda-se avaliação veterinária."
-- Always write in ${lang}.
-- Always use 3rd person or impersonal phrasing.`;
+Requirements:
+- description: 2-3 actionable sentences with clinical interpretation. NEVER null.
+- For feces: include Bristol score, color assessment, parasite check.
+- For wounds: include classification, infection signs, urgency level.
+- For plants/food: include ASPCA toxicity assessment.
+- For pets: include BCS score, pain signals, behavioral state.
+- toxicity_check: always fill, even if has_toxic_items is false.
+- sources: list up to 3 scientific references actually used. NEVER null.
+- alerts: add if any finding warrants attention or concern.
+- Write all text fields in ${lang}.`;
 
     const cfg = await getAIConfig();
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -156,6 +139,7 @@ The 'description' field MUST NEVER be null or empty.
       body: JSON.stringify({
         model: cfg.model_vision,
         max_tokens: 4096,
+        temperature: 0,
         system: systemPrompt,
         messages: [{
           role: 'user',
@@ -172,7 +156,8 @@ The 'description' field MUST NEVER be null or empty.
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error('[analyze-pet-photo] Anthropic API error:', response.status, errorBody);
+      console.error('[analyze-pet-photo] Anthropic API error:', response.status, errorBody.slice(0, 500));
+      console.error('[analyze-pet-photo] prompt length chars:', userPrompt.length, '| systemPrompt length:', systemPrompt.length);
       return new Response(
         JSON.stringify({ error: 'AI analysis failed', status: response.status, details: errorBody }),
         { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
@@ -197,17 +182,27 @@ The 'description' field MUST NEVER be null or empty.
 
     const analysis = JSON.parse(jsonText);
 
-    // Backward compatibility: flatten key fields to top level for the app
+    // When pet_name is provided, this is a diary photo — ignore AI breed/species inference.
+    // The pet identity is already known from the profile. Only health/behavior data matters.
     const compat = {
       ...analysis,
-      // Top-level shortcuts for AddPetModal
-      breed: analysis.identification?.breed
+      // Nullify identification fields when analyzing a known pet's diary photo
+      // to prevent wrong breed/species from overwriting profile data in the app.
+      ...(pet_name ? {
+        identification: {
+          ...analysis.identification,
+          breed: null,        // never overwrite known breed from profile
+          species: null,      // never overwrite known species from profile
+        },
+      } : {}),
+      // Top-level shortcuts for AddPetModal (only used when pet_name is NOT provided)
+      breed: pet_name ? null : (analysis.identification?.breed
         ? { name: analysis.identification.breed.primary, confidence: analysis.identification.breed.confidence }
-        : null,
-      estimated_age_months: analysis.identification?.estimated_age_months ?? null,
-      estimated_weight_kg: analysis.identification?.estimated_weight_kg ?? null,
-      size: analysis.identification?.size === 'giant' ? 'large' : (analysis.identification?.size ?? null),
-      color: analysis.identification?.coat?.color ?? null,
+        : null),
+      estimated_age_months: pet_name ? null : (analysis.identification?.estimated_age_months ?? null),
+      estimated_weight_kg: pet_name ? null : (analysis.identification?.estimated_weight_kg ?? null),
+      size: pet_name ? null : (analysis.identification?.size === 'giant' ? 'large' : (analysis.identification?.size ?? null)),
+      color: pet_name ? null : (analysis.identification?.coat?.color ?? null),
     };
 
     return new Response(

@@ -26,6 +26,7 @@ export function AttachmentsPreview({ attachments, onRemove }: AttachmentsPreview
       <Text style={styles.label}>
         {t('mic.attachments', { count: attachments.length })}
       </Text>
+      <Text style={styles.limits}>{t('mic.attachmentsLimits')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -55,6 +56,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: rs(spacing.sm),
     paddingHorizontal: rs(spacing.md),
+  },
+  limits: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(10),
+    color: colors.textDim,
+    paddingHorizontal: rs(spacing.md),
+    marginBottom: rs(spacing.sm),
+    lineHeight: fs(15),
   },
   scroll: {
     paddingHorizontal: rs(spacing.md),

@@ -34,11 +34,18 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
     try {
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.7,
+        quality: 0.5,
         exif: false,
       });
       if (photo?.base64) {
-        onCapture(photo.base64);
+        // Compress via ImageManipulator to reduce base64 size for OCR
+        const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+        const compressed = await manipulateAsync(
+          photo.uri ?? `data:image/jpeg;base64,${photo.base64}`,
+          [{ resize: { width: 1280 } }],
+          { compress: 0.7, format: SaveFormat.JPEG, base64: true }
+        );
+        onCapture(compressed.base64 ?? photo.base64);
       }
     } finally {
       setIsCapturing(false);

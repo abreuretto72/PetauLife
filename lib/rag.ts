@@ -44,19 +44,9 @@ export async function generateEmbedding(
   importance:  number,
   userId?:     string,
 ) {
-  const { data, error } = await supabase.functions.invoke('generate-embedding', {
-    body: {
-      text,
-      pet_id:         petId,
-      user_id:        userId ?? null,
-      diary_entry_id: diaryEntryId,
-      category,
-      importance,
-      save:           true,
-    },
-  });
-  if (error) throw error;
-  return data;
+  // Embeddings via OpenAI desativado — OPENAI_API_KEY não configurada.
+  // Chamadas existentes usam .catch(() => {}) e são silenciadas aqui.
+  return null;
 }
 
 // ── Build structured text for each classification type ─────────────────────
@@ -280,22 +270,7 @@ export async function updatePetRAG(
   diaryEntryId: string,
   classifications: Array<{ type: string; confidence: number; extracted_data?: Record<string, unknown> }>,
 ) {
-  for (const cls of classifications) {
-    if (cls.confidence < 0.6) {
-      continue;
-    }
-
-    const content = buildEmbeddingContent(cls);
-    if (!content) {
-      continue;
-    }
-
-    const importance = IMPORTANCE[cls.type] ?? 0.5;
-
-    try {
-      await generateEmbedding(petId, cls.type, diaryEntryId, content, importance, userId);
-    } catch (err) {
-      console.warn('[RAG] erro ao gerar embedding:', cls.type, String(err));
-    }
-  }
+  // RAG via embeddings desativado — dependência OpenAI removida.
+  // Contexto do pet é fornecido diretamente pelo perfil no classify-diary.
+  return;
 }

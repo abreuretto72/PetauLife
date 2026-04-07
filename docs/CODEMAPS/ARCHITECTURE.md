@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-06
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + Photo Analysis Enhancements
+**Last Updated:** 2026-04-07
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR Scanner Pipeline + Audio Unification
 
 ---
 
@@ -150,11 +150,43 @@ queryKeys.pets.diary(petId) → diário do pet
 **Mutations:**
 - `addEntry(petId, data)` — nova entrada com IA classification
   - Salva texto/foto/audio → classifica com IA → gera embedding → processa módulos em background
-  - Componente: `components/diary/InputSelector.tsx` (8 modos entrada)
+  - Componente: `app/(app)/pet/[id]/diary/new.tsx` (entrada unificada com mic + 4 botões anexo)
   - Edge function: `classify-diary-entry` (primary) → `analyze-pet-photo` (foto mode)
 - `updateEntry(entryId, data)` — edita texto + reclassifica
 - `deleteEntry(entryId)` — soft delete com audit trail (deleted_by, deleted_at)
 - `restoreEntry(entryId)` — restore de entry deletada (apenas owner/co_parent)
+
+**Input attachments (diary/new.tsx — 2026-04-07):**
+
+Tela unificada com FAB laranja (mic) que abre a tela de nova entrada:
+
+```
+INTERFACE — 4 botões de anexo:
+┌──────────────────────────────────────┐
+│ [Waveform animado] Mic pulsante     │
+│ [Campo transcrição] Editável pausado │
+│ 4 Botões:                            │
+│ ┌─────────┬────────┬─────────┬────────┐
+│ │  Foto   │ Vídeo  │ Áudio   │Scanner │
+│ │ Camera  │ Video  │ (modal) │ Scan   │
+│ └─────────┴────────┴─────────┴────────┘
+│ [Thumbnails dos anexos com × remover]
+│ ⏸ Pausar  [Gravar no Diário]      │
+└──────────────────────────────────────┘
+```
+
+**Audio button unification (2026-04-07):**
+- Unified "Áudio" + "Som" into single "Áudio" button
+- Tap opens bottom-sheet `showAudioChoiceModal` with:
+  1. "Gravar agora" (Ear icon, rose) → `PetAudioModal` (record pet sounds)
+  2. "Escolher arquivo" (Music2 icon, gold) → file picker for audio attachment
+- i18n keys: `mic.audioChoiceTitle`, `mic.audioChoiceRecord`, `mic.audioChoiceRecordDesc`, `mic.audioChoiceFile`, `mic.audioChoiceFileDesc`
+
+**Scanner button (2026-04-07):**
+- New "Scanner" button (ScanLine icon, success green)
+- Opens `DocumentScanner.tsx` in document capture mode
+- Two-stage compression (quality 0.5 + manipulate resize 1280px width)
+- Submits as `input_type='ocr_scan'` to classify-diary-entry
 
 **IA Classification & Module Extraction:**
 ```typescript
@@ -666,16 +698,41 @@ updated_by_user:updated_by(full_name, email),
 
 **Entry point:** `hooks/useDiaryEntry.ts` → `savePending()`
 
+**Three input types with different pipelines:**
+
 ```
-1. User submits diary text/voice (STT transcrived)
+INPUT TYPE: text / voice / photo → buildMessages()
+  └─ Max 2 photos (gallery default, video=1, ocr_scan=1)
+  └─ Sends all: text + photo(s) in multimodal request
+  └─ Claude analyzes context + visual content together
+
+INPUT TYPE: ocr_scan → buildOCRMessages()
+  └─ Dedicated OCR path (document scanner only)
+  └─ Max 1 photo (first frame only)
+  └─ Sends only: image + instruction "extract veterinary health records"
+  └─ Zero text prompt (focuses on document structure)
+  └─ Results go to structured fields: vaccine.name, vaccine.date, etc.
+```
+
+**Flow:**
+
+```
+1. User submits diary text/voice/photo/scanner
    ↓
-2. classify-diary-entry Edge Function returns:
+2. Branching in classify-diary-entry:
+   
+   if input_type === 'ocr_scan':
+     → buildOCRMessages(photo_base64)  [dedicated OCR path]
+   else:
+     → buildMessages(text, photos[])   [general multimodal path]
+   ↓
+3. Claude returns:
    - classifications[]: { type, confidence, extracted_data }
    - narration: "1ª pessoa do pet"
    - inferred_humor: string
    - tags: string[]
    ↓
-3. For each classification: saveToModule()
+4. For each classification: saveToModule()
    - type='vaccine' → INSERT vaccines
    - type='consultation' → INSERT consultations
    - type='medication' → INSERT medications
@@ -683,10 +740,55 @@ updated_by_user:updated_by(full_name, email),
    - type='expense' → INSERT expenses
    - type='symptom' → store in diary_entry.symptoms_detected JSON
    ↓
-4. createFutureEvent() if appointment detected
+5. createFutureEvent() if appointment detected
    ↓
-5. generateEmbedding() + updatePetRAG()
+6. generateEmbedding() + updatePetRAG()
 ```
+
+### OCR Scanner Pipeline
+
+**Component:** `components/diary/DocumentScanner.tsx`
+
+**Flow:**
+
+```
+1. User taps "Scanner" button (ScanLine icon, success green)
+   ↓
+2. DocumentScanner opens camera in document mode
+   ↓
+3. User captures document (carteira vacina, receita, exame)
+   ↓
+4. Two-stage compression:
+   a) Immediate: quality 0.5 (aggressive)
+   b) Post-capture: manipulateAsync resize to 1280px width, compress 0.7, format JPEG
+   ↓
+5. Falls back to original base64 if compressed fails
+   ↓
+6. Sends to classify-diary-entry with input_type='ocr_scan'
+   ↓
+7. buildOCRMessages() → Claude Vision OCR
+   ↓
+8. Returns structured data (vaccine.name, vaccine.date, vaccine.next_dose, etc.)
+   ↓
+9. saveToModule() inserts into appropriate table
+```
+
+**Compression details:**
+- Stage 1: `quality: 0.5` (aggressive lossy)
+- Stage 2: `ImageManipulator.manipulateAsync` with `resize (1280px width)`, `compress 0.7`, `format JPEG`
+- Fallback: If compressed result has no base64, use original `photo.base64`
+- Purpose: Keep file size small for network + Claude API while preserving OCR-relevant text clarity
+
+### Photo Limits per Input Type
+
+| Input Type | Max Photos | Strategy | Usage |
+|-----------|-----------|----------|-------|
+| `ocr_scan` | 1 | First frame only | Document scanning (vaccine carteira, receipts) |
+| `video` | 1 | First frame as thumbnail | Video entries — extract 1 frame, analyze as static |
+| `gallery` (default) | 2 | Up to 2 photos | Text + photo entries, photo diary entries |
+
+**Previous behavior:** Unlimited photos → causes UI load issues + API token bloat
+**Current behavior:** Enforced slice(0,N) per type → faster, cheaper, better UX
 
 ### Module Extraction & Display
 
@@ -758,13 +860,40 @@ function useDeletedRecords(petId: string) {
 | Função | Input | Output | Uso |
 |--------|-------|--------|-----|
 | `analyze-pet-photo` | { photo_base64, species, language, media_type } | { identification, health, mood, environment, alerts, toxicity_check, description } | Diário (foto mode) — Vision analysis |
-| `classify-diary-entry` | { text, petId, language } | { classifications[], narration, humor, tags, moments } | Diário — IA classification |
+| `classify-diary-entry` | { text?, photo_base64?, input_type, petId, language } | { classifications[], narration, humor, tags, moments } | Diário — IA classification (text/photo/OCR) |
 | `generate-diary-narration` | { text, petName, breed, humor, language, topMemories } | { narration } | Fallback narração adicional |
 | `bridge-health-to-diary` | { event_type, petId } | { diary_entry } | Saúde → Diário automático |
-| `ocr-document` | { document_base64, language } | { extracted_text, structured_data } | Carteira vacina |
+| `ocr-document` | { document_base64, language } | { extracted_text, structured_data } | Carteira vacina (deprecated — use classify-diary-entry) |
 | `send-reset-email` | { email } | { status } | Auth reset password |
 | `generate-personality` | { diaryEntries[], petId } | { personality_traits } | Pet profile |
 | `translate-strings` | { text, language } | { translated_text } | i18n dinâmica |
+
+### classify-diary-entry Enhancements (2026-04-07)
+
+**MAX_TOKENS:** 1500 → 8192 (richer AI responses, room for 5+ photo analyses)
+
+**Input branching:**
+```typescript
+if (input.input_type === 'ocr_scan') {
+  messages = buildOCRMessages(input.photo_base64);  // OCR-specific path
+} else {
+  messages = buildMessages(input.text, input.photo_base64_array);  // General path
+}
+```
+
+**buildOCRMessages(photo_base64?):**
+- Dedicated path for document scanning
+- Sends only image + instruction "extract veterinary health records"
+- Zero text prompt (focuses on document OCR)
+- Returns structured extraction (vaccine names, dates, lot numbers, etc.)
+
+**buildMessages(text, photos[]):**
+- General multimodal path for text + photos
+- Sends text + sliced photos based on input_type:
+  - `ocr_scan`: slice(0,1) → uses buildOCRMessages instead
+  - `video`: slice(0,1) → one frame
+  - `gallery`: slice(0,2) → up to two photos
+- Maintains backward compatibility for text-only entries
 
 **analyze-pet-photo Enhancements (2026-04-06):**
 - **Content-aware:** Detecta se é pet direto, feces, plants, wounds, food, objects, environment

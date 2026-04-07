@@ -21,12 +21,12 @@ export interface AIConfig {
 }
 
 const DEFAULTS: AIConfig = {
-  model_classify:    'claude-sonnet-4-20250514',
-  model_vision:      'claude-sonnet-4-20250514',
-  model_chat:        'claude-sonnet-4-20250514',
-  model_narrate:     'claude-sonnet-4-20250514',
-  model_insights:    'claude-sonnet-4-20250514',
-  model_simple:      'claude-sonnet-4-20250514',
+  model_classify:    'claude-sonnet-4-6',
+  model_vision:      'claude-sonnet-4-6',
+  model_chat:        'claude-sonnet-4-6',
+  model_narrate:     'claude-sonnet-4-6',
+  model_insights:    'claude-sonnet-4-6',
+  model_simple:      'claude-sonnet-4-6',
   timeout_ms:        30_000,
   anthropic_version: '2023-06-01',
 };
@@ -80,7 +80,7 @@ export async function getAIConfig(sb?: SupabaseClient): Promise<AIConfig> {
     };
 
     cachedConfig = config;
-    cacheExpiry  = now + CACHE_TTL_MS;
+    cacheExpiry  = now + 1; // cache desativado temporariamente
     return config;
 
   } catch {

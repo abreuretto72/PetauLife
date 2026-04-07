@@ -819,6 +819,8 @@ async function _backgroundClassifyAndSave(opts: {
   inputType: string;
   photos: string[];
   species?: string;
+  petName?: string;
+  petBreed?: string;
   mediaUris?: string[];   // all attachment URIs (photos first, then video/audio)
   videoDuration?: number;
   audioDuration?: number;
@@ -929,13 +931,19 @@ async function _backgroundClassifyAndSave(opts: {
 
     // ── Run text classification and per-photo analysis in parallel ────────────
     // hasPhotos: true whenever photos or video frames are available for analysis
-    // Fotos têm prioridade sobre frames de vídeo (mais dados clínicos; evita OOM com mídia mista)
-    const analysisFrames = photosBase64 && photosBase64.length > 0
-      ? photosBase64
-      : videoFramesBase64.length > 0
-        ? videoFramesBase64
-        : [];
-    // Limit to 3 images max for classify and per-photo analysis to prevent OOM
+    // Fotos têm prioridade. Se há fotos E vídeo, incluir até 2 fotos + 1 frame do vídeo
+    // para garantir que o vídeo também seja analisado pelo analyze-pet-photo.
+    let analysisFrames: string[];
+    if (photosBase64 && photosBase64.length > 0 && videoFramesBase64.length > 0) {
+      // Misto: até 2 fotos + 1 frame de vídeo (total 3 para não estourar OOM)
+      analysisFrames = [...photosBase64.slice(0, 2), ...videoFramesBase64.slice(0, 1)];
+    } else if (photosBase64 && photosBase64.length > 0) {
+      analysisFrames = photosBase64;
+    } else if (videoFramesBase64.length > 0) {
+      analysisFrames = videoFramesBase64;
+    } else {
+      analysisFrames = [];
+    }
     const analysisFramesCapped = analysisFrames.slice(0, 3);
     const hasVisualInput = analysisFramesCapped.length > 0;
 
@@ -949,6 +957,11 @@ async function _backgroundClassifyAndSave(opts: {
     const bgAuthHeader = bgSession?.access_token ? { Authorization: `Bearer ${bgSession.access_token}` } : {};
     console.log('[DIAG] bgSession token present:', !!bgSession?.access_token);
 
+    console.log('[S3-PRE] textForClassify length:', (textForClassify ?? '').length);
+    console.log('[S3-PRE] textForClassify FULL:', textForClassify ?? '');
+    console.log('[S3-PRE] analysisFramesCapped:', analysisFramesCapped.length, 'frames');
+    console.log('[S3-PRE] photosBase64:', photosBase64?.length ?? 0, 'fotos');
+    console.log('[S3-PRE] inputType enviado ao classify:', inputType);
     const [classification, photoAnalysisResults] = await Promise.all([
       // A: unified classify — text + frames/photos + input type (always runs)
       classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language),
@@ -957,7 +970,7 @@ async function _backgroundClassifyAndSave(opts: {
       // Fotos primeiro, depois frames de vídeo se houver espaço (max 3 total)
       hasVisualInput
         ? Promise.allSettled(
-            [...(photosBase64 ?? []), ...videoFramesBase64].slice(0, 3).map((b64, idx) =>
+            analysisFramesCapped.map((b64, idx) =>
               supabase.functions
                 .invoke('analyze-pet-photo', {
                   headers: bgAuthHeader,
@@ -965,13 +978,25 @@ async function _backgroundClassifyAndSave(opts: {
                     photo_base64: b64,
                     language: i18n.language,
                     species: opts.species ?? 'dog',
+                    pet_name: opts.petName ?? null,
+                    pet_breed: opts.petBreed ?? null,
                     ...((photosBase64?.length ?? 0) === 0 || idx >= (photosBase64?.length ?? 0)
                       ? { context: 'video_frame' }
                       : {}),
                   },
                 })
                 .then(({ data, error }) => {
-                  if (error) console.log('[DIAG-ERR] analyze-pet-photo idx=' + idx + ':', JSON.stringify(error));
+                  if (error) {
+                    console.log('[DIAG-ERR] analyze-pet-photo idx=' + idx + ':', JSON.stringify(error).slice(0, 200));
+                    // Tentar ler o body da resposta de erro
+                    const blob = (error as Record<string,unknown>).context as Record<string,unknown> | undefined;
+                    const bodyBlob = blob?._bodyBlob as Blob | undefined;
+                    if (bodyBlob) {
+                      bodyBlob.text().then((txt: string) => {
+                        console.log('[DIAG-BODY] analyze-pet-photo idx=' + idx + ':', txt);
+                      }).catch(() => {});
+                    }
+                  }
                   return data as Record<string, unknown> | null;
                 }),
             ),
@@ -980,6 +1005,11 @@ async function _backgroundClassifyAndSave(opts: {
     ]);
 
     console.log('[S3] classify OK | narration:', !!classification.narration, '| usou fotos:', (photosBase64?.length ?? 0) > 0, '| frames:', videoFramesBase64.length);
+    console.log('[S3] primary_type:', classification.primary_type);
+    console.log('[S3] mood:', classification.mood, '| urgency:', classification.urgency);
+    console.log('[S3] tokens_used:', classification.tokens_used);
+    console.log('[S3] narration preview:', (classification.narration ?? '').slice(0, 100));
+    console.log('[S3] classifications RAW:', JSON.stringify(classification.classifications));
     console.log('[DIAG] photoAnalysisResults:', JSON.stringify(
       Array.isArray(photoAnalysisResults)
         ? photoAnalysisResults.map((r, i) => ({
@@ -998,6 +1028,7 @@ async function _backgroundClassifyAndSave(opts: {
     // (JS GC will collect them once no references remain)
     videoFramesBase64 = [];
     console.log('[S3] classifications:', classification.classifications?.map((c: {type: string}) => c.type));
+    console.log('[S3] tags_suggested:', JSON.stringify(classification.tags_suggested));
     console.log('[S3] extracted_data:', JSON.stringify(
       classification.classifications
         ?.filter((c: {type: string}) => ['symptom','consultation','weight'].includes(c.type))
@@ -1712,6 +1743,11 @@ export function useDiaryEntry(petId: string) {
   const submitEntry = React.useCallback(async (params: SubmitEntryParams): Promise<void> => {
     if (!user?.id) return;
 
+    const { text, photosBase64, inputType, hasVideo, mediaUris = [] } = params;
+    console.log('[S1] submitEntry chamado | photosBase64:', photosBase64?.length ?? 0, '| mediaUris:', mediaUris.length);
+    console.log('[S1] text length:', (text ?? '').length, '| preview:', (text ?? '').slice(0, 80));
+    console.log('[S1] inputType:', inputType, '| hasVideo:', hasVideo);
+
     const tempId = `temp-${Date.now()}`;
 
     // OFFLINE FIRST — save locally before any network call
@@ -1774,6 +1810,8 @@ export function useDiaryEntry(petId: string) {
       additionalContext: params.additionalContext,
       hasVideo: params.hasVideo,
       species: petSpecies,
+      petName: cachedPets.find(p => p.id === petId)?.name ?? undefined,
+      petBreed: cachedPets.find(p => p.id === petId)?.breed ?? undefined,
     });
   }, [petId, user, qc, queryKey]);
 

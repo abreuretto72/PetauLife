@@ -19,12 +19,12 @@ interface AIConfig {
 }
 
 const AI_CONFIG_DEFAULTS: AIConfig = {
-  model_classify:    'claude-sonnet-4-20250514',
-  model_vision:      'claude-sonnet-4-20250514',
-  model_chat:        'claude-sonnet-4-20250514',
-  model_narrate:     'claude-sonnet-4-20250514',
-  model_insights:    'claude-sonnet-4-20250514',
-  model_simple:      'claude-sonnet-4-20250514',
+  model_classify:    'claude-sonnet-4-6',
+  model_vision:      'claude-sonnet-4-6',
+  model_chat:        'claude-sonnet-4-6',
+  model_narrate:     'claude-sonnet-4-6',
+  model_insights:    'claude-sonnet-4-6',
+  model_simple:      'claude-sonnet-4-6',
   timeout_ms:        30_000,
   anthropic_version: '2023-06-01',
 };
@@ -60,7 +60,7 @@ async function getAIConfig(): Promise<AIConfig> {
       timeout_ms:        Number(map['ai_timeout_ms']  ?? AI_CONFIG_DEFAULTS.timeout_ms),
       anthropic_version: (map['ai_anthropic_version'] as string) ?? AI_CONFIG_DEFAULTS.anthropic_version,
     };
-    _aiConfigExpiry = now + 5 * 60 * 1000;
+    _aiConfigExpiry = now + 1; // cache desativado temporariamente
     return _cachedAIConfig;
   } catch {
     return AI_CONFIG_DEFAULTS;
@@ -70,7 +70,7 @@ async function getAIConfig(): Promise<AIConfig> {
 // ── Constants ──
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
-const MAX_TOKENS = 1500;
+const MAX_TOKENS = 8192;
 
 const LANG_NAMES: Record<string, string> = {
   'pt-BR': 'Brazilian Portuguese', 'pt': 'Brazilian Portuguese',
@@ -182,7 +182,7 @@ export interface ClassifyInput {
 
 // ── Prompt builder ──
 
-function buildSystemPrompt(pet: PetContext, lang: string, inputType?: string): string {
+function buildSystemPrompt(pet: PetContext, lang: string, inputType?: string, text?: string | null): string {
   const petSex = pet.sex === 'male' ? 'male' : pet.sex === 'female' ? 'female' : 'unknown sex';
   const speciesWord = pet.species === 'dog' ? 'dog' : 'cat';
 
@@ -194,9 +194,11 @@ function buildSystemPrompt(pet: PetContext, lang: string, inputType?: string): s
     return buildPDFPrompt(pet, lang);
   }
 
-  if (inputType === 'video') {
+  if (inputType === 'video' && (!text || text.trim().length < 20)) {
     return buildVideoPrompt(pet, lang);
   }
+  // Video + texto clínico: usar prompt principal para extrair lentes do texto
+  // O video_analysis virá dos frames analisados separadamente
 
   if (inputType === 'pet_audio') {
     return buildPetAudioPrompt(pet, lang);
@@ -220,6 +222,13 @@ SEMPRE em 3ª pessoa. NUNCA 1ª pessoa.
   ❌ "Fui ao veterinário..." ❌ "Meu tutor..."
 Tom: acolhedor, factual. Máximo 120 palavras. Inclua dados concretos: valores, nomes, pesos, datas.
 Responda em ${lang}.
+
+## PRIORIDADE DE ANÁLISE — CRÍTICO
+Quando há texto E imagens, o TEXTO tem prioridade absoluta para classificação.
+As imagens são contexto visual complementar — NUNCA substituem os dados clínicos do texto.
+Se o texto menciona peso, temperatura, glicemia, pressão, consulta ou gasto,
+SEMPRE extraia essas classificações independentemente do que as fotos mostram.
+Fotos de plantas, feridas ou outros objetos não impedem a extração de dados clínicos do texto.
 
 ## REGRA PRINCIPAL — MÚLTIPLAS CLASSIFICAÇÕES
 Tipos disponíveis: ${CLASSIFICATION_TYPES.join(', ')}
@@ -623,38 +632,54 @@ Tipos disponíveis: ${CLASSIFICATION_TYPES.join(', ')}`;
 
 function buildOCRPrompt(pet: PetContext, lang: string): string {
   const speciesWord = pet.species === 'dog' ? 'dog' : 'cat';
-  return `You are the intelligent scanner for AuExpert, a pet care app.
-Extract ALL data from the photographed document and return ONLY valid JSON.
+  return `You are a veterinary document intelligence specialist for AuExpert.
+Extract and INTERPRET all data from this photographed veterinary document.
+Do not just transcribe — provide clinical context for every extracted value.
 
 Pet: ${pet.name}, ${pet.breed ?? 'mixed'}, ${speciesWord}
 
-Identify the document type and extract relevant fields:
+## DOCUMENT RECOGNITION AND CLINICAL EXTRACTION:
 
-VACCINE CARD → type "vaccine":
-  vaccine_name, laboratory, batch, dose, date, next_due, vet_name, clinic
+### VACCINE CARD → type "vaccine":
+Fields: vaccine_name, laboratory, batch, dose_number, date (YYYY-MM-DD), next_due (YYYY-MM-DD), vet_name, clinic
+Clinical context: Is the vaccine up to date? Is next_due within 30 days? Flag if overdue.
+Vaccine types guide: V8/V10=polyvalent (distemper+parvo+hepatitis+leptospira±others) | Rabies=annual or triennial | Bordetella=respiratory | FeLV=feline leukemia | FIV=feline immunodeficiency
 
-VETERINARY PRESCRIPTION → type "medication":
-  medication_name, dosage, frequency, duration, vet_name, date
+### VETERINARY PRESCRIPTION → type "medication":
+Fields: medication_name, active_ingredient, dosage (mg/kg when possible), frequency, route (oral/topical/injectable), duration_days, vet_name, clinic, date
+Clinical context: Flag drug interactions if multiple medications. Note if dosage seems outside typical range.
+Common medications: Meloxicam=NSAID anti-inflammatory | Amoxicillin/Cefalexin=antibiotics | Prednisone=corticosteroid | Metronidazol=antiparasitic/antibiotic | Apoquel/Cytopoint=anti-itch
 
-EXAM REPORT / LAB RESULT → type "exam":
-  exam_name, date, lab_name, results: [{item, value, unit, reference_min, reference_max, status}]
-  Include clinical_metrics for numeric values found.
+### EXAM / LAB RESULT → type "exam":
+Fields: exam_name, date, lab_name, results: [{item, value, unit, reference_min, reference_max, status, clinical_note}]
+Clinical interpretation required for each value:
+- CBC: HCT<30%=anemia concern | WBC>18k=infection/inflammation | Platelets<100k=bleeding risk
+- Chemistry: ALT>3x normal=liver concern | Creatinine elevated=kidney concern | Glucose<60 or >300=diabetic concern
+- Urinalysis: protein+=kidney leak | bacteria=UTI | crystals=stone risk
+Generate clinical_metrics for EVERY numeric lab value found.
 
-INVOICE / RECEIPT → type "expense":
-  merchant_name, merchant_type, date, total, currency, items: [{name, qty, unit_price}]
+### INVOICE / RECEIPT → type "expense":
+Fields: merchant_name, merchant_type, date, total, currency, items: [{name, qty, unit_price}]
+Categorize: veterinary service | medication | food | grooming | boarding | accessory
 
-INSURANCE / PLAN → type "plan":
-  provider, plan_name, type, monthly_cost, coverage_limit, start_date, end_date
+### INSURANCE / HEALTH PLAN → type "plan":
+Fields: provider, plan_name, plan_type, monthly_cost, annual_cost, coverage_limit, deductible, start_date, end_date, renewal_date, coverage_items
+Flag: expiring within 30 days, gaps in coverage
 
-MEDICATION BOX / PACKAGE INSERT → type "medication":
-  active_ingredient, dosage_info, contraindications
+### VET REPORT / DISCHARGE SUMMARY → type "consultation":
+Fields: date, vet_name, clinic, chief_complaint, physical_exam_findings, diagnosis, prognosis, treatment_plan, prescriptions, follow_up_date, restrictions
+Extract ALL clinical findings mentioned. Flag follow-up dates.
 
-VET REPORT / CERTIFICATE → type "consultation":
-  date, vet_name, clinic, diagnosis, prescriptions, follow_up
+### MEDICATION PACKAGING → type "medication":
+Fields: brand_name, active_ingredient, concentration, species_indication, contraindications, withdrawal_period
+Flag: contraindications relevant to ${pet.name}'s species
 
-For EACH extracted field, include confidence (0.0-1.0).
-Narration: write 1-2 sentences about ${pet.name} in THIRD PERSON.
-Respond in ${lang}.
+## EXTRACTION RULES:
+- Extract EVERY number, date, name, and measurement visible
+- For lab results: always include reference ranges and flag abnormal values
+- Confidence: 0.95=clearly legible | 0.7=partially obscured | 0.5=inferred from context
+- If a date is partially visible, estimate and note uncertainty
+- NARRATION: 2-3 sentences in THIRD PERSON about ${pet.name} and what this document means for their health. Respond in ${lang}.
 
 Return ONLY valid JSON:
 {
@@ -665,13 +690,13 @@ Return ONLY valid JSON:
     "fields": [{"key": "Field Name", "value": "Extracted Value", "confidence": 0.95}],
     "items": [{"name": "...", "qty": 1, "unit_price": 0.00}]
   },
-  "narration": "${pet.name} had a document scanned...",
+  "narration": "${pet.name} teve um documento digitalizado...",
   "mood": "calm",
   "mood_confidence": 0.5,
   "urgency": "none",
   "clinical_metrics": [],
-  "suggestions": ["Short action for the tutor"],
-  "tags_suggested": ["ocr", "document"]
+  "suggestions": ["Specific actionable recommendation based on document content"],
+  "tags_suggested": ["ocr", "documento"]
 }`;
 }
 
@@ -733,26 +758,47 @@ Return ONLY valid JSON:
 
 function buildVideoPrompt(pet: PetContext, lang: string): string {
   const speciesWord = pet.species === 'dog' ? 'dog' : 'cat';
-  return `You are the pet behavior AI analyzer for AuExpert.
-Video frames have been extracted from a pet video for visual analysis.
+  return `You are a veterinary behavioral analyst for AuExpert, a pet health diary app.
+Apply evidence-based ethology and clinical observation to assess this pet video.
 
 Pet: ${pet.name}, ${pet.breed ?? 'mixed/unknown'}, ${speciesWord}
-Recent memories: ${pet.recent_memories || 'none yet'}
+Context from previous entries: ${pet.recent_memories || 'none yet'}
 
-The tutor is responsible for the content they attach.
-Assume the animal in the frames IS ${pet.name}.
+## CLINICAL BEHAVIORAL ASSESSMENT FRAMEWORKS:
 
-## ANALYZE THE FRAMES:
-1. POSTURE: relaxed, tense, submissive, alert, playful
-2. BODY LANGUAGE: ears, tail, coat, body position
-3. EXPRESSION: snout, eyes, mouth
-4. BEHAVIOR: what ${pet.name} is doing
-5. EMOTIONAL STATE: calm, excited, anxious, fearful, playful
-6. VISIBLE HEALTH: coat condition, movement, signs of discomfort
-7. VOCALIZATION: if mouth open suggesting barking/meowing/growling
+### LOCOMOTION ANALYSIS (score 0-100):
+- Gait symmetry: limping, weight-bearing, stride length
+- Orthopedic Pain Index signals: reluctance to move, stiff rising, bunny-hopping gait
+- Neurological signs: ataxia, circling, head tilt, knuckling
+- Score 80-100: normal fluid movement | 60-79: mild stiffness | 40-59: moderate impairment | 0-39: severe concern
 
-## NARRATION (THIRD PERSON, max 150 words, respond in ${lang})
-Describe what ${pet.name} is doing and expressing in the video.
+### ENERGY & VITALITY (score 0-100):
+- Compare to breed-typical energy level
+- Lethargy signals: slow response, low head carriage, reduced interaction
+- Hyperactivity signals: panting without exercise, inability to settle, repetitive behaviors
+- Score 80-100: appropriate energy | 60-79: slightly subdued | 40-59: notably lethargic | 0-39: concerning
+
+### CALM/STRESS ASSESSMENT (score 0-100):
+- Calming signals (Turid Rugaas): yawning, lip licking, looking away, sniffing ground
+- Stress signals: panting, pacing, hiding, excessive grooming, tail tucked
+- Score 80-100: relaxed | 60-79: mildly stressed | 40-59: moderately stressed | 0-39: high stress
+
+### PAIN ASSESSMENT (UNESP-Botucatu visual signs):
+- Facial: orbital tightening, ear flattening, whisker retraction
+- Postural: hunched, guarding, reluctance to bear weight
+- Behavioral: vocalization, aggression when touched area, restlessness
+
+### HEALTH OBSERVATIONS:
+- Respiratory pattern: normal, labored, open-mouth breathing (cats=emergency)
+- Coughing, gagging, retching visible
+- Skin/coat visible abnormalities
+- Swelling, asymmetry, visible wounds
+
+## NARRATION RULES:
+- THIRD PERSON only. Max 200 words. Respond in ${lang}.
+- Lead with the most clinically significant finding
+- Be specific: "demonstrates a 3/5 lameness on the right forelimb" not "seems to limp a little"
+- Flag any urgent findings with urgency level
 
 Return ONLY valid JSON:
 {
@@ -760,7 +806,9 @@ Return ONLY valid JSON:
     "behavior": "...",
     "posture": "relaxed|tense|alert|submissive|playful",
     "emotional_state": "calm|excited|anxious|fearful|playful",
-    "vocalization_detected": false
+    "vocalization_detected": false,
+    "pain_signals_detected": false,
+    "locomotion_concern": false
   }}],
   "primary_type": "moment",
   "narration": "${pet.name} foi filmado...",
@@ -768,68 +816,119 @@ Return ONLY valid JSON:
   "mood_confidence": 0.8,
   "urgency": "none",
   "clinical_metrics": [],
-  "suggestions": [],
+  "suggestions": ["Specific actionable recommendation for the tutor"],
   "tags_suggested": ["video", "comportamento"],
   "video_analysis": {
     "locomotion_score": 80,
     "energy_score": 75,
     "calm_score": 65,
-    "behavior_summary": "1-2 sentence description",
-    "health_observations": []
+    "behavior_summary": "Clinical 2-3 sentence behavioral assessment",
+    "health_observations": ["Specific clinical observation if any"]
   }
 }`;
 }
 
 function buildPetAudioPrompt(pet: PetContext, lang: string): string {
   const speciesWord = pet.species === 'dog' ? 'dog' : 'cat';
-  const soundTypes = pet.species === 'dog'
-    ? 'bark (alert, play, anxiety, fear, pain), whine, growl'
-    : 'meow (hunger, attention, pain, stress), purr (content), growl';
-  const emotionalStates = pet.species === 'dog'
-    ? 'alert, playful, anxious, fearful, in-pain, excited, content'
-    : 'hungry, attention-seeking, in-pain, stressed, content, fearful';
 
-  return `You are a pet behavior and vocalization specialist for AuExpert.
-The tutor recorded audio of their pet and described what they heard.
+  const dogSoundGuide = `
+### DOG VOCALIZATION CLINICAL GUIDE:
+BARK types:
+- Alert/territorial: sharp, repetitive, medium pitch — normal protective behavior
+- Play: higher pitch, broken rhythm, often with pauses — positive social signal
+- Anxiety/separation: continuous, monotonous, often howling mixed — may indicate separation anxiety disorder
+- Fear: high-pitched, rapid, may combine with growl — requires desensitization protocol
+- Pain: sudden yelp or continuous whining — immediate veterinary evaluation warranted
+- Demand/attention: rising pitch at end, rhythmic — learned behavior, manageable with training
+
+WHINE/WHIMPER:
+- High-pitched continuous: pain or extreme distress — urgent evaluation
+- Soft intermittent: mild discomfort or solicitation — monitor
+
+GROWL:
+- Low rumble, steady: warning signal, do not punish — respect the communication
+- High-pitched growl: fear-based aggression — behavioral support needed
+
+HOWL:
+- Response to sounds: normal auditory response
+- Spontaneous prolonged: separation anxiety or pain`;
+
+  const catSoundGuide = `
+### CAT VOCALIZATION CLINICAL GUIDE:
+MEOW types (cats meow primarily to communicate with humans):
+- Short chirp: greeting, positive — normal social bond
+- Prolonged/insistent: hunger, attention, or cognitive dysfunction in seniors
+- High-pitched yowl: pain, fear, or reproductive behavior (intact cats)
+- Chattering (at birds/prey): predatory frustration — normal behavior
+
+PURR:
+- Continuous during handling: contentment — positive welfare indicator
+- Purring while hiding/not eating: pain or illness — cats purr to self-soothe
+- Frequency 25-50Hz: known to promote bone healing and reduce stress
+
+GROWL/HISS:
+- Direct threat response: fear or pain — requires gentle approach
+- Redirected aggression: aroused state — give space
+
+TRILL/CHIRP:
+- Mother-kitten communication: affectionate greeting — positive
+
+YOWL (senior cats especially):
+- Nighttime yowling: possible hyperthyroidism, hypertension, cognitive dysfunction — veterinary evaluation`;
+
+  const soundGuide = pet.species === 'dog' ? dogSoundGuide : catSoundGuide;
+
+  return `You are a veterinary ethologist and animal communication specialist for AuExpert.
+The tutor has described or recorded sounds from their pet.
 
 Pet: ${pet.name}, ${pet.breed ?? 'mixed/unknown'}, ${speciesWord}
-Recent mood patterns: ${pet.recent_memories || 'none yet'}
+Recent behavioral context: ${pet.recent_memories || 'none yet'}
 
-## ANALYSIS
-Based on the tutor's description, analyze:
-- sound_type: ${soundTypes}
-- emotional_state: ${emotionalStates}
-- intensity: "low" | "medium" | "high"
-- pattern_notes: brief description of the vocal pattern
+${soundGuide}
 
-## NARRATION RULES
-- Write in THIRD PERSON about ${pet.name}
-- Focus on emotional state and what the sound communicates
-- Be warm, empathetic — this is the pet's voice
-- Maximum 150 words
-- Respond in ${lang}
+## ASSESSMENT TASK:
+Based on the tutor's description of the sound:
+1. Classify the sound type with clinical precision
+2. Assess the emotional/health state it communicates
+3. Determine urgency — some vocalizations require immediate veterinary attention
+4. Provide actionable guidance for the tutor
+
+## URGENCY TRIGGERS (set urgency to "high"):
+- Sudden yelp or cry in dogs
+- Continuous yowling in cats (especially seniors)
+- Whimpering that doesn't stop
+- Growling accompanied by aggression
+- Any vocalization combined with refusal to eat/move
+
+## NARRATION RULES:
+- THIRD PERSON only. Max 150 words. Respond in ${lang}.
+- Explain what the sound communicates clinically
+- Give the tutor specific guidance on what to do next
+- Be empathetic but scientifically grounded
 
 Return ONLY valid JSON:
 {
   "classifications": [{"type": "mood", "confidence": 0.85, "extracted_data": {
-    "sound_type": "bark",
-    "emotional_state": "playful",
-    "intensity": "medium",
-    "pattern_notes": "short rhythmic barks with rising pitch"
+    "sound_type": "bark|whine|growl|howl|meow|purr|hiss|yowl|chirp|other",
+    "sound_subtype": "alert|play|anxiety|fear|pain|demand|greeting|other",
+    "emotional_state": "content|playful|anxious|fearful|in-pain|stressed|alert|excited",
+    "intensity": "low|medium|high",
+    "pattern_notes": "Clinical description of the vocal pattern and its significance",
+    "requires_vet_attention": false
   }}],
   "primary_type": "mood",
-  "narration": "${pet.name} expressed themselves through...",
-  "mood": "happy",
+  "narration": "${pet.name} vocalizou...",
+  "mood": "calm",
   "mood_confidence": 0.85,
   "urgency": "none",
   "clinical_metrics": [],
-  "suggestions": [],
-  "tags_suggested": ["audio", "vocalization"],
+  "suggestions": ["Specific actionable recommendation based on the sound assessment"],
+  "tags_suggested": ["audio", "vocalizacao"],
   "pet_audio_analysis": {
     "sound_type": "bark",
     "emotional_state": "playful",
     "intensity": "medium",
-    "pattern_notes": "short rhythmic barks"
+    "pattern_notes": "Clinical interpretation of the sound pattern"
   }
 }`;
 }
@@ -855,6 +954,20 @@ function buildPDFMessages(pdfBase64: string, text?: string): ClaudeMessage[] {
 interface ClaudeMessage {
   role: string;
   content: unknown;
+}
+
+function buildOCRMessages(photo_base64?: string): ClaudeMessage[] {
+  if (!photo_base64) return [{ role: 'user', content: 'No image provided.' }];
+  return [{
+    role: 'user',
+    content: [
+      {
+        type: 'image',
+        source: { type: 'base64', media_type: detectMediaType(photo_base64), data: photo_base64 },
+      },
+      { type: 'text', text: 'Analyze this veterinary document and extract all health records.' },
+    ],
+  }];
 }
 
 function buildMessages(text?: string, photos_base64?: string[]): ClaudeMessage[] {
@@ -894,20 +1007,28 @@ async function callClaude(
   maxTokens: number = MAX_TOKENS,
 ): Promise<{ text: string; tokensUsed: number }> {
   const cfg = await getAIConfig();
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': cfg.anthropic_version,
-    },
-    body: JSON.stringify({
-      model: cfg.model_classify,
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25_000);
+  let response: Response;
+  try {
+    response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': cfg.anthropic_version,
+      },
+      body: JSON.stringify({
+        model: cfg.model_classify,
+        max_tokens: maxTokens,
+        system: systemPrompt,
+        messages,
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -1020,7 +1141,7 @@ export function resolveLanguage(langCode: string): string {
  */
 export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResult> {
   const lang = resolveLanguage(input.language);
-  const systemPrompt = buildSystemPrompt(input.petContext, lang, input.input_type);
+  const systemPrompt = buildSystemPrompt(input.petContext, lang, input.input_type, input.text);
 
   let messages: ClaudeMessage[];
   let maxTokens = MAX_TOKENS;
@@ -1030,12 +1151,20 @@ export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResul
     maxTokens = 3000; // PDF may contain many records
   } else {
     // Merge legacy photo_base64 + new photos_base64 array
-    const photos = input.photos_base64?.length
+    const allPhotos = input.photos_base64?.length
       ? input.photos_base64
       : input.photo_base64
         ? [input.photo_base64]
         : undefined;
-    messages = buildMessages(input.text, photos);
+    // OCR: 1 foto exata | video: 1 frame | gallery: 2 fotos max
+    const photos = input.input_type === 'video'
+      ? allPhotos?.slice(0, 1)
+      : input.input_type === 'ocr_scan'
+        ? allPhotos?.slice(0, 1)
+        : allPhotos?.slice(0, 2);
+    messages = input.input_type === 'ocr_scan'
+      ? buildOCRMessages(photos?.[0])
+      : buildMessages(input.text, photos);
   }
 
   console.log('[classifier] Calling Claude | lang:', lang, '| maxTokens:', maxTokens);

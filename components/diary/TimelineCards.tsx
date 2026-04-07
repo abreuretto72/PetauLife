@@ -68,6 +68,7 @@ function PhotoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
     : media.mediaUrl ? getPublicUrl('pet-photos', media.mediaUrl) : null;
   const desc = (media.analysis as Record<string, unknown> | undefined)?.description as string | undefined;
   const toxCheck = (media.analysis as Record<string, unknown> | undefined)?.toxicity_check as Record<string, unknown> | undefined;
+  const sources = (media.analysis as Record<string, unknown> | undefined)?.sources as string[] | undefined;
   const hasToxic = toxCheck?.has_toxic_items === true;
   const toxItems = toxCheck?.items as Array<{name: string; toxicity_level: string; description: string}> | undefined;
 
@@ -91,6 +92,13 @@ function PhotoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
         </View>
       )}
       {desc && <Text style={styles.subcardBodyText}>{desc}</Text>}
+      {sources && sources.length > 0 && (
+        <View style={styles.sourcesContainer}>
+          {sources.map((src, i) => (
+            <Text key={i} style={styles.sourceText}>📚 {src}</Text>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -113,6 +121,16 @@ function VideoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
       {thumbUri && <Image source={{ uri: thumbUri }} style={styles.subcardImage} resizeMode="cover" />}
       {desc && <Text style={styles.subcardBodyText}>{desc}</Text>}
       {va?.behavior_summary && <Text style={styles.subcardBodyText}>{va.behavior_summary}</Text>}
+      {(() => {
+        const videoSources = (media.analysis as Record<string, unknown> | undefined)?.sources as string[] | undefined;
+        return videoSources && videoSources.length > 0 ? (
+          <View style={styles.sourcesContainer}>
+            {videoSources.map((src, i) => (
+              <Text key={i} style={styles.sourceText}>📚 {src}</Text>
+            ))}
+          </View>
+        ) : null;
+      })()}
       {va && (va.energy_score != null || va.calm_score != null || va.locomotion_score != null) && (
         <View style={styles.subcardScores}>
           {va.energy_score != null && <SubcardScore label={t('diary.energy')} value={va.energy_score} color={colors.gold} />}
@@ -919,6 +937,18 @@ const styles = StyleSheet.create({
   subcardHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6), paddingHorizontal: rs(12), paddingVertical: rs(8) },
   subcardLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.success, letterSpacing: 1.2 },
   subcardImage: { width: '100%', height: rs(180) },
+  sourcesContainer: {
+    paddingHorizontal: rs(10),
+    paddingBottom: rs(8),
+    gap: rs(4),
+  },
+  sourceText: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(9),
+    color: colors.textDim,
+    lineHeight: fs(14),
+    fontStyle: 'italic',
+  },
   subcardBodyText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec, fontStyle: 'italic', lineHeight: fs(18), padding: rs(10), paddingTop: rs(4) },
   toxicAlert: { flexDirection: 'row', alignItems: 'flex-start', gap: rs(6), padding: rs(10) },
   toxicText: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: fs(12), lineHeight: fs(18) },

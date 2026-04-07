@@ -11,13 +11,13 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Animated, ScrollView,
+  KeyboardAvoidingView, Platform, Animated, ScrollView, Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
-import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon, ShieldCheck, Stethoscope, FlaskConical, Pill, Scale, DollarSign, ThermometerSun, Utensils, AlertTriangle, Scissors, Activity, ShoppingBag, MapPin, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon, ShieldCheck, Stethoscope, FlaskConical, Pill, Scale, DollarSign, ThermometerSun, Utensils, AlertTriangle, Scissors, Activity, ShoppingBag, MapPin, Sparkles, ScanLine } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -139,6 +139,7 @@ export default function NewDiaryEntryScreen() {
   // Text/voice step — multi-attachments (photos, video, pet audio, documents)
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showPetAudioModal, setShowPetAudioModal] = useState(false);
+  const [showAudioChoiceModal, setShowAudioChoiceModal] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [helpTab, setHelpTab] = useState<'uso' | 'painel'>('uso');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -686,6 +687,20 @@ export default function NewDiaryEntryScreen() {
             fileName: asset.name,
             fileSize: asset.size,
           });
+        } else if (mime.startsWith('audio/')) {
+          if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); continue; }
+          if (asset.size && asset.size > MEDIA_LIMITS.audio.maxSizeBytes) {
+            toast(t('diary.audioTooLarge', { max: MEDIA_LIMITS.audio.maxSizeMB }), 'warning');
+            continue;
+          }
+          newAttachments.push({
+            id:       `audio-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            type:     'audio',
+            localUri: asset.uri,
+            mimeType: mime,
+            fileName: asset.name,
+            fileSize: asset.size,
+          });
         } else {
           if (!canAddAttachment('document')) { toast(t('mic.maxDocuments'), 'warning'); continue; }
           newAttachments.push({
@@ -1155,6 +1170,77 @@ export default function NewDiaryEntryScreen() {
         />
       )}
 
+      <Modal
+        visible={showAudioChoiceModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAudioChoiceModal(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+          onPress={() => setShowAudioChoiceModal(false)}
+        >
+          <Pressable style={{
+            backgroundColor: colors.bgCard,
+            borderTopLeftRadius: rs(20),
+            borderTopRightRadius: rs(20),
+            padding: rs(24),
+            gap: rs(12),
+          }}>
+            <Text style={{
+              fontFamily: 'Sora_700Bold',
+              fontSize: fs(16),
+              color: colors.text,
+              marginBottom: rs(8),
+            }}>{t('mic.audioChoiceTitle')}</Text>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: rs(12),
+                backgroundColor: colors.card, borderRadius: rs(14),
+                padding: rs(16), borderWidth: 1, borderColor: colors.border,
+              }}
+              onPress={() => {
+                setShowAudioChoiceModal(false);
+                setShowPetAudioModal(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ear size={rs(24)} color={colors.rose} strokeWidth={1.8} />
+              <View>
+                <Text style={{ fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.text }}>
+                  {t('mic.audioChoiceRecord')}
+                </Text>
+                <Text style={{ fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec }}>
+                  {t('mic.audioChoiceRecordDesc')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: rs(12),
+                backgroundColor: colors.card, borderRadius: rs(14),
+                padding: rs(16), borderWidth: 1, borderColor: colors.border,
+              }}
+              onPress={() => {
+                setShowAudioChoiceModal(false);
+                void handleAttachAudio();
+              }}
+              activeOpacity={0.7}
+            >
+              <Music2 size={rs(24)} color={colors.gold} strokeWidth={1.8} />
+              <View>
+                <Text style={{ fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.text }}>
+                  {t('mic.audioChoiceFile')}
+                </Text>
+                <Text style={{ fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec }}>
+                  {t('mic.audioChoiceFileDesc')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* ── Pet audio modal (from attachment button) ────── */}
       {showPetAudioModal && (
         <PetAudioRecorder
@@ -1284,20 +1370,24 @@ export default function NewDiaryEntryScreen() {
                 <ImageIcon size={rs(18)} color={colors.accent} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.addMedia')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.attachThumb} onPress={handleAttachAudio} activeOpacity={0.7}>
-                <Music2 size={rs(18)} color={colors.gold} strokeWidth={1.8} />
-                <Text style={styles.attachLabel}>{t('mic.addAudio')}</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.attachThumb}
                 onPress={() => {
                   if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); return; }
-                  setShowPetAudioModal(true);
+                  setShowAudioChoiceModal(true);
                 }}
                 activeOpacity={0.7}
               >
-                <Ear size={rs(18)} color={colors.rose} strokeWidth={1.8} />
-                <Text style={styles.attachLabel}>{t('mic.addPetAudio')}</Text>
+                <Mic size={rs(18)} color={colors.rose} strokeWidth={1.8} />
+                <Text style={styles.attachLabel}>{t('mic.addAudio')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.attachThumb}
+                onPress={handleSelectScanner}
+                activeOpacity={0.7}
+              >
+                <ScanLine size={rs(18)} color={colors.success} strokeWidth={1.8} />
+                <Text style={styles.attachLabel}>{t('mic.scanner')}</Text>
               </TouchableOpacity>
             </View>
 
