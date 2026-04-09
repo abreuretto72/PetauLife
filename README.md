@@ -10,6 +10,21 @@ App mobile AI-first para tutores de cães e gatos. Diário inteligente com narra
 
 ## Status do Desenvolvimento
 
+### Concluido (2026-04-09)
+
+#### Audio Analysis — Model Separation Pattern
+- **`model_audio` separation** — New field in `AIConfig` for audio content blocks
+- **Why separate?** Older models like `claude-sonnet-4-20250514` don't support audio input; newer models (4.5+) do
+- **Configuration** — `ai_model_audio` added to `app_config` table in Supabase, configurable per environment without redeploy
+- **Default model** — `claude-sonnet-4-6` (supports audio, vision, text equally)
+- **Implementation** — `callClaude` now accepts `modelOverride` param; audio classification uses `cfg.model_audio` instead of `cfg.model_classify`
+- **Magic bytes MIME detection** — `detectAudioMimeFromBytes()` reads first 8 bytes to identify actual format (MP3, WAV, OGG, FLAC, WebM, MP4)
+  - Fixes issue where Supabase Storage reports all `.mp4` files as `video/mp4`, causing Claude API to reject them
+  - Detects: MP3 (ID3 tag or MPEG sync), WAV (RIFF header), OGG (OggS), FLAC (fLaC), WebM (EBML), MP4 (ftyp box)
+- **DocumentPicker audio filter** — Changed from wildcard `'audio/*'` to explicit array of 10 Anthropic-supported MIME types (MP3, M4A/AAC, WAV, OGG, FLAC, WebM)
+- **OCR improvements** — Enhanced prompts for Brazilian NF-e invoices, handwritten field extraction, output size constraints
+- **Related files:** `classifier.ts`, `new.tsx` (DocumentPicker), `useDiaryEntry.ts`, i18n keys
+
 ### Concluido (2026-04-03)
 
 #### Co-Tutores — Sistema de Delegação
@@ -233,23 +248,27 @@ App mobile AI-first para tutores de cães e gatos. Diário inteligente com narra
 
 O app aceita os seguintes tipos de mídia na entrada do diário, com os limites abaixo:
 
-| Tipo | Tamanho máximo | Quantidade por entrada | Duração máxima |
-|------|---------------|----------------------|----------------|
-| Foto | 5 MB | 5 fotos | — |
-| Vídeo | 50 MB | 1 vídeo | 60 segundos |
-| Áudio (latidos/sons) | 5 MB | 1 gravação | 30 segundos |
-| Scanner / Documento | 10 MB | 1 arquivo | até 20 páginas |
+| Tipo | Tamanho máximo | Quantidade por entrada | Duração máxima | Formatos aceitos |
+|------|---------------|----------------------|----------------|---|
+| Foto | 5 MB | 5 fotos | — | JPEG, PNG, WebP |
+| Vídeo | 50 MB | 1 vídeo | 60 segundos | MP4, MOV, WebM |
+| Áudio (latidos/sons) | 5 MB | 1 gravação | 30 segundos | MP3, M4A, AAC, WAV, OGG, FLAC, WebM, MP4 |
+| Scanner / Documento | 10 MB | 1 arquivo | até 20 páginas | PDF, JPEG, PNG |
 
 **Como funciona cada tipo:**
 
 - **Foto** — a IA analisa saúde visual, humor pela expressão/postura, ambiente e toxicidade. Até 5 fotos por entrada. Se nenhum animal aparecer na imagem, a análise informa isso.
 - **Vídeo** — a IA analisa locomoção, energia e comportamento a partir dos frames. Máximo 60 segundos para garantir qualidade de análise e velocidade de upload.
-- **Áudio** — gravação de sons do pet (latidos, ronrons, choros). A IA identifica o tipo de som, estado emocional, intensidade e padrão. Máximo 30 segundos.
-- **Scanner / Documento** — captura de documentos como carteira de vacina, receita veterinária, rótulo de ração. A IA extrai campos automaticamente via OCR e estrutura os dados. O documento escaneado aparece no card com os campos extraídos.
+- **Áudio** — gravação de sons do pet (latidos, ronrons, choros). A IA identifica o tipo de som, estado emocional, intensidade e padrão. Máximo 30 segundos. Suporta 7 formatos via Claude API (veja tabela acima). Os formatos são detectados via magic bytes, não por extensão de arquivo.
+- **Scanner / Documento** — captura de documentos como carteira de vacina, receita veterinária, rótulo de ração, notas fiscais. A IA extrai campos automaticamente via OCR e estrutura os dados. O documento escaneado aparece no card com os campos extraídos.
 
 Os limites são validados no momento da seleção — se o arquivo ultrapassar o limite, um aviso é exibido antes do envio.
 
 Os limites estão centralizados em `constants/media.ts`.
+
+### Nota sobre formatos de áudio
+
+Os 7 formatos de áudio (MP3, M4A/AAC, WAV, OGG, FLAC, WebM, MP4) são automaticamente detectados via análise de magic bytes no primeiro 8 bytes do arquivo, independentemente da extensão ou do header HTTP Content-Type. Isso evita problemas onde o Supabase Storage reporta todos os arquivos `.mp4` como `video/mp4`.
 
 ## Arquitetura
 

@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-07
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR Scanner Pipeline + Audio Unification
+**Last Updated:** 2026-04-09
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio Analysis + Model Separation
 
 ---
 
@@ -904,6 +904,202 @@ if (input.input_type === 'ocr_scan') {
 - **Language:** Responde sempre no idioma do tutor (`language: i18n.language`)
 - **Removed `--no-verify-jwt`:** Gateway já verifica, function recebe request autenticada
 - **JWT header:** App passa `bgAuthHeader` em background invocations (previne 401)
+
+---
+
+## AI Model Configuration Pattern
+
+**Problem:** Different content types require different Claude models.
+- Text/photo classification: any capable model (e.g., `claude-sonnet-4-20250514`)
+- Audio content blocks: ONLY models 4.5+ (e.g., `claude-sonnet-4-6`)
+- Older models silently reject audio blocks with no error
+
+**Solution:** Model separation via configurable `app_config` table.
+
+### Configuration Layer (`supabase/functions/classify-diary-entry/modules/classifier.ts`)
+
+```typescript
+interface AIConfig {
+  model_classify:    string;  // Text classification (default: claude-sonnet-4-6)
+  model_vision:      string;  // Photo analysis (default: claude-sonnet-4-6)
+  model_chat:        string;  // Chat/insights (default: claude-sonnet-4-6)
+  model_narrate:     string;  // Pet narration (default: claude-sonnet-4-6)
+  model_insights:    string;  // Weekly summaries (default: claude-sonnet-4-6)
+  model_simple:      string;  // Simple tasks (default: claude-sonnet-4-6)
+  model_audio:       string;  // AUDIO ONLY — must support audio input (default: claude-sonnet-4-6)
+  timeout_ms:        number;
+  anthropic_version: string;
+}
+```
+
+**Database storage:** `app_config` table with keys:
+```sql
+ai_model_classify    → text
+ai_model_vision      → text
+ai_model_chat        → text
+ai_model_narrate     → text
+ai_model_insights    → text
+ai_model_simple      → text
+ai_model_audio       → text  -- NEW: audio support
+ai_timeout_ms        → text
+ai_anthropic_version → text
+```
+
+**Fetching:** 5-minute cache with fallback to defaults:
+```typescript
+async function getAIConfig(): Promise<AIConfig> {
+  // Check cache
+  if (_cachedAIConfig && now < _aiConfigExpiry) return _cachedAIConfig;
+  
+  // Fetch from DB
+  const { data } = await client.from('app_config')
+    .select('key, value')
+    .in('key', ['ai_model_classify', 'ai_model_audio', ...]);
+  
+  // Map to AIConfig, fallback to defaults
+  // Cache for 5 minutes (configurable)
+  return cachedConfig;
+}
+```
+
+### Model Override Pattern (`callClaude` function)
+
+```typescript
+async function callClaude(
+  systemPrompt: string,
+  messages: object[],
+  cfg: AIConfig,
+  modelOverride?: string,  // ← NEW: allows per-call model override
+): Promise<ContentBlock[]> {
+  const model = modelOverride ?? cfg.model_classify;  // Default to classify model
+  
+  // Call Claude API with specified model
+  return await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': cfg.anthropic_version,
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt,
+      messages,
+    }),
+  });
+}
+```
+
+### Audio Analysis Path
+
+When classifying audio content:
+
+```typescript
+// Fetch audio from Storage
+const audioData = await fetchAudioAsBase64(audioUrl);  // Returns { base64, mediaType }
+
+// Get AI config with audio-capable model
+const cfg = await getAIConfig();
+const audioModel = cfg.model_audio;  // e.g., 'claude-sonnet-4-6'
+
+// Build message with audio content block
+const messages = [{
+  role: 'user',
+  content: [
+    { type: 'text', text: 'Analyze this pet sound:' },
+    {
+      type: 'audio',
+      media_type: audioData.mediaType,  // Detected from magic bytes
+      data: audioData.base64,
+    },
+  ],
+}];
+
+// Call Claude with audio model override
+const response = await callClaude(
+  systemPrompt,
+  messages,
+  cfg,
+  audioModel,  // ← Override default model_classify with model_audio
+);
+```
+
+### Magic Bytes MIME Detection
+
+Problem: Supabase Storage reports all `.mp4` files as `video/mp4`, breaking Claude API audio content blocks.
+
+Solution: Detect actual format from first 8 bytes:
+
+```typescript
+function detectAudioMimeFromBytes(bytes: Uint8Array): string {
+  // MP3: ID3 tag (0x49 0x44 0x33) or MPEG sync (0xFF 0xEx)
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return 'audio/mp3';
+  if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return 'audio/mp3';
+  
+  // WAV: RIFF header (0x52 0x49 0x46 0x46)
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46)
+    return 'audio/wav';
+  
+  // OGG: OggS header (0x4F 0x67 0x67 0x53)
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53)
+    return 'audio/ogg';
+  
+  // FLAC: fLaC header (0x66 0x4C 0x61 0x43)
+  if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43)
+    return 'audio/flac';
+  
+  // WebM: EBML header (0x1A 0x45 0xDF 0xA3)
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)
+    return 'audio/webm';
+  
+  // MP4/M4A: ftyp at offset 4 (0x66 0x74 0x79 0x70)
+  if (bytes.length >= 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70)
+    return 'audio/mp4';
+  
+  // Default
+  return 'audio/mp4';
+}
+
+// Usage in fetchAudioAsBase64
+const bytes = new Uint8Array(buffer);
+const mediaType = detectAudioMimeFromBytes(bytes);  // ← Detect from magic bytes
+const base64 = btoa(String.fromCharCode(...bytes));
+return { base64, mediaType };
+```
+
+### Client-side Audio Format Restriction (`app/(app)/pet/[id]/diary/new.tsx`)
+
+DocumentPicker audio filter restricted to Anthropic-supported formats:
+
+```typescript
+const result = await DocumentPicker.getDocumentAsync({
+  type: [
+    'audio/mpeg',   // MP3
+    'audio/mp3',    // MP3 (alias)
+    'audio/mp4',    // M4A / AAC
+    'audio/aac',    // AAC
+    'audio/x-m4a',  // M4A (iOS)
+    'audio/wav',    // WAV
+    'audio/wave',   // WAV (alias)
+    'audio/ogg',    // OGG
+    'audio/flac',   // FLAC
+    'audio/webm',   // WebM audio
+  ],
+  multiple: false,
+  copyToCacheDirectory: false,
+});
+```
+
+This ensures users can only select formats that Claude API actually supports, preventing errors.
+
+### Benefits
+
+1. **No redeploy needed** — Change model via single DB UPDATE
+2. **Model-agnostic code** — Easy to swap to new models as they're released
+3. **Fallback safety** — Defaults embedded in code, DB failures don't break the app
+4. **Audit trail** — Which model was used for which classification visible in DB
+5. **A/B testing** — Can route different users to different models
+6. **Per-content-type models** — Audio uses audio-capable model, text uses efficient model
 
 ---
 

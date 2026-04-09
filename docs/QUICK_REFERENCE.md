@@ -393,5 +393,91 @@ errors.generic          → "Xi, algo deu errado. Tenta de novo?"
 
 ---
 
-**Last updated:** 2026-03-31
+## AI Model Configuration (2026-04-09)
+
+### Problem
+Some Claude models don't support audio content blocks. Sending audio to `claude-sonnet-4-20250514` silently fails.
+
+### Solution
+Separate model for audio analysis via configurable `app_config` table.
+
+### Architecture Pattern
+```
+┌─ Supabase `app_config` table ──────────────────┐
+│ ai_model_classify    → 'claude-sonnet-4-6'    │
+│ ai_model_audio       → 'claude-sonnet-4-6'    │  ← Audio-capable
+│ ai_model_vision      → 'claude-sonnet-4-6'    │
+│ ai_model_narrate     → 'claude-sonnet-4-6'    │
+└────────────────────────────────────────────────┘
+                 ↓
+        getAIConfig() [5min cache]
+                 ↓
+        ┌─ classifier.ts ────────────┐
+        │ callClaude(                 │
+        │   systemPrompt,             │
+        │   messages,                 │
+        │   cfg,                      │
+        │   modelOverride? ← NEW      │
+        │ )                           │
+        └─────────────────────────────┘
+```
+
+### When to Use `modelOverride`
+```typescript
+// Text/photo classification (default model)
+const response = await callClaude(systemPrompt, messages, cfg);
+// Uses: cfg.model_classify (usually claude-sonnet-4-20250514)
+
+// Audio content blocks (audio-capable model)
+const response = await callClaude(
+  systemPrompt,
+  messages,
+  cfg,
+  cfg.model_audio  // Override to model that supports audio
+);
+// Uses: cfg.model_audio (claude-sonnet-4-6 or newer)
+```
+
+### Magic Bytes Detection
+Problem: Files stored in Supabase as `.mp4` are reported as `video/mp4` by HTTP headers, breaking Claude API.
+
+Solution: Read first 8 bytes and detect actual format:
+```typescript
+// Detects from magic bytes (not HTTP header):
+// 0xFF 0xEx → MP3
+// 0x52 0x49 0x46 0x46 → WAV
+// 0x4F 0x67 0x67 0x53 → OGG
+// 0x66 0x4C 0x61 0x43 → FLAC
+// 0x1A 0x45 0xDF 0xA3 → WebM
+// offset 4: 0x66 0x74 0x79 0x70 → MP4
+```
+
+### Audio Format Whitelist (Client-side)
+DocumentPicker restricted to 10 Anthropic-supported formats:
+```typescript
+type: [
+  'audio/mpeg', 'audio/mp3', 'audio/mp4',
+  'audio/aac', 'audio/x-m4a', 'audio/wav',
+  'audio/wave', 'audio/ogg', 'audio/flac', 'audio/webm'
+]
+```
+
+### Change Model (Zero Redeploy)
+```sql
+-- Change audio model to latest version
+UPDATE app_config
+SET value = 'claude-opus-4-1-20250805'
+WHERE key = 'ai_model_audio';
+```
+
+**No redeploy. No app update. Instant change.**
+
+### Files
+- `supabase/functions/classify-diary-entry/modules/classifier.ts` — AIConfig, getAIConfig(), callClaude(), detectAudioMimeFromBytes()
+- `app/(app)/pet/[id]/diary/new.tsx` — DocumentPicker audio filter
+- `docs/CODEMAPS/ARCHITECTURE.md` — Full spec (section "AI Model Configuration Pattern")
+
+---
+
+**Last updated:** 2026-04-09
 **Print this. Read this. Live this.**
