@@ -674,12 +674,26 @@ Extract ALL clinical findings mentioned. Flag follow-up dates.
 Fields: brand_name, active_ingredient, concentration, species_indication, contraindications, withdrawal_period
 Flag: contraindications relevant to ${pet.name}'s species
 
+### FOOD / TREAT PACKAGING → type "food":
+Fields: brand_name, product_name, species_indication, life_stage, flavors, weight_range,
+nutritional_guarantee: [{nutrient, unit, value, min_max}],
+feeding_table: [{weight_range, daily_amount}],
+additives: [{name, value, unit}],
+transition_guide, manufacturer, registration, certifications, storage
+Note: Map ALL pet food, treat, or supplement packaging to type "food".
+
 ## EXTRACTION RULES:
 - Extract EVERY number, date, name, and measurement visible
 - For lab results: always include reference ranges and flag abnormal values
 - Confidence: 0.95=clearly legible | 0.7=partially obscured | 0.5=inferred from context
 - If a date is partially visible, estimate and note uncertainty
-- NARRATION: 2-3 sentences in THIRD PERSON about ${pet.name} and what this document means for their health. Respond in ${lang}.
+- NARRATION: Write 3-5 sentences in THIRD PERSON addressed to the tutor of ${pet.name}.
+  Explain in simple, friendly language (NO technical terms, NO numbers, NO units):
+  1. What this food is and who it is for (breed size, life stage)
+  2. Whether it is a good choice for ${pet.name} specifically (considering species, breed, age)
+  3. One practical tip for feeding (portion size or transition)
+  Avoid mentioning specific nutrient values, percentages, or mg/kg numbers.
+  Respond in ${lang}.
 
 Return ONLY valid JSON:
 {
@@ -695,7 +709,7 @@ Return ONLY valid JSON:
   "mood_confidence": 0.5,
   "urgency": "none",
   "clinical_metrics": [],
-  "suggestions": ["Specific actionable recommendation based on document content"],
+  "suggestions": ["Simple tip in plain language for the tutor — e.g. 'Esta ração é indicada para o porte e idade da Mana' or 'Faça a transição gradualmente em 7 dias para evitar problemas intestinais'"],
   "tags_suggested": ["ocr", "documento"]
 }`;
 }
@@ -1008,7 +1022,7 @@ async function callClaude(
 ): Promise<{ text: string; tokensUsed: number }> {
   const cfg = await getAIConfig();
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25_000);
+  const timeoutId = setTimeout(() => controller.abort(), cfg.timeout_ms);
   let response: Response;
   try {
     response = await fetch('https://api.anthropic.com/v1/messages', {

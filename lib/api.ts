@@ -117,6 +117,7 @@ export async function fetchDiaryEntries(
       '| narration:', !!e.narration,
       '| video_url:', !!e.video_url,
       '| classif:', (e.classifications as unknown[] | null)?.length ?? 0,
+      '| media_analyses:', (e.media_analyses as unknown[] | null)?.length ?? 'null',
     );
   }
 
@@ -128,7 +129,7 @@ export interface CreateDiaryParams {
   pet_id: string;
   user_id: string;
   content: string;
-  input_method: 'voice' | 'photo' | 'text';
+  input_method: 'voice' | 'photo' | 'text' | 'gallery' | 'video' | 'audio' | 'ocr_scan' | 'pdf' | 'pet_audio';
   mood_id: string;
   mood_score?: number | null;
   mood_source?: 'manual' | 'ai_suggested';

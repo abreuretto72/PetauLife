@@ -60,7 +60,7 @@ export interface DiaryEntry {
   pet_id: string;
   user_id: string;
   content: string;
-  input_method: 'voice' | 'photo' | 'text';
+  input_method?: 'voice' | 'text' | 'gallery' | 'video' | 'audio' | 'ocr_scan' | 'pdf' | 'pet_audio';
   narration: string | null;
   mood_id: string;
   mood_score: number | null;
@@ -68,6 +68,7 @@ export interface DiaryEntry {
   entry_type: 'manual' | 'photo_analysis' | 'vaccine' | 'allergy' | 'ai_insight' | 'milestone' | 'mood_change';
   tags: string[];
   photos: string[];
+  media_analyses?: unknown[] | null;
   is_special: boolean;
   is_registration_entry: boolean;
   linked_photo_analysis_id: string | null;

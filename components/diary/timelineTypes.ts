@@ -176,8 +176,8 @@ const INPUT_TYPE_TO_TIMELINE: Record<string, TimelineEventType> = {
   // photo and gallery entries render as DiaryCard — analysis description appears inline
   photo:     'diary',
   gallery:   'diary',
-  // ocr_scan, video, pet_audio keep dedicated card types
-  ocr_scan:  'photo_analysis',
+  // ocr_scan renders as DiaryCard — has narration + OCRSubcard embedded
+  ocr_scan:  'diary',
   video:     'video_analysis',
   pet_audio: 'audio_analysis',
 };

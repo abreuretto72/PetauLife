@@ -183,6 +183,8 @@ function AudioSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
 // ── OCRSubcard ──
 
 function OCRSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, opts?: Record<string, string>) => string }) {
+  console.log('[OCRSUBCARD] fields:', media.ocrData?.fields?.length ?? 0,
+    'mediaUrl:', media.mediaUrl?.slice(0, 50) ?? 'none');
   const uri = media.mediaUrl?.startsWith('http')
     ? media.mediaUrl
     : media.mediaUrl ? getPublicUrl('pet-photos', media.mediaUrl) : null;
@@ -252,6 +254,11 @@ export const MonthSummaryCard = React.memo(({ event, t }: CardProps) => {
 export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, onRetry }: DiaryCardProps) => {
   const currentUserId = useAuthStore((s) => s.user?.id);
   console.log('[CARD]', event.id.slice(-8), '| fotos:', event.photos?.length ?? 0, '| narration:', !!event.narration, '| photoAnalysis:', !!event.photoAnalysisData, '| videoUrl:', !!event.videoUrl, '| classif:', event.classifications?.length ?? 0, '| modules:', !!event.modules);
+  console.log('[CARD-MEDIA]', event.id?.slice(0,8),
+    'mediaAnalyses:', event.mediaAnalyses?.length ?? 0,
+    'types:', event.mediaAnalyses?.map((m: any) => m.type).join(',') ?? 'none',
+    'ocrFields:', event.mediaAnalyses?.find((m: any) => m.type === 'document')?.ocrData?.fields?.length ?? 0
+  );
   const moodData = getMoodData(event.moodId);
   const dateObj = new Date(event.date);
   const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -372,6 +379,12 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
       {event.mediaAnalyses && event.mediaAnalyses.length > 0 ? (
         <View style={styles.mediaSubcardsContainer}>
           {event.mediaAnalyses.map((media, idx) => {
+            console.log('[SUBCARD]', 'type:', media.type,
+              'mediaUrl:', !!media.mediaUrl,
+              'ocrFields:', media.ocrData?.fields?.length ?? 0,
+              'analysis:', !!media.analysis,
+              'desc:', (media.analysis?.description as string)?.slice(0, 50) ?? 'none'
+            );
             if (media.type === 'photo') return <PhotoSubcard key={idx} media={media} t={t} />;
             if (media.type === 'video') return <VideoSubcard key={idx} media={media} t={t} />;
             if (media.type === 'audio') return <AudioSubcard key={idx} media={media} t={t} />;

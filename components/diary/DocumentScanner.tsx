@@ -42,9 +42,10 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
         const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
         const compressed = await manipulateAsync(
           photo.uri ?? `data:image/jpeg;base64,${photo.base64}`,
-          [{ resize: { width: 1280 } }],
-          { compress: 0.7, format: SaveFormat.JPEG, base64: true }
+          [{ resize: { width: 800 } }],
+          { compress: 0.5, format: SaveFormat.JPEG, base64: true }
         );
+        console.log('[SCANNER] compressed base64 KB:', Math.round((compressed.base64?.length ?? 0) * 0.75 / 1024));
         onCapture(compressed.base64 ?? photo.base64);
       }
     } finally {

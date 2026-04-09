@@ -16,6 +16,7 @@ import { generateEmbedding, updatePetRAG } from '../lib/rag';
 import { addToQueue } from '../lib/offlineQueue';
 import { savePendingEntry, updatePendingStatus, cacheEntry } from '../lib/localDb';
 import { supabase } from '../lib/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
 import { scheduleAgendaReminders } from '../lib/notifications';
 import type { DiaryEntry } from '../types/database';
 import i18n from '../i18n';
@@ -314,14 +315,14 @@ async function saveToModule(
             user_id:       userId,
             diary_entry_id:diaryEntryId,
             record_type:   (extracted.record_type as string) ?? 'food',
-            product_name:  (extracted.product_name as string) ?? null,
-            brand:         (extracted.brand as string) ?? null,
+            product_name:  (extracted.product_name as string) ?? (extracted.brand_name as string) ?? null,
+            brand:         (extracted.brand as string) ?? (extracted.brand_name as string) ?? null,
             category:      (extracted.category as string) ?? null,
             portion_grams: extracted.portion_grams != null ? Number(extracted.portion_grams) : null,
             daily_portions:extracted.daily_portions != null ? Number(extracted.daily_portions) : 1,
             calories_kcal: extracted.calories_kcal != null ? Number(extracted.calories_kcal) : null,
             is_current:    (extracted.is_current as boolean) ?? false,
-            notes:         (extracted.notes as string) ?? null,
+            notes:         (extracted.notes as string) ?? (extracted.transition_guide as string) ?? (extracted.ocr_confidence_note as string) ?? null,
             started_at:    (extracted.started_at as string) ?? today,
             source:        'ai',
             extracted_data:extracted,
@@ -960,8 +961,30 @@ async function _backgroundClassifyAndSave(opts: {
     console.log('[S3-PRE] textForClassify length:', (textForClassify ?? '').length);
     console.log('[S3-PRE] textForClassify FULL:', textForClassify ?? '');
     console.log('[S3-PRE] analysisFramesCapped:', analysisFramesCapped.length, 'frames');
+    if (inputType === 'ocr_scan') {
+      const ocrBase64Size = (analysisFramesCapped[0]?.length ?? 0);
+      console.log('[OCR] base64 size KB:', Math.round(ocrBase64Size / 1024 * 0.75));
+    }
+    // Upload OCR scanner photo to Storage so it appears in the diary card
+    if (inputType === 'ocr_scan' && analysisFramesCapped[0]) {
+      try {
+        const ocrBase64 = analysisFramesCapped[0];
+        const ext = ocrBase64.startsWith('/9j/') ? 'jpg' : 'png';
+        const tmpUri = `${FileSystem.cacheDirectory}ocr_${Date.now()}.${ext}`;
+        await FileSystem.writeAsStringAsync(tmpUri, ocrBase64, {
+          encoding: 'base64' as any,
+        });
+        const ocrPath = await uploadPetMedia(userId, petId, tmpUri, 'photo');
+        const ocrUrl = getPublicUrl('pet-photos', ocrPath);
+        uploadedPhotos = [ocrUrl];
+        console.log('[OCR] foto upada:', ocrUrl?.slice(0, 60));
+      } catch (e) {
+        console.warn('[OCR] upload foto falhou:', String(e));
+      }
+    }
     console.log('[S3-PRE] photosBase64:', photosBase64?.length ?? 0, 'fotos');
     console.log('[S3-PRE] inputType enviado ao classify:', inputType);
+    const _classifyStart = Date.now();
     const [classification, photoAnalysisResults] = await Promise.all([
       // A: unified classify — text + frames/photos + input type (always runs)
       classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language),
@@ -1004,6 +1027,8 @@ async function _backgroundClassifyAndSave(opts: {
         : Promise.resolve(null),
     ]);
 
+    const _classifyEnd = Date.now();
+    console.log('[AI] classify duration ms:', _classifyEnd - _classifyStart);
     console.log('[S3] classify OK | narration:', !!classification.narration, '| usou fotos:', (photosBase64?.length ?? 0) > 0, '| frames:', videoFramesBase64.length);
     console.log('[S3] primary_type:', classification.primary_type);
     console.log('[S3] mood:', classification.mood, '| urgency:', classification.urgency);
@@ -1039,9 +1064,16 @@ async function _backgroundClassifyAndSave(opts: {
     ));
     console.log('[S3] photoAnalysisResults count:', Array.isArray(photoAnalysisResults) ? photoAnalysisResults.length : 0);
 
+    // DB constraint: voice | text | gallery | video | audio | ocr_scan | pdf | pet_audio
+    // NOTE: 'photo' is NOT a valid DB value — map to 'gallery'
     const inputMethod: import('../types/database').DiaryEntry['input_method'] =
-      ['photo', 'gallery', 'ocr_scan'].includes(inputType) ? 'photo'
+      inputType === 'ocr_scan' ? 'ocr_scan'
+      : inputType === 'pdf' ? 'pdf'
+      : ['photo', 'gallery'].includes(inputType) ? 'gallery'
       : inputType === 'voice' ? 'voice'
+      : inputType === 'video' ? 'video'
+      : inputType === 'audio' ? 'audio'
+      : inputType === 'pet_audio' ? 'pet_audio'
       : 'text';
 
     const entryData = {
@@ -1189,8 +1221,8 @@ async function _backgroundClassifyAndSave(opts: {
             .map((r) => r.status === 'fulfilled' ? (r.value ?? null) : null)
         : [];
 
-      // A) Fotos (not video/audio)
-      if (inputType !== 'video' && inputType !== 'pet_audio' && uploadedPhotos.length > 0) {
+      // A) Fotos (not video/audio/ocr_scan — ocr_scan gets a 'document' item in section D instead)
+      if (inputType !== 'video' && inputType !== 'pet_audio' && inputType !== 'ocr_scan' && uploadedPhotos.length > 0) {
         uploadedPhotos.forEach((photoUrl, idx) => {
           mediaAnalysesArr.push({ type: 'photo', mediaUrl: photoUrl, analysis: photoResultsRaw[idx] ?? null });
         });
@@ -1229,6 +1261,9 @@ async function _backgroundClassifyAndSave(opts: {
 
       // D) Documento OCR
       if (inputType === 'ocr_scan' && uploadedPhotos[0]) {
+        console.log('[OCR-MOD] uploadedPhotos[0]:', uploadedPhotos[0]?.slice(0, 60));
+        console.log('[OCR-MOD] ocrCls:', JSON.stringify(classification).slice(0, 300));
+        console.log('[OCR-MOD] ocr_data:', JSON.stringify(classification.ocr_data)?.slice(0, 300));
         const ocrCls = classification as Record<string, unknown>;
         mediaAnalysesArr.push({
           type: 'document',
@@ -1242,12 +1277,15 @@ async function _backgroundClassifyAndSave(opts: {
       }
 
       if (mediaAnalysesArr.length > 0) {
-        console.log('[S5] media_analyses:', mediaAnalysesArr.length, 'items');
+        console.log('[S5] media_analyses:', mediaAnalysesArr.length, 'items', mediaAnalysesArr.map((m) => m.type));
         postSavePromises.push(
           supabase.from('diary_entries')
             .update({ media_analyses: mediaAnalysesArr })
             .eq('id', entryId)
-            .then(() => undefined).catch(() => {}),
+            .then(({ error: updErr }) => {
+              if (updErr) console.error('[S5] media_analyses UPDATE FALHOU:', updErr.code, updErr.message);
+              else console.log('[S5] media_analyses salvo OK');
+            }).catch((e) => console.error('[S5] media_analyses catch:', e)),
         );
       }
     }
@@ -1334,6 +1372,7 @@ async function _backgroundClassifyAndSave(opts: {
     console.log('[S6] freshEntry.narration:', !!(freshEntry as unknown as Record<string,unknown>)?.narration);
     console.log('[S6] freshEntry.video_url:', !!(freshEntry as unknown as Record<string,unknown>)?.video_url);
     console.log('[S6] freshEntry.classifications:', ((freshEntry as unknown as Record<string,unknown>)?.classifications as unknown[] | null)?.length ?? 0);
+    console.log('[S6] freshEntry.media_analyses:', ((freshEntry as unknown as Record<string,unknown>)?.media_analyses as unknown[] | null)?.length ?? 'null');
     console.log('[S6] expenses:', ((freshEntry as unknown as Record<string,unknown>)?.expenses as unknown[] | null)?.length ?? 0);
     console.log('[S6] vaccines:', ((freshEntry as unknown as Record<string,unknown>)?.vaccines as unknown[] | null)?.length ?? 0);
     if (freshError) {
@@ -1379,6 +1418,7 @@ async function _backgroundClassifyAndSave(opts: {
       photo_analysis_data:     primaryPhotoAnalysis,
       video_analysis:          (classification as Record<string, unknown>).video_analysis ?? null,
       pet_audio_analysis:      (classification as Record<string, unknown>).pet_audio_analysis ?? null,
+      media_analyses:          mediaAnalysesArr.length > 0 ? mediaAnalysesArr : null,
     }) as import('../types/database').DiaryEntry;
 
     // Cache locally for offline reads
