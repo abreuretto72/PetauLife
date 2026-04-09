@@ -92,6 +92,39 @@ export async function deletePet(id: string): Promise<void> {
 // DIARY
 // ══════════════════════════════════════
 
+export interface ScheduledEvent {
+  id: string;
+  pet_id: string;
+  user_id: string;
+  diary_entry_id: string | null;
+  event_type: string;
+  title: string;
+  description: string | null;
+  professional: string | null;
+  location: string | null;
+  scheduled_for: string;
+  all_day: boolean;
+  status: 'scheduled' | 'confirmed' | 'done' | 'cancelled' | 'missed';
+  is_recurring: boolean;
+  recurrence_rule: string | null;
+  source: 'manual' | 'ai' | 'system';
+  is_active: boolean;
+  created_at: string;
+}
+
+export async function fetchScheduledEvents(petId: string): Promise<ScheduledEvent[]> {
+  const { data, error } = await supabase
+    .from('scheduled_events')
+    .select('*')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .in('status', ['scheduled', 'confirmed'])
+    .order('scheduled_for', { ascending: true });
+
+  if (error) throw error;
+  return (data as ScheduledEvent[]) ?? [];
+}
+
 export async function fetchDiaryEntries(
   petId: string, page = 1, perPage = 20,
 ): Promise<DiaryEntry[]> {
@@ -100,7 +133,7 @@ export async function fetchDiaryEntries(
 
   const { data, error } = await supabase
     .from('diary_entries')
-    .select('*')
+    .select('*, registered_by_user:users!diary_entries_user_id_fkey(full_name,email)')
     .eq('pet_id', petId)
     .eq('is_active', true)
     .order('entry_date', { ascending: false })

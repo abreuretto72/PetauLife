@@ -151,13 +151,21 @@ export default function PetAudioRecorder({ petName, onCapture, onClose }: PetAud
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
 
     try {
+      console.log('[AUDIO-REC] parando gravação... duration estimada:', duration, 's');
       await recorder.stop();
       const uri = recorder.uri; // populated by native layer after stop()
-      if (!uri) return;
+      console.log('[AUDIO-REC] recorder.uri após stop:', uri?.slice(-60) ?? 'NULL');
+      if (!uri) {
+        console.warn('[AUDIO-REC] uri nulo após stop — abortando');
+        return;
+      }
 
       setIsProcessing(true);
+      console.log('[AUDIO-REC] chamando onCapture | uri scheme:', uri.split('://')[0]);
       await onCapture(uri, duration);
-    } catch {
+      console.log('[AUDIO-REC] ✅ onCapture concluído');
+    } catch (err) {
+      console.error('[AUDIO-REC] erro no stop/capture:', String(err));
       setIsProcessing(false);
       toast(t('errors.generic'), 'error');
     }

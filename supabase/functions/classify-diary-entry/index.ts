@@ -56,24 +56,27 @@ Deno.serve(async (req: Request) => {
       photo_base64,           // legacy single photo (kept for backward compat)
       photos_base64,          // new: array of up to 5 photos
       pdf_base64,             // PDF document for pdf_upload input type
+      audio_url,              // public URL of pet audio for pet_audio input type
       input_type = 'text',
       language = 'pt-BR',
     } = body;
 
     const hasPhoto = !!photo_base64 || (Array.isArray(photos_base64) && photos_base64.length > 0);
     const hasPDF = !!pdf_base64;
+    const hasAudio = !!audio_url;
 
     console.log('[classify-diary-entry] pet_id:', pet_id,
       '| input_type:', input_type,
       '| text_len:', text?.length ?? 0,
       '| photos:', photos_base64?.length ?? (photo_base64 ? 1 : 0),
       '| pdf:', hasPDF,
+      '| audio:', hasAudio,
       '| lang:', language,
       '| user:', user?.id ?? 'service',
     );
 
-    if (!pet_id || (!text && !hasPhoto && !hasPDF)) {
-      return errorResponse('pet_id and (text or photo_base64/photos_base64/pdf_base64) are required', 400);
+    if (!pet_id || (!text && !hasPhoto && !hasPDF && !hasAudio)) {
+      return errorResponse('pet_id and (text, photo, pdf, or audio_url) are required', 400);
     }
 
     // 4. Fetch pet context (profile + RAG memories — passes text for vector search)
@@ -88,6 +91,7 @@ Deno.serve(async (req: Request) => {
       photo_base64,
       photos_base64: Array.isArray(photos_base64) ? photos_base64 : undefined,
       pdf_base64: pdf_base64 ?? undefined,
+      audio_url: audio_url ?? undefined,
       input_type,
       language,
       petContext,

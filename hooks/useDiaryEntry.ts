@@ -671,6 +671,63 @@ async function saveToModule(
           break;
         }
 
+        // ── Future event types: create a scheduled_event directly ──
+        // These are detected from free-text like "levar ao vet sexta para cirurgia"
+        case 'deworming':
+        case 'antiparasitic': {
+          const dewDate = (extracted.date as string) ?? today;
+          createFutureEvent(
+            petId, userId, diaryEntryId,
+            type === 'deworming' ? 'deworming' : 'antiparasitic',
+            (extracted.product_name as string) ?? i18n.t('ai.event.deworming'),
+            `${dewDate}T09:00:00`, true,
+            (extracted.veterinarian as string) ?? null,
+            null,
+          ).catch(() => {});
+          break;
+        }
+
+        case 'surgery': {
+          const surgDate = (extracted.date as string) ?? today;
+          createFutureEvent(
+            petId, userId, diaryEntryId, 'surgery',
+            (extracted.procedure as string) ?? i18n.t('ai.event.surgery'),
+            `${surgDate}T08:00:00`, false,
+            (extracted.veterinarian as string) ?? null,
+            (extracted.clinic as string) ?? null,
+          ).catch(() => {});
+          break;
+        }
+
+        case 'physiotherapy': {
+          const physioDate = (extracted.date as string) ?? today;
+          createFutureEvent(
+            petId, userId, diaryEntryId, 'physiotherapy',
+            i18n.t('ai.event.physiotherapy'),
+            `${physioDate}T10:00:00`, false,
+            (extracted.professional as string) ?? null,
+            (extracted.location as string) ?? null,
+          ).catch(() => {});
+          break;
+        }
+
+        // Generic future event — tutor mentioned a future date/time with no specific type
+        // e.g. "levar ao vet na próxima quinta"
+        case 'scheduled_event': {
+          const schedDate = (extracted.date as string) ?? today;
+          const schedTitle = (extracted.title as string)
+            ?? (extracted.description as string)
+            ?? i18n.t('ai.event.custom');
+          createFutureEvent(
+            petId, userId, diaryEntryId, 'custom',
+            schedTitle,
+            `${schedDate}T09:00:00`, (extracted.all_day as boolean) ?? true,
+            (extracted.professional as string) ?? null,
+            (extracted.location as string) ?? null,
+          ).catch(() => {});
+          break;
+        }
+
         case 'emergency':
         case 'place_visit':
         case 'documentation':
@@ -798,6 +855,7 @@ export interface SubmitEntryParams {
   audioDuration?: number;
   additionalContext?: string; // e.g. "The media shows a DIFFERENT pet, not the owner's pet."
   hasVideo?: boolean;         // true when video URIs are present regardless of inputType
+  docBase64?: string;         // inline base64 of a scanned document (uploaded + OCR'd separately from photos)
 }
 
 export interface PDFImportParams {
@@ -827,6 +885,7 @@ async function _backgroundClassifyAndSave(opts: {
   audioDuration?: number;
   additionalContext?: string;
   hasVideo?: boolean;
+  docBase64?: string;     // inline base64 of a scanned document (upload + OCR in parallel with main classify)
 }): Promise<void> {
   const { qc, petId, userId, queryKey, tempId, originalEntry, text, photosBase64, inputType, photos, mediaUris, videoDuration, audioDuration, additionalContext } = opts;
 
@@ -837,6 +896,7 @@ async function _backgroundClassifyAndSave(opts: {
   let uploadedPhotos: string[] = photos;
   let uploadedVideoUrls: string[] = [];
   let uploadedAudioUrl: string | null = null;
+  let uploadedDocUrl: string | null = null;
 
   const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
 
@@ -879,12 +939,38 @@ async function _backgroundClassifyAndSave(opts: {
       const aUri = inputType === 'pet_audio'
         ? (mediaUri ?? mediaUris?.[0])
         : mediaUris?.find((u) => /\.(m4a|aac|mp3|wav|ogg)$/i.test(u ?? ''));
-      if (!aUri) return;
+      console.log('[AUDIO-UP] inputType:', inputType);
+      console.log('[AUDIO-UP] mediaUri (slot após fotos):', mediaUri?.slice(-60) ?? 'undefined');
+      console.log('[AUDIO-UP] mediaUris completo:', JSON.stringify(mediaUris?.map(u => u?.slice(-50))));
+      console.log('[AUDIO-UP] aUri resolvido:', aUri?.slice(-60) ?? 'NULL — upload será pulado');
+      if (!aUri) {
+        console.warn('[AUDIO-UP] ⚠️ nenhum URI de áudio encontrado — upload pulado');
+        return;
+      }
+      console.log('[AUDIO-UP] scheme:', aUri.split('://')[0], '| isContent:', aUri.startsWith('content://'));
+      const t0 = Date.now();
       try {
         const path = await uploadPetMedia(userId, petId, aUri, 'video'); // audio stored in video bucket
         uploadedAudioUrl = getPublicUrl('pet-photos', path);
+        console.log('[AUDIO-UP] ✅ upload OK em', Date.now() - t0, 'ms | path:', path);
+        console.log('[AUDIO-UP] publicUrl:', uploadedAudioUrl?.slice(0, 80));
       } catch (e) {
-        console.warn('[BG] audio upload failed:', String(e));
+        console.warn('[AUDIO-UP] ❌ upload falhou em', Date.now() - t0, 'ms:', String(e));
+      }
+    })(),
+
+    // 4. Scanned document — write base64 to tmp file then upload to storage
+    (async () => {
+      if (!opts.docBase64) return;
+      try {
+        const ext = opts.docBase64.startsWith('/9j/') ? 'jpg' : 'png';
+        const tmpUri = `${FileSystem.cacheDirectory}doc_attach_${Date.now()}.${ext}`;
+        await FileSystem.writeAsStringAsync(tmpUri, opts.docBase64, { encoding: 'base64' as any });
+        const docPath = await uploadPetMedia(userId, petId, tmpUri, 'photo');
+        uploadedDocUrl = getPublicUrl('pet-photos', docPath);
+        console.log('[DOC-ATTACH] doc upado:', uploadedDocUrl?.slice(0, 60));
+      } catch (e) {
+        console.warn('[DOC-ATTACH] upload falhou:', String(e));
       }
     })(),
   ]);
@@ -984,10 +1070,17 @@ async function _backgroundClassifyAndSave(opts: {
     }
     console.log('[S3-PRE] photosBase64:', photosBase64?.length ?? 0, 'fotos');
     console.log('[S3-PRE] inputType enviado ao classify:', inputType);
+    console.log('[S3-PRE] uploadedAudioUrl presente:', !!uploadedAudioUrl, uploadedAudioUrl?.slice(0, 60) ?? 'null');
+    console.log('[S3-PRE] audioDuration:', audioDuration ?? 'null');
+    if (inputType === 'pet_audio') {
+      console.log('[AUDIO-CLASSIFY] ▶ classify PRIMÁRIO pet_audio iniciando');
+      console.log('[AUDIO-CLASSIFY] textForClassify len:', (textForClassify ?? '').length);
+      console.log('[AUDIO-CLASSIFY] photosBase64 para classify:', analysisFramesCapped.length > 0 ? analysisFramesCapped.length : (photosBase64?.length ?? 0));
+    }
     const _classifyStart = Date.now();
-    const [classification, photoAnalysisResults] = await Promise.all([
+    const [classification, photoAnalysisResults, audioClassification] = await Promise.all([
       // A: unified classify — text + frames/photos + input type (always runs)
-      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language),
+      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language, undefined, inputType === 'pet_audio' ? (uploadedAudioUrl ?? undefined) : undefined),
 
       // B: per-frame/photo deep analysis via analyze-pet-photo (parallel, non-blocking)
       // Fotos primeiro, depois frames de vídeo se houver espaço (max 3 total)
@@ -1025,10 +1118,47 @@ async function _backgroundClassifyAndSave(opts: {
             ),
           )
         : Promise.resolve(null),
+
+      // D: secondary pet_audio classify when audio is present but NOT the primary inputType
+      // (e.g. F+A, V+A, F+V+A, F+A+D — main classify focuses on photos/video)
+      // Sends the same text context so the pet_audio prompt can infer behavioral audio analysis
+      // Result: pet_audio_analysis field saved to diary_entries alongside photo/video analysis
+      (uploadedAudioUrl && inputType !== 'pet_audio')
+        ? (() => {
+            console.log('[AUDIO-CLASSIFY] disparando classify secundário pet_audio | audioUrl:', uploadedAudioUrl?.slice(0, 60));
+            return classifyDiaryEntry(petId, textForClassify, null, 'pet_audio', i18n.language, undefined, uploadedAudioUrl ?? undefined).catch((e) => {
+              console.warn('[AUDIO-CLASSIFY] ❌ classify secundário falhou:', String(e));
+              return null;
+            });
+          })()
+        : (() => {
+            if (inputType !== 'pet_audio') {
+              console.log('[AUDIO-CLASSIFY] classify secundário pulado — sem audioUrl (uploadedAudioUrl:', uploadedAudioUrl, ')');
+            }
+            return Promise.resolve(null);
+          })(),
     ]);
+
+    // C: secondary OCR classify for an inline scanned document — runs AFTER main classify
+    // to avoid concurrent heavy Claude API calls that cause timeouts.
+    // Used ONLY for media_analysis OCR display; main classify already extracted structured data.
+    const ocrClassification = opts.docBase64
+      ? await classifyDiaryEntry(petId, null, [opts.docBase64], 'ocr_scan', i18n.language).catch((e) => {
+          console.warn('[DOC-ATTACH] OCR classify falhou:', String(e));
+          return null;
+        })
+      : null;
 
     const _classifyEnd = Date.now();
     console.log('[AI] classify duration ms:', _classifyEnd - _classifyStart);
+    if (inputType === 'pet_audio' || audioClassification) {
+      console.log('[AUDIO-CLASSIFY] resultado audioClassification:', audioClassification
+        ? JSON.stringify({
+            pet_audio_analysis: (audioClassification as Record<string,unknown>)?.pet_audio_analysis ?? 'ausente',
+            primary_type: (audioClassification as Record<string,unknown>)?.primary_type ?? 'ausente',
+          })
+        : 'null');
+    }
     console.log('[S3] classify OK | narration:', !!classification.narration, '| usou fotos:', (photosBase64?.length ?? 0) > 0, '| frames:', videoFramesBase64.length);
     console.log('[S3] primary_type:', classification.primary_type);
     console.log('[S3] mood:', classification.mood, '| urgency:', classification.urgency);
@@ -1117,6 +1247,14 @@ async function _backgroundClassifyAndSave(opts: {
     };
     if (classification.video_analysis) extraFields.video_analysis = classification.video_analysis;
     if (classification.pet_audio_analysis) extraFields.pet_audio_analysis = classification.pet_audio_analysis;
+
+    // Secondary pet_audio classify result (F+A, V+A, F+V+A etc.) — fills pet_audio_analysis
+    // when the main classify focused on photos/video and couldn't run the audio prompt
+    const secondaryAudioAnalysis = (audioClassification as import('../lib/ai').ClassifyDiaryResponse | null)?.pet_audio_analysis;
+    if (secondaryAudioAnalysis && !extraFields.pet_audio_analysis) {
+      extraFields.pet_audio_analysis = secondaryAudioAnalysis;
+      console.log('[AUDIO-ATTACH] pet_audio_analysis preenchido pelo classify secundário');
+    }
 
     // Inferir pet_audio_analysis a partir do behavior_summary quando há frames de vídeo
     if (inputType === 'video' && uploadedVideoUrls.length > 0 && classification.video_analysis && !classification.pet_audio_analysis) {
@@ -1259,20 +1397,34 @@ async function _backgroundClassifyAndSave(opts: {
         });
       }
 
-      // D) Documento OCR
-      if (inputType === 'ocr_scan' && uploadedPhotos[0]) {
-        console.log('[OCR-MOD] uploadedPhotos[0]:', uploadedPhotos[0]?.slice(0, 60));
-        console.log('[OCR-MOD] ocrCls:', JSON.stringify(classification).slice(0, 300));
-        console.log('[OCR-MOD] ocr_data:', JSON.stringify(classification.ocr_data)?.slice(0, 300));
-        const ocrCls = classification as Record<string, unknown>;
+      // D) Documento OCR — two cases:
+      //    1. Pure OCR entry (inputType === 'ocr_scan'): use main classify result + uploadedPhotos[0]
+      //    2. Mixed entry (photos + scanned doc): use ocrClassification result + uploadedDocUrl
+      const docMediaUrl = inputType === 'ocr_scan' ? uploadedPhotos[0] : uploadedDocUrl;
+      const docOcrSource = inputType === 'ocr_scan'
+        ? (classification as Record<string, unknown>)
+        : ((ocrClassification as Record<string, unknown> | null) ?? null);
+
+      if (docMediaUrl && docOcrSource) {
+        console.log('[OCR-MOD] docMediaUrl:', docMediaUrl?.slice(0, 60));
+        console.log('[OCR-MOD] docOcrSource keys:', Object.keys(docOcrSource).join(', '));
+        console.log('[OCR-MOD] document_type:', (docOcrSource as Record<string,unknown>).document_type);
+        const _ocrData = (docOcrSource as Record<string,unknown>).ocr_data as Record<string,unknown> | undefined;
+        console.log('[OCR-MOD] ocr_data.fields count:', (_ocrData?.fields as unknown[])?.length ?? 0);
+        if ((_ocrData?.fields as unknown[])?.length) {
+          console.log('[OCR-MOD] ocr_data first 3 fields:', JSON.stringify((_ocrData.fields as unknown[]).slice(0, 3)));
+        } else {
+          console.warn('[OCR-MOD] ocr_data.fields EMPTY | full ocr_data:', JSON.stringify(_ocrData));
+        }
         mediaAnalysesArr.push({
           type: 'document',
-          mediaUrl: uploadedPhotos[0],
+          mediaUrl: docMediaUrl,
           ocrData: {
-            fields: (ocrCls.ocr_data as { fields?: Array<{key: string; value: string}> } | undefined)?.fields ?? [],
-            document_type: (ocrCls.document_type as string) ?? 'other',
+            fields: (docOcrSource.ocr_data as { fields?: Array<{key: string; value: string}> } | undefined)?.fields ?? [],
+            document_type: (docOcrSource.document_type as string) ?? 'other',
+            items: (docOcrSource.ocr_data as { items?: Array<{name: string; qty: number; unit_price: number}> } | undefined)?.items ?? undefined,
           },
-          analysis: photoResultsRaw[0] ?? null,
+          analysis: inputType === 'ocr_scan' ? (photoResultsRaw[0] ?? null) : null,
         });
       }
 
@@ -1358,7 +1510,7 @@ async function _backgroundClassifyAndSave(opts: {
       .from('diary_entries')
       .select(`
         *,
-        expenses:expenses!diary_entries_linked_expense_id_fkey(id, total, currency, category, notes, vendor),
+        expenses:expenses!expenses_diary_entry_id_fkey(id, total, currency, category, notes, vendor),
         vaccines:vaccines!diary_entries_linked_vaccine_id_fkey(id, name, laboratory, veterinarian, clinic, date_administered, next_due_date, batch_number),
         consultations:consultations!diary_entries_linked_consultation_id_fkey(id, veterinarian, clinic, type, diagnosis, date),
         clinical_metrics:clinical_metrics!diary_entries_linked_weight_metric_id_fkey(id, metric_type, value, unit, measured_at),
@@ -1849,6 +2001,7 @@ export function useDiaryEntry(petId: string) {
       audioDuration: params.audioDuration,
       additionalContext: params.additionalContext,
       hasVideo: params.hasVideo,
+      docBase64: params.docBase64,
       species: petSpecies,
       petName: cachedPets.find(p => p.id === petId)?.name ?? undefined,
       petBreed: cachedPets.find(p => p.id === petId)?.breed ?? undefined,

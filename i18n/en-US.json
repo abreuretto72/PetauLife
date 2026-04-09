@@ -235,6 +235,7 @@
     "happinessChart": "Happiness Chart",
     "chartCaption": "Based on daily mood, AI analyses and health events",
     "filterCapsules": "Capsules",
+    "upcomingEvent": "UPCOMING APPOINTMENT",
     "specialMoment": "Special Moment",
     "registrationEntry": "First registration",
     "monthSummary": "Month summary",
@@ -258,6 +259,12 @@
     "photoAnalysis": "Photo AI",
     "videoAnalysis": "Video AI",
     "ocrAnalysis": "Scanned Document",
+    "ocrItems": "Items",
+    "ocrItemName": "Item name",
+    "ocrEditHint": "Edit extracted data",
+    "ocrDivideBy100": "÷100  (8.90 → 0.09)",
+    "ocrMultiplyBy100": "×100  (8.90 → 890.00)",
+    "ocrNoFields": "Could not extract fields from this document.",
     "audioFile": "audio",
     "frameAnalysis": "Frame Analysis",
     "analyzerDisclaimer": "Analyses are based on the content recorded by the tutor.",
@@ -979,7 +986,11 @@
       "boarding": "Boarding",
       "petSitter": "Pet sitter",
       "dogWalker": "Walk",
-      "training": "Training"
+      "training": "Training",
+      "deworming": "Deworming",
+      "surgery": "Surgery",
+      "physiotherapy": "Physiotherapy",
+      "custom": "Appointment"
     },
     "expense": {
       "grooming": "Grooming",
@@ -1396,7 +1407,9 @@
       "q4": "How does AI photo analysis work?",
       "a4": "Take a photo of your pet and AI identifies breed, estimates age, size and health observations. Always confirm or edit the results.",
       "q5": "Does the app work without internet?",
-      "a5": "Yes! You can still see your data and make changes. When internet returns, everything syncs automatically."
+      "a5": "Yes! You can still see your data and make changes. When internet returns, everything syncs automatically.",
+      "q6": "What are the size limits for photos, videos and documents?",
+      "a6": "Photo: up to 5 MB, max 5 per entry.\nVideo: up to 50 MB, max 60 seconds, 1 per entry.\nAudio (barks/sounds): up to 5 MB, max 30 seconds, 1 per entry.\nScanner/Document: up to 10 MB, max 20 pages, 1 per entry.\nIf a file exceeds the limit, you will see a warning before sending."
     }
   },
   "legal": {

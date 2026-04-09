@@ -22,7 +22,7 @@ import { moods } from '../../../../constants/moods';
 import DiaryTimeline from '../../../../components/diary/DiaryTimeline';
 import { OfflineBanner } from '../../../../components/ui/OfflineBanner';
 import PdfExportModal from '../../../../components/diary/PdfExportModal';
-import { diaryEntryToEvent } from '../../../../components/diary/timelineTypes';
+import { diaryEntryToEvent, scheduledEventToTimelineEvent } from '../../../../components/diary/timelineTypes';
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,7 +31,7 @@ export default function DiaryScreen() {
 
   const qc = useQueryClient();
   const { data: pet } = usePet(id!);
-  const { entries, isLoading, refetch } = useDiary(id!);
+  const { entries, isLoading, refetch, scheduledEvents } = useDiary(id!);
   const { retryEntry } = useDiaryEntry(id!);
   const { toast } = useToast();
 
@@ -42,10 +42,13 @@ export default function DiaryScreen() {
   const [pdfModalVisible, setPdfModalVisible] = useState(false);
 
   const timelineEvents = useMemo(() => {
-    const events = entries.map(diaryEntryToEvent);
+    const events = [
+      ...entries.map(diaryEntryToEvent),
+      ...scheduledEvents.map(scheduledEventToTimelineEvent),
+    ];
     events.sort((a, b) => b.sortDate - a.sortDate);
     return events;
-  }, [entries]);
+  }, [entries, scheduledEvents]);
 
   const getMoodData = useCallback(
     (moodId: string | null | undefined) => {
@@ -91,6 +94,7 @@ export default function DiaryScreen() {
       <OfflineBanner petId={id!} />
       <DiaryTimeline
         entries={entries}
+        scheduledEvents={scheduledEvents}
         isLoading={isLoading}
         petName={petName}
         petSpecies={pet?.species}

@@ -20,16 +20,18 @@ import PawIcon from '../PawIcon';
 import {
   MonthSummaryCard, DiaryCard, HealthCard,
   AudioAnalysisCard, PhotoAnalysisCard, VideoAnalysisCard,
-  MilestoneCard, CapsuleCard, ConnectionCard,
+  MilestoneCard, CapsuleCard, ConnectionCard, ScheduledEventCard,
 } from './TimelineCards';
 import {
   EVENT_TYPE_CONFIG,
   diaryEntryToEvent,
+  scheduledEventToTimelineEvent,
 } from './timelineTypes';
 import type {
   TimelineEvent,
 } from './timelineTypes';
 import type { DiaryEntry } from '../../types/database';
+import type { ScheduledEvent } from '../../lib/api';
 
 // ── Skeleton ──
 
@@ -51,6 +53,7 @@ function SkeletonCard() {
 
 interface DiaryTimelineProps {
   entries: DiaryEntry[];
+  scheduledEvents?: ScheduledEvent[];
   isLoading: boolean;
   petName: string;
   petSpecies?: string;
@@ -67,6 +70,7 @@ interface DiaryTimelineProps {
 
 export default function DiaryTimeline({
   entries,
+  scheduledEvents = [],
   isLoading,
   petName,
   petSpecies,
@@ -99,16 +103,21 @@ export default function DiaryTimeline({
 
   const timelineEvents = useMemo(() => {
     const seen = new Set<string>();
-    const diaryEvents = entries
+    const diaryEvts = entries
       .filter((e) => {
         if (seen.has(e.id)) return false;
         seen.add(e.id);
         return true;
       })
       .map(diaryEntryToEvent);
-    diaryEvents.sort((a, b) => b.sortDate - a.sortDate);
-    return diaryEvents;
-  }, [entries]);
+
+    const schedEvts = scheduledEvents.map(scheduledEventToTimelineEvent);
+
+    const all = [...diaryEvts, ...schedEvts];
+    // Future scheduled events float to top (highest sortDate first), past entries below
+    all.sort((a, b) => b.sortDate - a.sortDate);
+    return all;
+  }, [entries, scheduledEvents]);
 
   // ── Render event ──
 
@@ -142,6 +151,9 @@ export default function DiaryTimeline({
           break;
         case 'connection':
           cardContent = <ConnectionCard event={item} t={t} />;
+          break;
+        case 'scheduled_event':
+          cardContent = <ScheduledEventCard event={item} t={t} />;
           break;
         default:
           cardContent = <HealthCard event={item} t={t} />;

@@ -14,6 +14,7 @@ interface AIConfig {
   model_narrate:     string;
   model_insights:    string;
   model_simple:      string;
+  model_audio:       string; // model used for audio content blocks — must support audio input
   timeout_ms:        number;
   anthropic_version: string;
 }
@@ -25,6 +26,7 @@ const AI_CONFIG_DEFAULTS: AIConfig = {
   model_narrate:     'claude-sonnet-4-6',
   model_insights:    'claude-sonnet-4-6',
   model_simple:      'claude-sonnet-4-6',
+  model_audio:       'claude-sonnet-4-6', // audio content blocks require 4.5+ models
   timeout_ms:        30_000,
   anthropic_version: '2023-06-01',
 };
@@ -44,6 +46,7 @@ async function getAIConfig(): Promise<AIConfig> {
     const keys = [
       'ai_model_classify', 'ai_model_vision', 'ai_model_chat',
       'ai_model_narrate', 'ai_model_insights', 'ai_model_simple',
+      'ai_model_audio',
       'ai_timeout_ms', 'ai_anthropic_version',
     ];
     const { data, error } = await client.from('app_config').select('key, value').in('key', keys);
@@ -57,6 +60,7 @@ async function getAIConfig(): Promise<AIConfig> {
       model_narrate:     (map['ai_model_narrate']     as string) ?? AI_CONFIG_DEFAULTS.model_narrate,
       model_insights:    (map['ai_model_insights']    as string) ?? AI_CONFIG_DEFAULTS.model_insights,
       model_simple:      (map['ai_model_simple']      as string) ?? AI_CONFIG_DEFAULTS.model_simple,
+      model_audio:       (map['ai_model_audio']       as string) ?? AI_CONFIG_DEFAULTS.model_audio,
       timeout_ms:        Number(map['ai_timeout_ms']  ?? AI_CONFIG_DEFAULTS.timeout_ms),
       anthropic_version: (map['ai_anthropic_version'] as string) ?? AI_CONFIG_DEFAULTS.anthropic_version,
     };
@@ -128,6 +132,7 @@ export interface OCRItem {
 export interface OCRData {
   fields: OCRField[];
   items?: OCRItem[];
+  document_type?: string;
 }
 
 export interface PetAudioAnalysis {
@@ -175,6 +180,7 @@ export interface ClassifyInput {
   photo_base64?: string;
   photos_base64?: string[];
   pdf_base64?: string;
+  audio_url?: string;
   input_type: string;
   language: string;
   petContext: PetContext;
@@ -658,9 +664,21 @@ Clinical interpretation required for each value:
 - Urinalysis: protein+=kidney leak | bacteria=UTI | crystals=stone risk
 Generate clinical_metrics for EVERY numeric lab value found.
 
-### INVOICE / RECEIPT → type "expense":
-Fields: merchant_name, merchant_type, date, total, currency, items: [{name, qty, unit_price}]
-Categorize: veterinary service | medication | food | grooming | boarding | accessory
+### NOTA FISCAL / INVOICE / RECEIPT → type "expense":
+Brazilian Nota Fiscal (NF-e) — extract these fields FIRST when you see a NF:
+  - nf_number: the fiscal note number (usually printed prominently, e.g. "16684")
+  - cnpj: the issuer CNPJ formatted as XX.XXX.XXX/XXXX-XX
+  - issue_date: emission date (Data de Emissão), format YYYY-MM-DD
+  - establishment: merchant name / Razão Social
+  - address: full address
+  - total: TOTAL value in numeric form (look for "TOTAL" line — may be handwritten or printed)
+  - currency: "BRL" for Brazilian notes
+  - items: array of line items if readable [{name, qty, unit_price}]
+  - icms_value: ICMS tax amount if present
+  - nf_type: "NF-e" | "NFC-e" | "NF-consumer" | "generic_receipt"
+For regular invoices/receipts (non-NF): merchant_name, merchant_type, date, total, currency, items
+Categorize: veterinary_service | medication | food | grooming | boarding | accessory | general_purchase | non_pet
+NOTE: Non-pet purchases (hardware, construction, general retail) → classify as "expense" with category "general_purchase" and note that it is not pet-related.
 
 ### INSURANCE / HEALTH PLAN → type "plan":
 Fields: provider, plan_name, plan_type, monthly_cost, annual_cost, coverage_limit, deductible, start_date, end_date, renewal_date, coverage_items
@@ -683,25 +701,47 @@ transition_guide, manufacturer, registration, certifications, storage
 Note: Map ALL pet food, treat, or supplement packaging to type "food".
 
 ## EXTRACTION RULES:
-- Extract EVERY number, date, name, and measurement visible
+- Extract EVERY number, date, name, and measurement visible — including handwritten values
+- For handwritten text: attempt extraction and set confidence ≤ 0.6; mark illegible parts as null
 - For lab results: always include reference ranges and flag abnormal values
-- Confidence: 0.95=clearly legible | 0.7=partially obscured | 0.5=inferred from context
+- Confidence: 0.95=clearly legible | 0.7=partially obscured | 0.5=inferred | 0.3=handwritten/unclear
 - If a date is partially visible, estimate and note uncertainty
-- NARRATION: Write 3-5 sentences in THIRD PERSON addressed to the tutor of ${pet.name}.
-  Explain in simple, friendly language (NO technical terms, NO numbers, NO units):
-  1. What this food is and who it is for (breed size, life stage)
-  2. Whether it is a good choice for ${pet.name} specifically (considering species, breed, age)
-  3. One practical tip for feeding (portion size or transition)
-  Avoid mentioning specific nutrient values, percentages, or mg/kg numbers.
+- For NF/receipts: ALWAYS try to extract the TOTAL even if handwritten. Look for the largest number at the bottom or next to "TOTAL", "VALOR TOTAL", "Total a Pagar"
+- NARRATION: Write 2-3 sentences in THIRD PERSON for the tutor of ${pet.name}.
+  - If pet-related document: explain what was found and any important dates/actions
+  - If non-pet document (NF from hardware store, general retail, etc.): briefly acknowledge the document was scanned and mention the total and establishment name
   Respond in ${lang}.
+
+## MANDATORY: ocr_data.fields MUST always be populated — NEVER return fields: []
+The tutor sees ocr_data.fields in the app to confirm what was found. Include ALL visible values.
+
+By document type:
+- Lab exam / hemogram: one entry per row → {"key": "Hemoglobina", "value": "16 g/dL (ref: 12–18)", "confidence": 0.95}
+  Include EVERY lab value row: Eritrócitos, Hemoglobina, Hematócrito, VCM, HCM, CHCM, Leucócitos, each differential (Neutrófilos, Linfócitos, Monócitos, etc.), Plaquetas, observations.
+- Vaccine card: {"key": "Vacina", "value": "V10 Vanguard", "confidence": 0.95}, {"key": "Próxima dose", "value": "2025-01-15"}
+- Nota Fiscal / receipt: {"key": "Total", "value": "R$ 450,00"}, {"key": "NF Nº", "value": "16684"}, {"key": "Data", "value": "2024-03-15"}, {"key": "Estabelecimento", "value": "Clínica Pet"}
+- Prescription: {"key": "Medicamento", "value": "Amoxicilina 250mg"}, {"key": "Dose", "value": "1 comprimido 2x/dia por 7 dias"}
+- Vet report: {"key": "Diagnóstico", "value": "..."}, {"key": "Data consulta", "value": "..."}, {"key": "Veterinário", "value": "..."}
+
+## OUTPUT SIZE CONSTRAINTS — MANDATORY TO AVOID TRUNCATION
+The response MUST fit in 4000 tokens. Follow these rules strictly:
+- ocr_data.fields: Include ALL visible values — this is the primary display in the app
+- extracted_data: Summary ONLY — NO large arrays, NO results[], NO items[] inside extracted_data
+  - exam: only { exam_name, date, lab_name, results_summary: "1-sentence" }
+  - nota_fiscal: only { amount, currency, merchant_name, date, nf_number }
+  - vaccine: only { vaccine_name, date, next_due }
+  - medication: only { medication_name, dosage, frequency }
+  - consultation: only { date, vet_name, diagnosis }
+- clinical_metrics: ONLY values that are OUTSIDE the reference range (abnormal). Skip normal values.
+- suggestions: Maximum 2 items, each under 15 words
 
 Return ONLY valid JSON:
 {
-  "document_type": "vaccine_card|prescription|exam_result|invoice|receipt|insurance|vet_report|medication_box|other",
+  "document_type": "vaccine_card|prescription|exam_result|nota_fiscal|invoice|receipt|insurance|vet_report|medication_box|food_packaging|other",
   "classifications": [{"type": "...", "confidence": 0.0, "extracted_data": {}}],
   "primary_type": "...",
   "ocr_data": {
-    "fields": [{"key": "Field Name", "value": "Extracted Value", "confidence": 0.95}],
+    "fields": [{"key": "Field Name", "value": "Extracted Value (with unit and reference if applicable)", "confidence": 0.95}],
     "items": [{"name": "...", "qty": 1, "unit_price": 0.00}]
   },
   "narration": "${pet.name} teve um documento digitalizado...",
@@ -979,7 +1019,7 @@ function buildOCRMessages(photo_base64?: string): ClaudeMessage[] {
         type: 'image',
         source: { type: 'base64', media_type: detectMediaType(photo_base64), data: photo_base64 },
       },
-      { type: 'text', text: 'Analyze this veterinary document and extract all health records.' },
+      { type: 'text', text: 'Analyze this veterinary document. Extract ALL visible fields and populate ocr_data.fields with every key-value pair found — one entry per data row. Never return fields as an empty array.' },
     ],
   }];
 }
@@ -1003,7 +1043,7 @@ function buildMessages(text?: string, photos_base64?: string[]): ClaudeMessage[]
     }];
   }
 
-  return [{ role: 'user', content: text }];
+  return [{ role: 'user', content: text || '(Tutor shared a pet diary entry — analyze it.)' }];
 }
 
 function detectMediaType(base64: string): string {
@@ -1013,14 +1053,72 @@ function detectMediaType(base64: string): string {
   return 'image/jpeg';
 }
 
+// ── Audio fetch helper ──
+
+/** Detect actual audio format from magic bytes — ignores HTTP Content-Type header */
+function detectAudioMimeFromBytes(bytes: Uint8Array): string {
+  if (bytes.length < 4) return 'audio/mp4';
+  // MP3: ID3 tag header
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return 'audio/mp3';
+  // MP3: MPEG sync word (FF Ex or FF Fx)
+  if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return 'audio/mp3';
+  // WAV: RIFF....WAVE
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return 'audio/wav';
+  // OGG: OggS
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return 'audio/ogg';
+  // FLAC: fLaC
+  if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) return 'audio/flac';
+  // WebM: EBML header
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) return 'audio/webm';
+  // MP4/M4A: ftyp box at offset 4
+  if (bytes.length >= 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return 'audio/mp4';
+  return 'audio/mp4';
+}
+
+async function fetchAudioAsBase64(url: string): Promise<{ base64: string; mediaType: string } | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12_000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      console.warn('[classifier] Audio fetch failed:', response.status);
+      return null;
+    }
+    const contentLength = Number(response.headers.get('content-length') ?? 0);
+    if (contentLength > 5 * 1024 * 1024) {
+      console.warn('[classifier] Audio too large, skipping download:', contentLength);
+      return null;
+    }
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    // Detect actual format from magic bytes — do NOT trust HTTP Content-Type
+    // (Supabase Storage serves MP3 files as video/mp4 when path ends in .mp4)
+    const mediaType = detectAudioMimeFromBytes(bytes);
+    const chunkSize = 8192;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+    }
+    console.log('[classifier] Audio fetched | detectedMimeType:', mediaType, '| bytes:', bytes.length);
+    return { base64: btoa(binary), mediaType };
+  } catch (err) {
+    console.warn('[classifier] Audio fetch error:', String(err));
+    return null;
+  }
+}
+
 // ── Claude API call ──
 
 async function callClaude(
   systemPrompt: string,
   messages: ClaudeMessage[],
   maxTokens: number = MAX_TOKENS,
+  extraHeaders: Record<string, string> = {},
+  modelOverride?: string,
 ): Promise<{ text: string; tokensUsed: number }> {
   const cfg = await getAIConfig();
+  const model = modelOverride ?? cfg.model_classify;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), cfg.timeout_ms);
   let response: Response;
@@ -1031,9 +1129,10 @@ async function callClaude(
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': cfg.anthropic_version,
+        ...extraHeaders,
       },
       body: JSON.stringify({
-        model: cfg.model_classify,
+        model,
         max_tokens: maxTokens,
         system: systemPrompt,
         messages,
@@ -1074,9 +1173,18 @@ function parseClassification(rawText: string, fallbackText?: string): Record<str
   }
 
   try {
-    return JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+    console.log('[classifier] JSON parse OK | keys:', Object.keys(parsed).join(', '));
+    if (parsed.ocr_data) {
+      console.log('[classifier] OCR parsed | document_type:', parsed.document_type, '| fields:', parsed.ocr_data?.fields?.length ?? 0);
+      if (parsed.ocr_data?.fields?.length) {
+        console.log('[classifier] OCR first 3 fields:', JSON.stringify(parsed.ocr_data.fields.slice(0, 3)));
+      }
+    }
+    return parsed;
   } catch {
-    console.error('[classifier] JSON parse error, using fallback. Raw:', jsonText.slice(0, 200));
+    console.error('[classifier] JSON parse FAILED | chars:', jsonText.length, '| first 400:', jsonText.slice(0, 400));
+    console.error('[classifier] JSON last 200:', jsonText.slice(-200));
     return {
       classifications: [{ type: 'moment', confidence: 1.0, extracted_data: {} }],
       primary_type: 'moment',
@@ -1163,6 +1271,12 @@ export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResul
   if (input.input_type === 'pdf_upload' && input.pdf_base64) {
     messages = buildPDFMessages(input.pdf_base64, input.text);
     maxTokens = 3000; // PDF may contain many records
+  } else if (input.input_type === 'ocr_scan') {
+    // OCR — all detail goes in ocr_data.fields; extracted_data is summary-only
+    maxTokens = 4000;
+    const ocrPhoto = (input.photos_base64?.length ? input.photos_base64 : input.photo_base64 ? [input.photo_base64] : undefined)?.[0];
+    console.log('[classifier] OCR branch | photo present:', !!ocrPhoto, '| photo KB:', ocrPhoto ? Math.round(ocrPhoto.length * 0.75 / 1024) : 0);
+    messages = buildOCRMessages(ocrPhoto);
   } else {
     // Merge legacy photo_base64 + new photos_base64 array
     const allPhotos = input.photos_base64?.length
@@ -1170,20 +1284,100 @@ export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResul
       : input.photo_base64
         ? [input.photo_base64]
         : undefined;
-    // OCR: 1 foto exata | video: 1 frame | gallery: 2 fotos max
+    // video: 1 frame | gallery: 2 fotos max
     const photos = input.input_type === 'video'
       ? allPhotos?.slice(0, 1)
-      : input.input_type === 'ocr_scan'
-        ? allPhotos?.slice(0, 1)
-        : allPhotos?.slice(0, 2);
-    messages = input.input_type === 'ocr_scan'
-      ? buildOCRMessages(photos?.[0])
-      : buildMessages(input.text, photos);
+      : allPhotos?.slice(0, 2);
+
+    if (input.input_type === 'pet_audio') {
+      // For pet_audio: download audio and send as base64 content block so Claude can truly analyze it
+      const audioData = input.audio_url ? await fetchAudioAsBase64(input.audio_url) : null;
+      if (audioData) {
+        messages = [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: input.text?.trim() || 'Analyze the pet vocalizations in this audio recording.',
+            },
+            {
+              type: 'audio',
+              source: {
+                type: 'base64',
+                media_type: audioData.mediaType,
+                data: audioData.base64,
+              },
+            },
+          ] as unknown as string,
+        }];
+        console.log('[classifier] Audio content block built | mediaType:', audioData.mediaType, '| base64 KB:', Math.round(audioData.base64.length * 0.75 / 1024));
+      } else {
+        // Fallback: Claude analyzes based on text description only
+        const audioCtx = input.text?.trim() || '(Tutor recorded pet vocalizations — no audio available)';
+        messages = buildMessages(audioCtx, photos);
+        console.log('[classifier] Audio fetch returned null — using text-only fallback');
+      }
+    } else {
+      messages = buildMessages(input.text, photos);
+    }
   }
 
-  console.log('[classifier] Calling Claude | lang:', lang, '| maxTokens:', maxTokens);
+  const isAudio = input.input_type === 'pet_audio';
+  // hasAudioBlock = true only when fetchAudioAsBase64 succeeded and built the audio content block
+  const hasAudioBlock = isAudio && Array.isArray((messages[0] as { role: string; content: unknown })?.content);
+  console.log('[classifier] Calling Claude | lang:', lang, '| maxTokens:', maxTokens, '| isAudio:', isAudio, '| hasAudioBlock:', hasAudioBlock);
 
-  const { text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens);
+  let rawText: string;
+  let tokensUsed: number;
+
+  if (isAudio) {
+    const audioCfg = await getAIConfig();
+    const audioModel = audioCfg.model_audio; // model_audio defaults to claude-sonnet-4-6 (supports audio)
+    console.log('[classifier] Audio model:', audioModel);
+    if (hasAudioBlock) {
+      // Try 1: stable API with audio-capable model
+      try {
+        const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens, {}, audioModel);
+        rawText = text;
+        tokensUsed = t;
+        console.log('[classifier] Audio stable API succeeded | tokens:', t);
+      } catch (audioErr) {
+        console.error('[classifier] Audio stable API failed:', String(audioErr));
+        // Try 2: legacy audio-1 beta header
+        try {
+          const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens, { 'anthropic-beta': 'audio-1' }, audioModel);
+          rawText = text;
+          tokensUsed = t;
+          console.log('[classifier] Audio beta header succeeded | tokens:', t);
+        } catch (audioBetaErr) {
+          // Try 3: text-only fallback
+          console.error('[classifier] Audio beta also failed:', String(audioBetaErr));
+          const fallbackText = input.text?.trim() || '(Tutor recorded pet vocalizations — no transcription available)';
+          const fallbackMessages = buildMessages(fallbackText, undefined);
+          const { text, tokensUsed: t } = await callClaude(systemPrompt, fallbackMessages, maxTokens);
+          rawText = text;
+          tokensUsed = t;
+          console.log('[classifier] Audio text-only fallback | tokens:', t);
+        }
+      }
+    } else {
+      // Audio fetch failed — skip audio API entirely, use text-only
+      console.log('[classifier] No audio block — calling text-only (audio fetch failed)');
+      const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens);
+      rawText = text;
+      tokensUsed = t;
+    }
+  } else {
+    const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens);
+    rawText = text;
+    tokensUsed = t;
+  }
+
+  // ── RAW RESPONSE TRACE ──
+  console.log('[classifier] RAW response | tokens:', tokensUsed, '| chars:', rawText.length, '| input_type:', input.input_type);
+  console.log('[classifier] RAW first 600:', rawText.slice(0, 600));
+  if (rawText.length > 600) console.log('[classifier] RAW last 300:', rawText.slice(-300));
+
   const result = parseClassification(rawText, input.text);
 
   console.log('[classifier] OK —',
@@ -1212,10 +1406,17 @@ export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResul
     language: input.language,
     tokens_used: tokensUsed,
     // OCR fields (only populated when input_type === 'ocr_scan')
-    ...(input.input_type === 'ocr_scan' && {
-      document_type: (result.document_type as string) ?? 'other',
-      ocr_data: (result.ocr_data as OCRData) ?? { fields: [] },
-    }),
+    ...(input.input_type === 'ocr_scan' && (() => {
+      const doc_type = (result.document_type as string) ?? 'other';
+      const ocr_data = (result.ocr_data as OCRData) ?? { fields: [] };
+      console.log('[classifier] RETURN OCR | document_type:', doc_type, '| fields:', ocr_data.fields?.length ?? 0, '| items:', ocr_data.items?.length ?? 0);
+      if (ocr_data.fields?.length) {
+        console.log('[classifier] RETURN OCR first 3 fields:', JSON.stringify(ocr_data.fields.slice(0, 3)));
+      } else {
+        console.warn('[classifier] RETURN OCR fields EMPTY — result.ocr_data was:', JSON.stringify(result.ocr_data)?.slice(0, 200));
+      }
+      return { document_type: doc_type, ocr_data };
+    })()),
     // PDF fields (only populated when input_type === 'pdf_upload')
     ...(input.input_type === 'pdf_upload' && {
       document_summary: (result.document_summary as string) ?? null,

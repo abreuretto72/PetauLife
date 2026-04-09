@@ -235,6 +235,7 @@
     "happinessChart": "Gráfico de Felicidade",
     "chartCaption": "Baseado no humor diário, análises de IA e eventos de saúde",
     "filterCapsules": "Cápsulas",
+    "upcomingEvent": "PRÓXIMO COMPROMISSO",
     "specialMoment": "Momento Especial",
     "registrationEntry": "Primeiro registro",
     "monthSummary": "Resumo do mês",
@@ -258,6 +259,12 @@
     "photoAnalysis": "Foto IA",
     "videoAnalysis": "Vídeo IA",
     "ocrAnalysis": "Documento Escaneado",
+    "ocrItems": "Itens",
+    "ocrItemName": "Nome do item",
+    "ocrEditHint": "Editar dados extraídos",
+    "ocrDivideBy100": "÷100  (8,90 → 0,089)",
+    "ocrMultiplyBy100": "×100  (8,90 → 890,00)",
+    "ocrNoFields": "Não foi possível extrair campos deste documento.",
     "audioFile": "áudio",
     "frameAnalysis": "Análise de Frames",
     "analyzerDisclaimer": "As análises são baseadas no conteúdo registrado pelo tutor.",
@@ -979,7 +986,11 @@
       "boarding": "Hospedagem",
       "petSitter": "Pet sitter",
       "dogWalker": "Passeio",
-      "training": "Adestramento"
+      "training": "Adestramento",
+      "deworming": "Vermifugação",
+      "surgery": "Cirurgia",
+      "physiotherapy": "Fisioterapia",
+      "custom": "Compromisso"
     },
     "expense": {
       "grooming": "Banho e tosa",
@@ -1396,7 +1407,9 @@
       "q4": "Como funciona a análise de foto por IA?",
       "a4": "Tire uma foto do seu pet e a IA identifica raça, estima idade, porte e observações de saúde. Sempre confirme ou edite os resultados.",
       "q5": "O app funciona sem internet?",
-      "a5": "Sim! Você continua vendo seus dados e pode fazer alterações. Quando a internet voltar, tudo é sincronizado automaticamente."
+      "a5": "Sim! Você continua vendo seus dados e pode fazer alterações. Quando a internet voltar, tudo é sincronizado automaticamente.",
+      "q6": "Quais são os limites de tamanho para fotos, vídeos e documentos?",
+      "a6": "Foto: até 5 MB, máximo 5 por entrada.\nVídeo: até 50 MB, máximo 60 segundos, 1 por entrada.\nÁudio (latidos/sons): até 5 MB, máximo 30 segundos, 1 por entrada.\nScanner/Documento: até 10 MB, máximo 20 páginas, 1 por entrada.\nSe o arquivo ultrapassar o limite, você verá um aviso antes de enviar."
     }
   },
   "legal": {

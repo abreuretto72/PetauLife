@@ -36,6 +36,7 @@ export default function HelpScreen() {
     { q: t('help.faqItems.q3'), a: t('help.faqItems.a3') },
     { q: t('help.faqItems.q4'), a: t('help.faqItems.a4') },
     { q: t('help.faqItems.q5'), a: t('help.faqItems.a5') },
+    { q: t('help.faqItems.q6'), a: t('help.faqItems.a6') },
   ];
 
   const handleContact = () => {

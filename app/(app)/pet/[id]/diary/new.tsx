@@ -144,10 +144,10 @@ export default function NewDiaryEntryScreen() {
   const [helpTab, setHelpTab] = useState<'uso' | 'painel'>('uso');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const MAX_PHOTOS    = 5;
+  const MAX_PHOTOS    = 4;
   const MAX_VIDEOS    = 1;
   const MAX_AUDIOS    = 1;
-  const MAX_DOCUMENTS = 3;
+  const MAX_DOCUMENTS = 1;
 
   function canAddAttachment(type: Attachment['type']): boolean {
     const limits: Record<Attachment['type'], number> = {
@@ -409,11 +409,26 @@ export default function NewDiaryEntryScreen() {
       setCapturedDocBase64(base64);
       setStep('document_preview');
     } else {
-      // Quick OCR scan → submit immediately
-      void submitEntry({ text: null, photosBase64: [base64], inputType: 'ocr_scan' });
-      showAnalyzingAndBack();
+      // Quick OCR scan — if there's existing text or attachments, merge into the entry
+      const hasExistingContent = tutorText.trim().length > 0 || attachments.length > 0;
+      if (hasExistingContent) {
+        // Add the scanned doc as a document attachment (base64 stored for later submission)
+        setAttachments((prev) => [...prev, {
+          id: `doc-scan-${Date.now()}`,
+          type: 'document' as const,
+          localUri: '',
+          base64,
+          fileName: 'scanned-document',
+        }]);
+        setStep('text');
+      } else {
+        // No existing content — submit immediately as single OCR entry
+        void submitEntry({ text: null, photosBase64: [base64], inputType: 'ocr_scan' });
+        showAnalyzingAndBack();
+      }
     }
-  }, [submitEntry, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitEntry, tutorText, attachments]);
 
   const handleVideoCapture = useCallback(async (uri: string, durationSeconds: number) => {
     setCapturedVideoUri(uri);
@@ -890,16 +905,39 @@ export default function NewDiaryEntryScreen() {
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'audio/*',
+        type: [
+          'audio/mpeg',   // MP3
+          'audio/mp3',    // MP3 (alias)
+          'audio/mp4',    // M4A / AAC
+          'audio/aac',    // AAC
+          'audio/x-m4a',  // M4A (iOS)
+          'audio/wav',    // WAV
+          'audio/wave',   // WAV (alias)
+          'audio/ogg',    // OGG
+          'audio/flac',   // FLAC
+          'audio/webm',   // WebM audio
+        ],
         multiple: false,
         copyToCacheDirectory: false,
       });
 
-      if (result.canceled || !result.assets?.length) return;
+      if (result.canceled || !result.assets?.length) {
+        console.log('[AUDIO-PICK] cancelado ou sem assets');
+        return;
+      }
 
       const asset = result.assets[0];
+      console.log('[AUDIO-PICK] asset selecionado:', {
+        name: asset.name,
+        uri: asset.uri?.slice(-60),
+        mimeType: asset.mimeType,
+        size: asset.size,
+        isContentUri: asset.uri?.startsWith('content://'),
+      });
+
       if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); return; }
       if (asset.size && asset.size > MEDIA_LIMITS.audio.maxSizeBytes) {
+        console.warn('[AUDIO-PICK] arquivo muito grande:', asset.size, '>', MEDIA_LIMITS.audio.maxSizeBytes);
         toast(t('diary.audioTooLarge', { max: MEDIA_LIMITS.audio.maxSizeMB }), 'warning');
         return;
       }
@@ -912,7 +950,7 @@ export default function NewDiaryEntryScreen() {
         fileName: asset.name,
         fileSize: asset.size,
       }]);
-      console.log('[ATTACH] áudio adicionado:', asset.name);
+      console.log('[AUDIO-PICK] ✅ áudio anexado:', asset.name, '| uri scheme:', asset.uri?.split('://')[0]);
 
     } catch (err) { toast(getErrorMessage(err), 'error'); }
     finally {
@@ -923,7 +961,12 @@ export default function NewDiaryEntryScreen() {
   }, [attachments, canAddAttachment, stopListening, startListening, toast, t]);
 
   const onPetAudioCaptured = useCallback(async (uri: string, duration: number) => {
-    console.log('[ATTACH] audio adicionado | uri:', uri?.slice(-30), '| duration:', duration);
+    console.log('[AUDIO-REC] capturado via PetAudioRecorder:', {
+      uri: uri?.slice(-60),
+      duration,
+      isContentUri: uri?.startsWith('content://'),
+      isFileUri: uri?.startsWith('file://'),
+    });
     setAttachments((prev) => [...prev, {
       id:       `audio-${Date.now()}`,
       type:     'audio' as const,
@@ -968,9 +1011,11 @@ export default function NewDiaryEntryScreen() {
       inputType = 'pet_audio';
     } else if (photoAttachments.length > 0) {
       inputType = 'gallery';
-    } else if (docAttachments.length > 0) {
+    } else if (docAttachments.length > 0 && tutorText.trim().length < 50) {
+      // Pure document scan with no significant text → dedicated OCR prompt
       inputType = 'ocr_scan';
     }
+    // When text + doc: inputType stays 'text' → inlineDocBase64 handles doc as secondary OCR call
     const hasVideo = videoAttachments.length > 0;
 
     // Log BEFORE base64 read so we know if crash is during read or before
@@ -1010,6 +1055,19 @@ export default function NewDiaryEntryScreen() {
       }
     }
 
+    // If OCR-only entry (no photos for AI) but a scanned document attachment has inline base64,
+    // pass it directly as the OCR image (no photos in this case)
+    if (photosBase64 === null && inputType === 'ocr_scan' && docAttachments.length > 0) {
+      const docBase64 = docAttachments[0].base64;
+      if (docBase64) photosBase64 = [docBase64];
+    }
+
+    // Extract inline doc base64 for mixed entries (photos + scanned doc in the same submission).
+    // Passed as docBase64 so the pipeline uploads + OCR-classifies it separately from photos.
+    const inlineDocBase64 = inputType !== 'ocr_scan' && docAttachments.length > 0
+      ? (docAttachments[0].base64 ?? undefined)
+      : undefined;
+
     // All attachment URIs: photos first, then video/audio (order matters for BG upload logic)
     const mediaUris = [
       ...photoAttachments.map((a) => a.localUri),
@@ -1031,6 +1089,7 @@ export default function NewDiaryEntryScreen() {
       videoDuration,
       audioDuration,
       hasVideo,
+      docBase64: inlineDocBase64,
     });
     router.back();
   }, [tutorText, attachments, toast, t, submitEntry, router]);
@@ -1184,7 +1243,9 @@ export default function NewDiaryEntryScreen() {
             backgroundColor: colors.bgCard,
             borderTopLeftRadius: rs(20),
             borderTopRightRadius: rs(20),
-            padding: rs(24),
+            paddingTop: rs(24),
+            paddingHorizontal: rs(24),
+            paddingBottom: rs(24) + insets.bottom,
             gap: rs(12),
           }}>
             <Text style={{

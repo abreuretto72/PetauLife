@@ -17,18 +17,39 @@ function getMimeType(uri: string, mediaType: MediaType): string {
 }
 
 /**
- * Read a local file URI as Uint8Array (works on Android content:// URIs).
+ * Read a local file URI as Uint8Array.
+ * Android content:// URIs from the media documents provider cannot be read
+ * with readAsStringAsync directly — they must be copied to a local cache
+ * path first (FileSystem.copyAsync supports the content:// scheme).
  */
 async function readFileAsBytes(uri: string): Promise<Uint8Array> {
-  const b64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  const binaryString = base64Decode(b64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  let localUri = uri;
+  let tmpPath: string | null = null;
+
+  if (uri.startsWith('content://')) {
+    tmpPath = `${FileSystem.cacheDirectory}tmp_upload_${Date.now()}`;
+    console.log('[STORAGE] content:// detectado — copiando para cache:', tmpPath);
+    const t0 = Date.now();
+    await FileSystem.copyAsync({ from: uri, to: tmpPath });
+    console.log('[STORAGE] copyAsync OK em', Date.now() - t0, 'ms');
+    localUri = tmpPath;
   }
-  return bytes;
+
+  try {
+    const b64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const binaryString = base64Decode(b64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  } finally {
+    if (tmpPath) {
+      FileSystem.deleteAsync(tmpPath, { idempotent: true }).catch(() => {});
+    }
+  }
 }
 
 export async function uploadPetPhoto(

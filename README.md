@@ -229,6 +229,28 @@ App mobile AI-first para tutores de cães e gatos. Diário inteligente com narra
 | PDF Export | expo-print + expo-sharing |
 | Redes sociais | @react-native-community/netinfo |
 
+## Limites de Mídia
+
+O app aceita os seguintes tipos de mídia na entrada do diário, com os limites abaixo:
+
+| Tipo | Tamanho máximo | Quantidade por entrada | Duração máxima |
+|------|---------------|----------------------|----------------|
+| Foto | 5 MB | 5 fotos | — |
+| Vídeo | 50 MB | 1 vídeo | 60 segundos |
+| Áudio (latidos/sons) | 5 MB | 1 gravação | 30 segundos |
+| Scanner / Documento | 10 MB | 1 arquivo | até 20 páginas |
+
+**Como funciona cada tipo:**
+
+- **Foto** — a IA analisa saúde visual, humor pela expressão/postura, ambiente e toxicidade. Até 5 fotos por entrada. Se nenhum animal aparecer na imagem, a análise informa isso.
+- **Vídeo** — a IA analisa locomoção, energia e comportamento a partir dos frames. Máximo 60 segundos para garantir qualidade de análise e velocidade de upload.
+- **Áudio** — gravação de sons do pet (latidos, ronrons, choros). A IA identifica o tipo de som, estado emocional, intensidade e padrão. Máximo 30 segundos.
+- **Scanner / Documento** — captura de documentos como carteira de vacina, receita veterinária, rótulo de ração. A IA extrai campos automaticamente via OCR e estrutura os dados. O documento escaneado aparece no card com os campos extraídos.
+
+Os limites são validados no momento da seleção — se o arquivo ultrapassar o limite, um aviso é exibido antes do envio.
+
+Os limites estão centralizados em `constants/media.ts`.
+
 ## Arquitetura
 
 ```

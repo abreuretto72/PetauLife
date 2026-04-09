@@ -1,12 +1,15 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient, onlineManager } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import * as api from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { generateDiaryNarration, generatePersonality } from '../lib/ai';
 import { generateEmbedding } from '../lib/rag';
 import i18n from '../i18n';
 import { addToQueue } from '../lib/offlineQueue';
 import { cacheEntry, getCachedDiary } from '../lib/localDb';
 import type { DiaryEntry } from '../types/database';
+import type { ScheduledEvent } from '../lib/api';
 
 export interface AddEntryParams {
   content: string;
@@ -27,6 +30,42 @@ export function useDiary(petId: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
   const queryKey = ['pets', petId, 'diary'] as const;
+
+  // ── Supabase Realtime — invalidate cache when another tutor writes ──
+  useEffect(() => {
+    if (!petId) return;
+
+    const channel = supabase
+      .channel(`diary_entries:pet_id=eq.${petId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'diary_entries', filter: `pet_id=eq.${petId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey });
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'scheduled_events', filter: `pet_id=eq.${petId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ['pets', petId, 'scheduled_events'] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  // queryKey is stable (derived from petId) — petId change re-subscribes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [petId]);
+
+  // ── Fetch scheduled events (upcoming only) ──
+  const scheduledEventsQuery = useQuery<ScheduledEvent[]>({
+    queryKey: ['pets', petId, 'scheduled_events'],
+    queryFn: () => api.fetchScheduledEvents(petId),
+    enabled: isAuthenticated && !!petId,
+  });
 
   // ── Fetch entries ──
   const query = useQuery({
@@ -227,6 +266,7 @@ export function useDiary(petId: string) {
     isLoading: query.isLoading,
     error: query.error,
     refetch: query.refetch,
+    scheduledEvents: scheduledEventsQuery.data ?? [],
 
     addEntry: addMutation.mutateAsync,
     isAdding: addMutation.isPending,
