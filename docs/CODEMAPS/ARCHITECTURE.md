@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-09
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio Analysis + Model Separation
+**Last Updated:** 2026-04-10
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Model Separation + Video Thumbnails
 
 ---
 
@@ -200,17 +200,37 @@ INTERFACE — 4 botões de anexo:
 // 5. updatePetRAG() indexa a entrada
 ```
 
-**Photo Analysis Pipeline:**
+**Photo & Video Analysis Pipeline (2026-04-10):**
 ```typescript
-// hooks/useDiaryEntry.ts → _photoAnalysis()
-// 1. Extrai videoThumbnailUrl do vídeo (frame 1) — NOT o tutor's photo
-// 2. Base64 encode foto
-// 3. Busca bgSession token (para background invoke)
-// 4. Chama analyze-pet-photo com: { photo_base64, species, language, media_type }
-// 5. Retorna: { identification, health, mood, environment, alerts, toxicity_check, description }
-// 6. Salva em photo_analyses table
-// 7. photoResultsRaw: []→map() mantém índice posicional com fotos array
-// [DIAG] logs para debugging análise
+// hooks/useDiaryEntry.ts
+// PHOTO UPLOAD (line ~905-930):
+// 1. ImageManipulator.manipulateAsync() — resize, compress WebP
+// 2. uploadMedia() → armazena no Supabase Storage
+// 3. _photoAnalysis() inicia background analysis
+
+// VIDEO UPLOAD (line ~945-1000):
+// 1. Para cada vídeo: expo-video-thumbnails.getThumbnailAsync()
+// 2. Thumbnail gerado no frame 1000ms, quality 0.3 (leve)
+// 3. uploadMedia() → vídeo + thumbnail como arquivos separados
+// 4. videoThumbUrls[] acompanha índice posicional com vídeos array
+// 5. Salva em media_analyses: { type: 'video', mediaUrl, thumbnailUrl, ... }
+
+// AI CLASSIFICATION (line ~1040-1100):
+// 1. classifyDiaryEntry() — passa skipAI flag
+// 2. Se skipAI=false: invoke classify-diary-entry edge function
+//    - Magic bytes MIME detection (detectar áudio via magic bytes)
+//    - model_audio separado de model_vision (Gemini para nativo audio/video)
+//    - OCR pipeline (texto extraído de documentos/fotos)
+//    - Photo analysis: { identification, health, mood, environment, alerts }
+//    - Narration: 1ª pessoa do pet, 3ª pessoa semântica
+// 3. Salva em photo_analyses table
+// 4. photoResultsRaw: []→map() mantém índice posicional com fotos array
+
+// BACKGROUND PROCESSING (line ~1120-1200):
+// 1. async _backgroundAnalyzePhotos()
+// 2. Para cada vídeo: gera thumbnail no frame 1s (again, para redundância)
+// 3. uploadMedia() → thumbnail para Storage
+// 4. Atualiza media_analyses com resultados
 ```
 
 **DiaryModuleCard — buildModuleValue()**
@@ -625,7 +645,7 @@ All record tables (`diary_entries`, `vaccines`, `consultations`, `medications`, 
 
 **Trigger:** `set_audit_fields()` — SECURITY DEFINER BEFORE INSERT OR UPDATE — calls `auth.uid()` safely.
 
-**DiaryCard display (`components/diary/TimelineCards.tsx`):**
+**DiaryCard display (`components/diary/TimelineCards.tsx` — 2026-04-10):**
 ```
 Por você · 3 abr          ← registeredBy === currentUserId → "você"
 Editado por Ana · 4 abr   ← only shown when updatedBy ≠ registeredBy
@@ -633,6 +653,18 @@ Editado por Ana · 4 abr   ← only shown when updatedBy ≠ registeredBy
 - Font: Sora 400, 10px, `textGhost`
 - Data for display comes from `TimelineEvent.registeredByUser`, `updatedByUser` fields
 - `diaryEntryToEvent()` in `timelineTypes.ts` maps the DB join columns to these fields
+
+**Video thumbnails in timeline (2026-04-10):**
+- `VideoSubcard` renders `thumbnailUrl` from `media_analyses`
+- Thumbnail generated at upload time via `expo-video-thumbnails` (frame @1000ms, quality 0.3)
+- Falls back gracefully if thumbnail upload fails (video still displays)
+- Integration with new `MediaViewerModal` for full-screen media viewing
+
+**MediaViewerModal (`components/diary/MediaViewerModal.tsx` — NEW):**
+- Full-screen photo/video viewer triggered by tapping media in timeline
+- Supports pinch-zoom for photos, native video controls for videos
+- Handles multiple photos in carousel view
+- Integrated into TimelineCards rendering via `onMediaPress` callback
 
 **DIARY_MODULE_SELECT in `lib/api.ts`:**
 ```typescript
@@ -1121,6 +1153,8 @@ This ensures users can only select formats that Claude API actually supports, pr
   "expo-camera": "^14.0.0",
   "expo-image-picker": "^15.0.0",
   "expo-speech-recognition": "^3.4.0",
+  "expo-video-thumbnails": "^7.0.0",
+  "expo-image-manipulator": "^12.0.0",
   "@react-native-community/netinfo": "^11.0.0"
 }
 ```

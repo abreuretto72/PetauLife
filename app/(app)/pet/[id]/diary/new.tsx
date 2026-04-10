@@ -10,14 +10,14 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Switch,
   KeyboardAvoidingView, Platform, Animated, ScrollView, Pressable,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
-import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon, ShieldCheck, Stethoscope, FlaskConical, Pill, Scale, DollarSign, ThermometerSun, Utensils, AlertTriangle, Scissors, Activity, ShoppingBag, MapPin, Sparkles, ScanLine } from 'lucide-react-native';
+import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon, ShieldCheck, Stethoscope, FlaskConical, Pill, Scale, DollarSign, ThermometerSun, Utensils, AlertTriangle, Scissors, Activity, ShoppingBag, MapPin, Sparkles, ScanLine, Wifi } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -143,18 +143,33 @@ export default function NewDiaryEntryScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [helpTab, setHelpTab] = useState<'uso' | 'painel'>('uso');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeWithAI, setAnalyzeWithAI] = useState(false);
 
   const MAX_PHOTOS    = 4;
   const MAX_VIDEOS    = 1;
   const MAX_AUDIOS    = 1;
   const MAX_DOCUMENTS = 1;
 
-  function canAddAttachment(type: Attachment['type']): boolean {
+  const MAX_SLOTS = 4; // global cap when skipAI mode
+
+  function canAddAttachment(type: Attachment['type'], alreadyPending = 0): boolean {
+    if (!analyzeWithAI) {
+      return attachments.length + alreadyPending < MAX_SLOTS;
+    }
     const limits: Record<Attachment['type'], number> = {
       photo: MAX_PHOTOS, video: MAX_VIDEOS,
       audio: MAX_AUDIOS, document: MAX_DOCUMENTS,
     };
     return attachments.filter((a) => a.type === type).length < limits[type];
+  }
+
+  function attachmentDeniedMsg(type: Attachment['type']): string {
+    if (!analyzeWithAI) return t('mic.maxAttachments');
+    const keys: Record<Attachment['type'], string> = {
+      photo: 'mic.maxPhotos', video: 'mic.maxVideos',
+      audio: 'mic.maxAudios', document: 'mic.maxDocuments',
+    };
+    return t(keys[type]);
   }
 
   function removeAttachment(id: string) {
@@ -571,11 +586,13 @@ export default function NewDiaryEntryScreen() {
     if (isPickerOpenRef.current) { console.log('[ATTACH] picker já aberto — ignorando'); return; }
     console.log('[ATTACH] abrindo picker...');
     isPickerOpenRef.current = true;
-    if (!canAddAttachment('photo')) { toast(t('mic.maxPhotos'), 'warning'); isPickerOpenRef.current = false; return; }
+    if (!canAddAttachment('photo')) { toast(attachmentDeniedMsg('photo'), 'warning'); isPickerOpenRef.current = false; return; }
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') { toast(t('toast.galleryPermission'), 'warning'); return; }
-      const remaining = MAX_PHOTOS - attachments.filter((a) => a.type === 'photo').length;
+      const remaining = !analyzeWithAI
+        ? Math.max(1, MAX_SLOTS - attachments.length)
+        : MAX_PHOTOS - attachments.filter((a) => a.type === 'photo').length;
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
@@ -618,7 +635,7 @@ export default function NewDiaryEntryScreen() {
     if (isPickerOpenRef.current) { console.log('[ATTACH] picker já aberto — ignorando'); return; }
     console.log('[ATTACH] abrindo picker...');
     isPickerOpenRef.current = true;
-    if (!canAddAttachment('photo')) { toast(t('mic.maxPhotos'), 'warning'); isPickerOpenRef.current = false; return; }
+    if (!canAddAttachment('photo')) { toast(attachmentDeniedMsg('photo'), 'warning'); isPickerOpenRef.current = false; return; }
     const wasListening = isListeningRef.current;
     if (wasListening) stopListening();
     try {
@@ -677,7 +694,7 @@ export default function NewDiaryEntryScreen() {
       for (const asset of result.assets) {
         const mime = asset.mimeType ?? '';
         if (mime.startsWith('image/')) {
-          if (!canAddAttachment('photo')) { toast(t('mic.maxPhotos'), 'warning'); continue; }
+          if (!canAddAttachment('photo', newAttachments.length)) { toast(attachmentDeniedMsg('photo'), 'warning'); continue; }
           if (asset.size && asset.size > MEDIA_LIMITS.photo.maxSizeBytes) {
             toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
             continue;
@@ -693,7 +710,7 @@ export default function NewDiaryEntryScreen() {
             // base64 not stored here — read lazily in handleSubmitText
           });
         } else if (mime.startsWith('video/')) {
-          if (!canAddAttachment('video')) { toast(t('mic.maxVideos'), 'warning'); continue; }
+          if (!canAddAttachment('video', newAttachments.length)) { toast(attachmentDeniedMsg('video'), 'warning'); continue; }
           newAttachments.push({
             id:       `video-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             type:     'video',
@@ -703,7 +720,7 @@ export default function NewDiaryEntryScreen() {
             fileSize: asset.size,
           });
         } else if (mime.startsWith('audio/')) {
-          if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); continue; }
+          if (!canAddAttachment('audio', newAttachments.length)) { toast(attachmentDeniedMsg('audio'), 'warning'); continue; }
           if (asset.size && asset.size > MEDIA_LIMITS.audio.maxSizeBytes) {
             toast(t('diary.audioTooLarge', { max: MEDIA_LIMITS.audio.maxSizeMB }), 'warning');
             continue;
@@ -717,7 +734,7 @@ export default function NewDiaryEntryScreen() {
             fileSize: asset.size,
           });
         } else {
-          if (!canAddAttachment('document')) { toast(t('mic.maxDocuments'), 'warning'); continue; }
+          if (!canAddAttachment('document', newAttachments.length)) { toast(attachmentDeniedMsg('document'), 'warning'); continue; }
           newAttachments.push({
             id:       `doc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             type:     'document',
@@ -747,7 +764,7 @@ export default function NewDiaryEntryScreen() {
     if (isPickerOpenRef.current) { console.log('[ATTACH] picker já aberto — ignorando'); return; }
     console.log('[ATTACH] abrindo picker...');
     isPickerOpenRef.current = true;
-    if (!canAddAttachment('video')) { toast(t('mic.maxVideos'), 'warning'); isPickerOpenRef.current = false; return; }
+    if (!canAddAttachment('video')) { toast(attachmentDeniedMsg('video'), 'warning'); isPickerOpenRef.current = false; return; }
     const wasListening = isListeningRef.current;
     if (wasListening) stopListening();
     try {
@@ -791,7 +808,7 @@ export default function NewDiaryEntryScreen() {
     if (isPickerOpenRef.current) { console.log('[ATTACH] picker já aberto — ignorando'); return; }
     console.log('[ATTACH] abrindo picker...');
     isPickerOpenRef.current = true;
-    if (!canAddAttachment('document')) { toast(t('mic.maxDocuments'), 'warning'); isPickerOpenRef.current = false; return; }
+    if (!canAddAttachment('document')) { toast(attachmentDeniedMsg('document'), 'warning'); isPickerOpenRef.current = false; return; }
     const wasListening = isListeningRef.current;
     if (wasListening) stopListening();
     try {
@@ -840,7 +857,7 @@ export default function NewDiaryEntryScreen() {
         allowsMultipleSelection: true,
         quality: 0.8,
         videoMaxDuration: MEDIA_LIMITS.video.maxDurationSec,
-        selectionLimit: 10,
+        selectionLimit: !analyzeWithAI ? Math.max(1, MAX_SLOTS - attachments.length) : 10,
         orderedSelection: true,
       });
 
@@ -851,7 +868,7 @@ export default function NewDiaryEntryScreen() {
       const newAttachments: Attachment[] = [];
       for (const asset of result.assets) {
         if (asset.type === 'image') {
-          if (!canAddAttachment('photo')) { toast(t('mic.maxPhotos'), 'warning'); continue; }
+          if (!canAddAttachment('photo', newAttachments.length)) { toast(attachmentDeniedMsg('photo'), 'warning'); continue; }
           if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.photo.maxSizeBytes) {
             toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
             continue;
@@ -865,7 +882,7 @@ export default function NewDiaryEntryScreen() {
             fileSize:     asset.fileSize,
           });
         } else if (asset.type === 'video') {
-          if (!canAddAttachment('video')) { toast(t('mic.maxVideos'), 'warning'); continue; }
+          if (!canAddAttachment('video', newAttachments.length)) { toast(attachmentDeniedMsg('video'), 'warning'); continue; }
           if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.video.maxSizeBytes) {
             toast(t('diary.videoTooLarge', { max: MEDIA_LIMITS.video.maxSizeMB }), 'warning');
             continue;
@@ -935,7 +952,7 @@ export default function NewDiaryEntryScreen() {
         isContentUri: asset.uri?.startsWith('content://'),
       });
 
-      if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); return; }
+      if (!canAddAttachment('audio')) { toast(attachmentDeniedMsg('audio'), 'warning'); return; }
       if (asset.size && asset.size > MEDIA_LIMITS.audio.maxSizeBytes) {
         console.warn('[AUDIO-PICK] arquivo muito grande:', asset.size, '>', MEDIA_LIMITS.audio.maxSizeBytes);
         toast(t('diary.audioTooLarge', { max: MEDIA_LIMITS.audio.maxSizeMB }), 'warning');
@@ -1025,12 +1042,12 @@ export default function NewDiaryEntryScreen() {
     console.log('[S1] videoAttachments:', videoAttachments.length);
     console.log('[S1] audioAttachments:', audioAttachments.length);
 
-    // Read base64 only at submit time — sequentially + compressed to avoid OOM with 10 media
+    // Read base64 only for AI path — skip-AI doesn't need it (upload happens in background)
     // Max 3 photos for AI analysis — remaining photos (4-10) are upload-only (no AI)
     const photosForAI     = photoAttachments.slice(0, 3);
     const photosOnlyUpload = photoAttachments.slice(3);
     let photosBase64: string[] | null = null;
-    if (photosForAI.length > 0) {
+    if (analyzeWithAI && photosForAI.length > 0) {
       console.log('[S1] iniciando leitura de base64 (', photosForAI.length, 'fotos para IA,', photosOnlyUpload.length, 'só upload)...');
       try {
         const { readAsStringAsync, EncodingType } = require('expo-file-system/legacy');
@@ -1088,8 +1105,10 @@ export default function NewDiaryEntryScreen() {
       mediaUris,
       videoDuration,
       audioDuration,
+      audioOriginalName: audioAttachments[0]?.fileName,
       hasVideo,
       docBase64: inlineDocBase64,
+      skipAI: !analyzeWithAI,
     });
     router.back();
   }, [tutorText, attachments, toast, t, submitEntry, router]);
@@ -1314,7 +1333,7 @@ export default function NewDiaryEntryScreen() {
       {/* ── Help modal ───────────────────────────────────── */}
       <Modal visible={showHelp} transparent animationType="slide" onRequestClose={() => setShowHelp(false)}>
         <TouchableOpacity style={styles.helpBackdrop} activeOpacity={1} onPress={() => setShowHelp(false)} />
-        <View style={[styles.helpSheet, { paddingBottom: rs(spacing.lg) + insets.bottom }]}>
+        <View style={[styles.helpSheet, { paddingBottom: 0 }]}>
           <View style={styles.helpHandle} />
           <View style={styles.helpHeader}>
             <Text style={styles.helpTitle}>{t('mic.helpTitle')}</Text>
@@ -1345,30 +1364,66 @@ export default function NewDiaryEntryScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Como usar */}
-          {helpTab === 'uso' && (
-            <>
-              {[
-                { icon: <Mic size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpMic'), desc: t('mic.helpMicDesc') },
-                { icon: <Camera size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpFoto'), desc: t('mic.helpFotoDesc'), limit: t('mic.helpFotoLimit', { max: MEDIA_LIMITS.photo.maxSizeMB, count: MEDIA_LIMITS.photo.maxCount }) },
-                { icon: <Video size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpVideo'), desc: t('mic.helpVideoDesc'), limit: t('mic.helpVideoLimit', { maxSec: MEDIA_LIMITS.video.maxDurationSec, maxMB: MEDIA_LIMITS.video.maxSizeMB }) },
-                { icon: <Ear size={rs(22)} color={colors.rose} strokeWidth={1.8} />, title: t('mic.helpSom'), desc: t('mic.helpSomDesc'), limit: t('mic.helpAudioLimit', { max: MEDIA_LIMITS.audio.maxDurationSec }) },
-                { icon: <ImageIcon size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpGaleria'), desc: t('mic.helpGaleriaDesc') },
-              ].map((item, idx) => (
-                <View key={idx} style={styles.helpItem}>
-                  <View style={styles.helpItemIcon}>{item.icon}</View>
-                  <View style={styles.helpItemText}>
-                    <Text style={styles.helpItemTitle}>{item.title}</Text>
-                    <Text style={styles.helpItemDesc}>{item.desc}</Text>
-                    {'limit' in item && item.limit ? <Text style={styles.helpItemLimit}>{item.limit}</Text> : null}
+          <ScrollView
+            style={styles.helpScrollArea}
+            contentContainerStyle={[styles.helpScrollContent, { paddingBottom: rs(spacing.lg) + insets.bottom }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Como usar */}
+            {helpTab === 'uso' && (
+              <>
+                {[
+                  { icon: <Mic size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpMic'), desc: t('mic.helpMicDesc') },
+                  { icon: <Camera size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpFoto'), desc: t('mic.helpFotoDesc'), limit: t('mic.helpFotoLimit', { max: MEDIA_LIMITS.photo.maxSizeMB, count: MEDIA_LIMITS.photo.maxCount }) },
+                  { icon: <Video size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpVideo'), desc: t('mic.helpVideoDesc'), limit: t('mic.helpVideoLimit', { maxSec: MEDIA_LIMITS.video.maxDurationSec, maxMB: MEDIA_LIMITS.video.maxSizeMB }) },
+                  { icon: <Ear size={rs(22)} color={colors.rose} strokeWidth={1.8} />, title: t('mic.helpSom'), desc: t('mic.helpSomDesc'), limit: t('mic.helpAudioLimit', { max: MEDIA_LIMITS.audio.maxDurationSec }) },
+                  { icon: <ImageIcon size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpGaleria'), desc: t('mic.helpGaleriaDesc') },
+                ].map((item, idx) => (
+                  <View key={idx} style={styles.helpItem}>
+                    <View style={styles.helpItemIcon}>{item.icon}</View>
+                    <View style={styles.helpItemText}>
+                      <Text style={styles.helpItemTitle}>{item.title}</Text>
+                      <Text style={styles.helpItemDesc}>{item.desc}</Text>
+                      {'limit' in item && item.limit ? <Text style={styles.helpItemLimit}>{item.limit}</Text> : null}
+                    </View>
+                  </View>
+                ))}
+
+                {/* AI toggle explanation */}
+                <View style={styles.helpAICard}>
+                  <View style={styles.helpAIHeader}>
+                    <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+                    <Text style={styles.helpAITitle}>{t('mic.helpAIToggle')}</Text>
+                  </View>
+                  <View style={styles.helpAIStateRow}>
+                    <View style={[styles.helpAIBadge, styles.helpAIBadgeOn]}>
+                      <Text style={[styles.helpAIBadgeText, { color: colors.purple }]}>{t('mic.helpAIToggleOnTitle')}</Text>
+                    </View>
+                    <Text style={styles.helpAIStateDesc}>{t('mic.helpAIToggleOnDesc')}</Text>
+                  </View>
+                  <View style={styles.helpAIStateRow}>
+                    <View style={[styles.helpAIBadge, styles.helpAIBadgeOff]}>
+                      <Text style={[styles.helpAIBadgeText, { color: colors.textSec }]}>{t('mic.helpAIToggleOffTitle')}</Text>
+                    </View>
+                    <Text style={styles.helpAIStateDesc}>{t('mic.helpAIToggleOffDesc')}</Text>
                   </View>
                 </View>
-              ))}
-            </>
-          )}
 
-          {/* Painel de lentes */}
-          {helpTab === 'painel' && <PainelLentes t={t} />}
+                {/* WiFi tip */}
+                <View style={styles.helpWifiCard}>
+                  <Wifi size={rs(18)} color={colors.warning} strokeWidth={1.8} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.helpWifiTitle}>{t('mic.helpWifiTitle')}</Text>
+                    <Text style={styles.helpWifiDesc}>{t('mic.helpWifiDesc')}</Text>
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* Painel de lentes */}
+            {helpTab === 'painel' && <PainelLentes t={t} />}
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1434,7 +1489,7 @@ export default function NewDiaryEntryScreen() {
               <TouchableOpacity
                 style={styles.attachThumb}
                 onPress={() => {
-                  if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); return; }
+                  if (!canAddAttachment('audio')) { toast(attachmentDeniedMsg('audio'), 'warning'); return; }
                   setShowAudioChoiceModal(true);
                 }}
                 activeOpacity={0.7}
@@ -1453,7 +1508,26 @@ export default function NewDiaryEntryScreen() {
             </View>
 
             {/* AI hint */}
-            <Text style={styles.aiHint}>{t('mic.aiHint', { name: petName })}</Text>
+            {analyzeWithAI && (
+              <Text style={styles.aiHint}>{t('mic.aiHint', { name: petName })}</Text>
+            )}
+
+            {/* AI toggle */}
+            <View style={styles.aiToggleRow}>
+              <Sparkles size={rs(16)} color={analyzeWithAI ? colors.purple : colors.textDim} strokeWidth={1.8} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.aiToggleLabel}>{t('mic.analyzeWithAI')}</Text>
+                <Text style={styles.aiToggleDesc}>
+                  {analyzeWithAI ? t('mic.analyzeWithAIDesc') : t('mic.skipAIDesc')}
+                </Text>
+              </View>
+              <Switch
+                value={analyzeWithAI}
+                onValueChange={setAnalyzeWithAI}
+                trackColor={{ false: colors.border, true: colors.purple + '50' }}
+                thumbColor={analyzeWithAI ? colors.purple : colors.textDim}
+              />
+            </View>
           </ScrollView>
 
           {/* Bottom bar: mic toggle + record button */}
@@ -1539,7 +1613,7 @@ export default function NewDiaryEntryScreen() {
                   <TouchableOpacity
                     style={styles.attachBtn}
                     onPress={() => {
-                      if (!canAddAttachment('audio')) { toast(t('mic.maxAudios'), 'warning'); return; }
+                      if (!canAddAttachment('audio')) { toast(attachmentDeniedMsg('audio'), 'warning'); return; }
                       setShowPetAudioModal(true);
                     }}
                     activeOpacity={0.7}
@@ -1785,6 +1859,84 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_400Regular',
     marginTop: rs(2),
   },
+  helpScrollArea: {
+    maxHeight: rs(480),
+  },
+  helpScrollContent: {
+    gap: rs(spacing.md),
+  },
+  helpWifiCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: rs(spacing.sm),
+    backgroundColor: colors.warningSoft,
+    borderWidth: 1,
+    borderColor: colors.warning + '30',
+    borderRadius: rs(radii.lg),
+    padding: rs(spacing.md),
+    marginTop: rs(spacing.md),
+  },
+  helpWifiTitle: {
+    color: colors.warning,
+    fontSize: fs(13),
+    fontFamily: 'Sora_600SemiBold',
+    marginBottom: rs(2),
+  },
+  helpWifiDesc: {
+    color: colors.textSec,
+    fontSize: fs(12),
+    fontFamily: 'Sora_400Regular',
+    lineHeight: fs(12) * 1.55,
+  },
+  helpAICard: {
+    flexDirection: 'column',
+    gap: rs(spacing.sm),
+    backgroundColor: colors.purpleSoft,
+    borderWidth: 1,
+    borderColor: colors.purple + '30',
+    borderRadius: rs(radii.lg),
+    padding: rs(spacing.md),
+    marginTop: rs(spacing.md),
+  },
+  helpAIHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(6),
+    marginBottom: rs(2),
+  },
+  helpAITitle: {
+    color: colors.purple,
+    fontSize: fs(13),
+    fontFamily: 'Sora_600SemiBold',
+  },
+  helpAIStateRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: rs(spacing.sm),
+  },
+  helpAIBadge: {
+    borderRadius: rs(radii.sm),
+    paddingHorizontal: rs(6),
+    paddingVertical: rs(2),
+    marginTop: rs(1),
+  },
+  helpAIBadgeOn: {
+    backgroundColor: colors.purple + '20',
+  },
+  helpAIBadgeOff: {
+    backgroundColor: colors.border,
+  },
+  helpAIBadgeText: {
+    fontSize: fs(10),
+    fontFamily: 'Sora_700Bold',
+  },
+  helpAIStateDesc: {
+    flex: 1,
+    color: colors.textSec,
+    fontSize: fs(12),
+    fontFamily: 'Sora_400Regular',
+    lineHeight: fs(12) * 1.55,
+  },
   helpTabRow: {
     flexDirection: 'row',
     backgroundColor: colors.bgCard,
@@ -1946,6 +2098,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     paddingHorizontal: rs(16),
+  },
+  aiToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(spacing.sm),
+    marginHorizontal: rs(spacing.sm),
+    marginTop: rs(spacing.sm),
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: rs(radii.lg),
+    paddingVertical: rs(12),
+    paddingHorizontal: rs(spacing.md),
+  },
+  aiToggleLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(13),
+    color: colors.text,
+  },
+  aiToggleDesc: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(11),
+    color: colors.textSec,
+    marginTop: rs(2),
   },
   micBottomBar: {
     position: 'absolute',

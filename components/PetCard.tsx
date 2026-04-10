@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { memo, useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { rs, fs } from '../hooks/useResponsive';
 import { useTranslation } from 'react-i18next';
 import {
@@ -54,6 +54,22 @@ const PetCard: React.FC<PetCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const isDog = pet.species === 'dog';
+
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const diaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (diaryTimerRef.current) clearTimeout(diaryTimerRef.current);
+  }, []);
+
+  const handlePressDiary = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    if (diaryLoading) return;
+    setDiaryLoading(true);
+    onPressDiary?.();
+    // Fallback: reset if screen never hides this component (e.g. navigation error)
+    diaryTimerRef.current = setTimeout(() => setDiaryLoading(false), 4000);
+  };
   const petColor = isDog ? colors.accent : colors.purple;
   const mood = pet.current_mood
     ? moods.find((m) => m.id === pet.current_mood)
@@ -151,10 +167,13 @@ const PetCard: React.FC<PetCardProps> = ({
         {/* Box 2 — Diário */}
         <TouchableOpacity
           style={styles.statBox}
-          onPress={(e) => { e.stopPropagation(); onPressDiary?.(); }}
+          onPress={handlePressDiary}
           activeOpacity={0.7}
+          disabled={diaryLoading}
         >
-          <BookOpen size={rs(16)} color={colors.accent} strokeWidth={1.8} />
+          {diaryLoading
+            ? <ActivityIndicator size={rs(16)} color={colors.accent} />
+            : <BookOpen size={rs(16)} color={colors.accent} strokeWidth={1.8} />}
           <Text style={[styles.statValue, { color: colors.accent }]} numberOfLines={1}>
             {pet.last_diary_entry
               ? formatRelativeDate(pet.last_diary_entry)

@@ -10,6 +10,19 @@ App mobile AI-first para tutores de cães e gatos. Diário inteligente com narra
 
 ## Status do Desenvolvimento
 
+### Concluido (2026-04-10)
+
+#### Photo & Video Analysis Pipeline — Complete Media Handling
+- **Video thumbnail generation** — `expo-video-thumbnails.getThumbnailAsync()` generates frame at 1000ms, quality 0.3
+- **Thumbnail handling** — Per-video thumbnails stored as separate files in Supabase Storage
+- **Dual-path processing** — Both AI and skip-AI paths generate thumbnails (redundancy)
+- **Media upload refactoring** — `ImageManipulator.manipulateAsync()` for photos (resize, compress WebP)
+- **MediaViewerModal component** — Full-screen photo/video viewer with pinch-zoom and carousel support
+- **TimelineCards integration** — Videos display thumbnails in timeline, tap opens MediaViewerModal
+- **Index alignment bug fix** — `videoThumbUrls[]` array maintains positional alignment with videos
+- **Edit screen support** — Existing media attachments now display in `diary/[entryId]/edit.tsx`
+- **Related files:** `hooks/useDiaryEntry.ts` (lines 905-1200), `components/diary/{TimelineCards,MediaViewerModal}.tsx`, `lib/storage.ts`
+
 ### Concluido (2026-04-09)
 
 #### Audio Analysis — Model Separation Pattern

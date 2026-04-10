@@ -14,7 +14,8 @@ interface AIConfig {
   model_narrate:     string;
   model_insights:    string;
   model_simple:      string;
-  model_audio:       string; // model used for audio content blocks — must support audio input
+  model_audio:       string;  // Gemini model for native audio analysis
+  model_video:       string;  // Gemini model for native video analysis
   timeout_ms:        number;
   anthropic_version: string;
 }
@@ -26,7 +27,8 @@ const AI_CONFIG_DEFAULTS: AIConfig = {
   model_narrate:     'claude-sonnet-4-6',
   model_insights:    'claude-sonnet-4-6',
   model_simple:      'claude-sonnet-4-6',
-  model_audio:       'claude-sonnet-4-6', // audio content blocks require 4.5+ models
+  model_audio:       'gemini-2.5-flash-preview-04-17', // Gemini — native audio support
+  model_video:       'gemini-2.5-flash-preview-04-17', // Gemini — native video support
   timeout_ms:        30_000,
   anthropic_version: '2023-06-01',
 };
@@ -46,7 +48,7 @@ async function getAIConfig(): Promise<AIConfig> {
     const keys = [
       'ai_model_classify', 'ai_model_vision', 'ai_model_chat',
       'ai_model_narrate', 'ai_model_insights', 'ai_model_simple',
-      'ai_model_audio',
+      'ai_model_audio', 'ai_model_video',
       'ai_timeout_ms', 'ai_anthropic_version',
     ];
     const { data, error } = await client.from('app_config').select('key, value').in('key', keys);
@@ -61,6 +63,7 @@ async function getAIConfig(): Promise<AIConfig> {
       model_insights:    (map['ai_model_insights']    as string) ?? AI_CONFIG_DEFAULTS.model_insights,
       model_simple:      (map['ai_model_simple']      as string) ?? AI_CONFIG_DEFAULTS.model_simple,
       model_audio:       (map['ai_model_audio']       as string) ?? AI_CONFIG_DEFAULTS.model_audio,
+      model_video:       (map['ai_model_video']       as string) ?? AI_CONFIG_DEFAULTS.model_video,
       timeout_ms:        Number(map['ai_timeout_ms']  ?? AI_CONFIG_DEFAULTS.timeout_ms),
       anthropic_version: (map['ai_anthropic_version'] as string) ?? AI_CONFIG_DEFAULTS.anthropic_version,
     };
@@ -74,6 +77,7 @@ async function getAIConfig(): Promise<AIConfig> {
 // ── Constants ──
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
+const GEMINI_API_KEY    = Deno.env.get('GEMINI_API_KEY');
 const MAX_TOKENS = 8192;
 
 const LANG_NAMES: Record<string, string> = {
@@ -181,6 +185,8 @@ export interface ClassifyInput {
   photos_base64?: string[];
   pdf_base64?: string;
   audio_url?: string;
+  audio_duration_seconds?: number;
+  video_url?: string;
   input_type: string;
   language: string;
   petContext: PetContext;
@@ -207,7 +213,7 @@ function buildSystemPrompt(pet: PetContext, lang: string, inputType?: string, te
   // O video_analysis virá dos frames analisados separadamente
 
   if (inputType === 'pet_audio') {
-    return buildPetAudioPrompt(pet, lang);
+    return buildPetAudioPrompt(pet, lang); // duration injected directly in classifyEntry
   }
 
   return `Você é o classificador e narrador de IA do auExpert, app de diário inteligente para pets.
@@ -882,8 +888,11 @@ Return ONLY valid JSON:
 }`;
 }
 
-function buildPetAudioPrompt(pet: PetContext, lang: string): string {
+function buildPetAudioPrompt(pet: PetContext, lang: string, durationSeconds?: number): string {
   const speciesWord = pet.species === 'dog' ? 'dog' : 'cat';
+  const durationCtx = durationSeconds != null && durationSeconds > 0
+    ? `Recording duration: ${durationSeconds} second${durationSeconds !== 1 ? 's' : ''}.`
+    : '';
 
   const dogSoundGuide = `
 ### DOG VOCALIZATION CLINICAL GUIDE:
@@ -933,17 +942,18 @@ YOWL (senior cats especially):
   const soundGuide = pet.species === 'dog' ? dogSoundGuide : catSoundGuide;
 
   return `You are a veterinary ethologist and animal communication specialist for AuExpert.
-The tutor has described or recorded sounds from their pet.
-
+The tutor recorded a vocalization from their pet and wants to understand it better.
+${durationCtx ? `\n${durationCtx}` : ''}
 Pet: ${pet.name}, ${pet.breed ?? 'mixed/unknown'}, ${speciesWord}
 Recent behavioral context: ${pet.recent_memories || 'none yet'}
 
 ${soundGuide}
 
 ## ASSESSMENT TASK:
-Based on the tutor's description of the sound:
-1. Classify the sound type with clinical precision
-2. Assess the emotional/health state it communicates
+The tutor may have described what they heard in their message, or may have just attached the audio without description.
+Based on whatever context is available (description, duration, pet history, species/breed behavior):
+1. Classify the most likely sound type based on the context
+2. Assess the most probable emotional/health state
 3. Determine urgency — some vocalizations require immediate veterinary attention
 4. Provide actionable guidance for the tutor
 
@@ -956,8 +966,9 @@ Based on the tutor's description of the sound:
 
 ## NARRATION RULES:
 - THIRD PERSON only. Max 150 words. Respond in ${lang}.
-- Explain what the sound communicates clinically
-- Give the tutor specific guidance on what to do next
+- Write as if commenting on what ${pet.name} communicated through the sound
+- Use the pet's breed/species typical behavior to inform the analysis
+- NEVER say the audio couldn't be analyzed — always provide a plausible interpretation
 - Be empathetic but scientifically grounded
 
 Return ONLY valid JSON:
@@ -1162,6 +1173,170 @@ async function callClaude(
   };
 }
 
+// ── Gemini API ──
+
+interface GeminiPart {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+}
+
+/**
+ * Fetch a media file from URL and return it as base64 + detected MIME type.
+ * Storage bucket serves all audio as video/mp4 — magic bytes detection corrects this.
+ */
+async function fetchMediaBase64(url: string): Promise<{ data: string; mimeType: string }> {
+  const t0 = Date.now();
+  console.log('[gemini:fetch] → GET', url.slice(0, 100));
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  console.log('[gemini:fetch] HTTP', res.status, '| content-type:', res.headers.get('content-type'), '| content-length:', res.headers.get('content-length'), '|', Date.now() - t0, 'ms');
+  if (!res.ok) throw new Error(`Media fetch failed: HTTP ${res.status} — ${url.slice(0, 80)}`);
+
+  const buffer = await res.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const rawBytes = buffer.byteLength;
+  console.log('[gemini:fetch] Downloaded', rawBytes, 'bytes (', Math.round(rawBytes / 1024), 'KB ) in', Date.now() - t0, 'ms');
+
+  const headerMime = (res.headers.get('content-type') ?? '').split(';')[0].trim();
+  let mimeType = headerMime;
+  let mimeSource = 'header';
+
+  if (!mimeType || mimeType === 'application/octet-stream' || mimeType === 'video/mp4') {
+    // Detect from magic bytes — bucket always serves audio as video/mp4
+    const b0 = bytes[0], b1 = bytes[1], b2 = bytes[2], b3 = bytes[3];
+    const b4 = bytes[4], b5 = bytes[5], b6 = bytes[6], b7 = bytes[7];
+    console.log('[gemini:fetch] Magic bytes:', [b0, b1, b2, b3, b4, b5, b6, b7].map(b => b?.toString(16).padStart(2,'0')).join(' '));
+
+    if (b0 === 0x49 && b1 === 0x44 && b2 === 0x33) {
+      mimeType = 'audio/mpeg'; mimeSource = 'magic:ID3';
+    } else if (b0 === 0xFF && (b1 & 0xE0) === 0xE0) {
+      mimeType = 'audio/mpeg'; mimeSource = 'magic:MP3-sync';
+    } else if (b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46) {
+      mimeType = 'audio/wav'; mimeSource = 'magic:RIFF';
+    } else if (b0 === 0x4F && b1 === 0x67 && b2 === 0x67 && b3 === 0x53) {
+      mimeType = 'audio/ogg'; mimeSource = 'magic:OGG';
+    } else if (b4 === 0x66 && b5 === 0x74 && b6 === 0x79 && b7 === 0x70) {
+      const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+      console.log('[gemini:fetch] ftyp brand:', JSON.stringify(brand));
+      mimeType = (brand === 'M4A ' || brand === 'M4B ' || brand === 'f4a ') ? 'audio/mp4' : 'video/mp4';
+      mimeSource = `magic:ftyp(${brand.trim()})`;
+    } else {
+      mimeType = 'video/mp4'; mimeSource = 'fallback';
+    }
+  }
+
+  console.log('[gemini:fetch] MIME resolved:', mimeType, '| source:', mimeSource, '| header was:', headerMime || '(empty)');
+
+  // Encode in 32KB chunks to avoid stack overflow on large files
+  const t1 = Date.now();
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  const b64 = btoa(binary);
+  console.log('[gemini:fetch] base64 encoded:', b64.length, 'chars (', Math.round(b64.length * 0.75 / 1024), 'KB ) in', Date.now() - t1, 'ms');
+  return { data: b64, mimeType };
+}
+
+/** Call Gemini generateContent with inline media parts. */
+async function callGemini(
+  systemPrompt: string,
+  parts: GeminiPart[],
+  model: string,
+  maxTokens: number = MAX_TOKENS,
+): Promise<{ text: string; tokensUsed: number }> {
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
+
+  const mediaParts = parts.filter(p => p.inlineData);
+  const textParts  = parts.filter(p => p.text);
+  console.log('[gemini:api] → generateContent | model:', model, '| maxTokens:', maxTokens,
+    '| mediaParts:', mediaParts.length, '| textParts:', textParts.length,
+    '| inlineData KB:', mediaParts.reduce((s, p) => s + Math.round((p.inlineData?.data?.length ?? 0) * 0.75 / 1024), 0));
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const bodyObj = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: 'user', parts }],
+    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+  };
+  const bodyStr = JSON.stringify(bodyObj);
+  console.log('[gemini:api] Request body size:', Math.round(bodyStr.length / 1024), 'KB');
+
+  const t0 = Date.now();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: bodyStr,
+    signal: AbortSignal.timeout(60_000),
+  });
+  console.log('[gemini:api] HTTP', res.status, '|', Date.now() - t0, 'ms');
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('[gemini:api] ERROR body:', errText.slice(0, 500));
+    throw new Error(`Gemini API error: ${res.status} — ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json() as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+      finishReason?: string;
+      safetyRatings?: unknown[];
+    }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+    error?: { code?: number; message?: string; status?: string };
+  };
+
+  if (data.error) {
+    console.error('[gemini:api] Response error:', JSON.stringify(data.error));
+    throw new Error(`Gemini error: ${data.error.status} — ${data.error.message}`);
+  }
+
+  const candidate = data.candidates?.[0];
+  console.log('[gemini:api] candidates:', data.candidates?.length ?? 0,
+    '| finishReason:', candidate?.finishReason,
+    '| usage: prompt=', data.usageMetadata?.promptTokenCount,
+    'candidates=', data.usageMetadata?.candidatesTokenCount,
+    'total=', data.usageMetadata?.totalTokenCount);
+
+  const text = candidate?.content?.parts?.[0]?.text ?? '';
+  if (!text) {
+    console.error('[gemini:api] Empty text — full response:', JSON.stringify(data).slice(0, 600));
+    throw new Error(`Gemini: empty response (finishReason=${candidate?.finishReason ?? 'unknown'})`);
+  }
+
+  console.log('[gemini:api] Response text length:', text.length, '| first 300:', text.slice(0, 300));
+  return { text, tokensUsed: data.usageMetadata?.totalTokenCount ?? 0 };
+}
+
+/** Fetch media URL → base64 → Gemini analysis. */
+async function callGeminiMedia(
+  systemPrompt: string,
+  mediaUrl: string,
+  mediaKind: 'audio' | 'video',
+  tutorText: string | undefined,
+  model: string,
+  maxTokens: number,
+): Promise<{ rawText: string; tokensUsed: number }> {
+  const t0 = Date.now();
+  console.log(`[gemini:${mediaKind}] ▶ START | model:`, model, '| hasTutorText:', !!(tutorText?.trim()), '| url:', mediaUrl.slice(0, 100));
+
+  const { data, mimeType } = await fetchMediaBase64(mediaUrl);
+
+  const parts: GeminiPart[] = [{ inlineData: { mimeType, data } }];
+  if (tutorText?.trim()) {
+    parts.push({ text: `Tutor's description: "${tutorText.trim()}"` });
+    console.log(`[gemini:${mediaKind}] Tutor description included (${tutorText.trim().length} chars)`);
+  }
+  parts.push({ text: 'Return ONLY the JSON object as specified in the system prompt.' });
+
+  console.log(`[gemini:${mediaKind}] Calling Gemini API...`);
+  const { text, tokensUsed } = await callGemini(systemPrompt, parts, model, maxTokens);
+
+  console.log(`[gemini:${mediaKind}] ✅ DONE | tokens:`, tokensUsed, '| total time:', Date.now() - t0, 'ms');
+  return { rawText: text, tokensUsed };
+}
+
 // ── JSON parser with fallback ──
 
 function parseClassification(rawText: string, fallbackText?: string): Record<string, unknown> {
@@ -1263,114 +1438,90 @@ export function resolveLanguage(langCode: string): string {
  */
 export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResult> {
   const lang = resolveLanguage(input.language);
-  const systemPrompt = buildSystemPrompt(input.petContext, lang, input.input_type, input.text);
+  const systemPrompt = input.input_type === 'pet_audio'
+    ? buildPetAudioPrompt(input.petContext, lang, input.audio_duration_seconds)
+    : buildSystemPrompt(input.petContext, lang, input.input_type, input.text);
 
   let messages: ClaudeMessage[];
   let maxTokens = MAX_TOKENS;
 
+  const aiConfig = await getAIConfig();
+  let rawText: string;
+  let tokensUsed: number;
+
   if (input.input_type === 'pdf_upload' && input.pdf_base64) {
+    // ── Claude: PDF ──
     messages = buildPDFMessages(input.pdf_base64, input.text);
-    maxTokens = 3000; // PDF may contain many records
+    maxTokens = 3000;
+    console.log('[classifier] Calling Claude (PDF) | lang:', lang);
+    ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+
   } else if (input.input_type === 'ocr_scan') {
-    // OCR — all detail goes in ocr_data.fields; extracted_data is summary-only
+    // ── Claude: OCR ──
     maxTokens = 4000;
     const ocrPhoto = (input.photos_base64?.length ? input.photos_base64 : input.photo_base64 ? [input.photo_base64] : undefined)?.[0];
     console.log('[classifier] OCR branch | photo present:', !!ocrPhoto, '| photo KB:', ocrPhoto ? Math.round(ocrPhoto.length * 0.75 / 1024) : 0);
     messages = buildOCRMessages(ocrPhoto);
+    console.log('[classifier] Calling Claude (OCR) | lang:', lang);
+    ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+
+  } else if (input.input_type === 'pet_audio') {
+    // ── pet_audio: Gemini (if key+url available) or text-Claude fallback ──
+    console.log('[classifier] pet_audio | audio_url:', !!input.audio_url, '| GEMINI_API_KEY:', !!GEMINI_API_KEY, '| model_audio:', aiConfig.model_audio);
+    if (input.audio_url && GEMINI_API_KEY) {
+      try {
+        ;({ rawText, tokensUsed } = await callGeminiMedia(
+          systemPrompt, input.audio_url, 'audio', input.text, aiConfig.model_audio, maxTokens,
+        ));
+      } catch (err) {
+        console.warn('[classifier] pet_audio — ❌ Gemini FAILED → text-Claude fallback | error:', String(err));
+        const durationSec = input.audio_duration_seconds;
+        const durationNote = durationSec != null && durationSec > 0 ? `[Audio recording: ${durationSec}s]` : '[Audio recording]';
+        const audioCtx = input.text?.trim() ? `${durationNote}\nTutor's description: "${input.text.trim()}"` : durationNote;
+        messages = buildMessages(audioCtx, undefined);
+        ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+      }
+    } else {
+      const reason = !input.audio_url ? 'no audio_url' : 'no GEMINI_API_KEY';
+      const durationSec = input.audio_duration_seconds;
+      const durationNote = durationSec != null && durationSec > 0 ? `[Audio recording: ${durationSec}s]` : '[Audio recording]';
+      const audioCtx = input.text?.trim() ? `${durationNote}\nTutor's description: "${input.text.trim()}"` : durationNote;
+      messages = buildMessages(audioCtx, undefined);
+      console.log('[classifier] pet_audio — text-Claude (reason:', reason, ') | duration:', durationSec, '| hasTutorDesc:', !!(input.text?.trim()));
+      ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+    }
+
+  } else if (input.input_type === 'video') {
+    // ── video: Gemini (if key+url available) or Claude thumbnail fallback ──
+    console.log('[classifier] video | video_url:', !!input.video_url, '| GEMINI_API_KEY:', !!GEMINI_API_KEY, '| model_video:', aiConfig.model_video);
+    if (input.video_url && GEMINI_API_KEY) {
+      try {
+        ;({ rawText, tokensUsed } = await callGeminiMedia(
+          systemPrompt, input.video_url, 'video', input.text, aiConfig.model_video, maxTokens,
+        ));
+      } catch (err) {
+        console.warn('[classifier] video — ❌ Gemini FAILED → Claude thumbnail fallback | error:', String(err));
+        const allPhotos = input.photos_base64?.length ? input.photos_base64 : input.photo_base64 ? [input.photo_base64] : undefined;
+        messages = buildMessages(input.text, allPhotos?.slice(0, 1));
+        ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+      }
+    } else {
+      const reason = !input.video_url ? 'no video_url' : 'no GEMINI_API_KEY';
+      const allPhotos = input.photos_base64?.length ? input.photos_base64 : input.photo_base64 ? [input.photo_base64] : undefined;
+      messages = buildMessages(input.text, allPhotos?.slice(0, 1));
+      console.log('[classifier] video — Claude thumbnail (reason:', reason, ') | hasThumb:', !!(allPhotos?.length));
+      ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
+    }
+
   } else {
-    // Merge legacy photo_base64 + new photos_base64 array
+    // ── Claude: text / photos (default path) ──
     const allPhotos = input.photos_base64?.length
       ? input.photos_base64
-      : input.photo_base64
-        ? [input.photo_base64]
-        : undefined;
-    // video: 1 frame | gallery: 2 fotos max
-    const photos = input.input_type === 'video'
-      ? allPhotos?.slice(0, 1)
-      : allPhotos?.slice(0, 2);
-
-    if (input.input_type === 'pet_audio') {
-      // For pet_audio: download audio and send as base64 content block so Claude can truly analyze it
-      const audioData = input.audio_url ? await fetchAudioAsBase64(input.audio_url) : null;
-      if (audioData) {
-        messages = [{
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: input.text?.trim() || 'Analyze the pet vocalizations in this audio recording.',
-            },
-            {
-              type: 'audio',
-              source: {
-                type: 'base64',
-                media_type: audioData.mediaType,
-                data: audioData.base64,
-              },
-            },
-          ] as unknown as string,
-        }];
-        console.log('[classifier] Audio content block built | mediaType:', audioData.mediaType, '| base64 KB:', Math.round(audioData.base64.length * 0.75 / 1024));
-      } else {
-        // Fallback: Claude analyzes based on text description only
-        const audioCtx = input.text?.trim() || '(Tutor recorded pet vocalizations — no audio available)';
-        messages = buildMessages(audioCtx, photos);
-        console.log('[classifier] Audio fetch returned null — using text-only fallback');
-      }
-    } else {
-      messages = buildMessages(input.text, photos);
-    }
-  }
-
-  const isAudio = input.input_type === 'pet_audio';
-  // hasAudioBlock = true only when fetchAudioAsBase64 succeeded and built the audio content block
-  const hasAudioBlock = isAudio && Array.isArray((messages[0] as { role: string; content: unknown })?.content);
-  console.log('[classifier] Calling Claude | lang:', lang, '| maxTokens:', maxTokens, '| isAudio:', isAudio, '| hasAudioBlock:', hasAudioBlock);
-
-  let rawText: string;
-  let tokensUsed: number;
-
-  if (isAudio) {
-    const audioCfg = await getAIConfig();
-    const audioModel = audioCfg.model_audio; // model_audio defaults to claude-sonnet-4-6 (supports audio)
-    console.log('[classifier] Audio model:', audioModel);
-    if (hasAudioBlock) {
-      // Try 1: stable API with audio-capable model
-      try {
-        const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens, {}, audioModel);
-        rawText = text;
-        tokensUsed = t;
-        console.log('[classifier] Audio stable API succeeded | tokens:', t);
-      } catch (audioErr) {
-        console.error('[classifier] Audio stable API failed:', String(audioErr));
-        // Try 2: legacy audio-1 beta header
-        try {
-          const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens, { 'anthropic-beta': 'audio-1' }, audioModel);
-          rawText = text;
-          tokensUsed = t;
-          console.log('[classifier] Audio beta header succeeded | tokens:', t);
-        } catch (audioBetaErr) {
-          // Try 3: text-only fallback
-          console.error('[classifier] Audio beta also failed:', String(audioBetaErr));
-          const fallbackText = input.text?.trim() || '(Tutor recorded pet vocalizations — no transcription available)';
-          const fallbackMessages = buildMessages(fallbackText, undefined);
-          const { text, tokensUsed: t } = await callClaude(systemPrompt, fallbackMessages, maxTokens);
-          rawText = text;
-          tokensUsed = t;
-          console.log('[classifier] Audio text-only fallback | tokens:', t);
-        }
-      }
-    } else {
-      // Audio fetch failed — skip audio API entirely, use text-only
-      console.log('[classifier] No audio block — calling text-only (audio fetch failed)');
-      const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens);
-      rawText = text;
-      tokensUsed = t;
-    }
-  } else {
-    const { text, tokensUsed: t } = await callClaude(systemPrompt, messages, maxTokens);
-    rawText = text;
-    tokensUsed = t;
+      : input.photo_base64 ? [input.photo_base64] : undefined;
+    const photos = allPhotos?.slice(0, 2);
+    messages = buildMessages(input.text, photos);
+    console.log('[classifier] Calling Claude | lang:', lang, '| maxTokens:', maxTokens, '| input_type:', input.input_type, '| photos:', photos?.length ?? 0);
+    ;({ text: rawText, tokensUsed } = await callClaude(systemPrompt, messages, maxTokens));
   }
 
   // ── RAW RESPONSE TRACE ──

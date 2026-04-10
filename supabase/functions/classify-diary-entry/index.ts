@@ -57,6 +57,8 @@ Deno.serve(async (req: Request) => {
       photos_base64,          // new: array of up to 5 photos
       pdf_base64,             // PDF document for pdf_upload input type
       audio_url,              // public URL of pet audio for pet_audio input type
+      audio_duration_seconds, // duration of the audio recording in seconds
+      video_url,              // public URL of uploaded video for video input type
       input_type = 'text',
       language = 'pt-BR',
     } = body;
@@ -64,6 +66,7 @@ Deno.serve(async (req: Request) => {
     const hasPhoto = !!photo_base64 || (Array.isArray(photos_base64) && photos_base64.length > 0);
     const hasPDF = !!pdf_base64;
     const hasAudio = !!audio_url;
+    const hasVideo = !!video_url;
 
     console.log('[classify-diary-entry] pet_id:', pet_id,
       '| input_type:', input_type,
@@ -71,6 +74,7 @@ Deno.serve(async (req: Request) => {
       '| photos:', photos_base64?.length ?? (photo_base64 ? 1 : 0),
       '| pdf:', hasPDF,
       '| audio:', hasAudio,
+      '| video_url:', hasVideo,
       '| lang:', language,
       '| user:', user?.id ?? 'service',
     );
@@ -92,6 +96,8 @@ Deno.serve(async (req: Request) => {
       photos_base64: Array.isArray(photos_base64) ? photos_base64 : undefined,
       pdf_base64: pdf_base64 ?? undefined,
       audio_url: audio_url ?? undefined,
+      audio_duration_seconds: typeof audio_duration_seconds === 'number' ? audio_duration_seconds : undefined,
+      video_url: video_url ?? undefined,
       input_type,
       language,
       petContext,

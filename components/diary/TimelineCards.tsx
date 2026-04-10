@@ -7,10 +7,11 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, Image, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Keyboard } from 'react-native';
 import {
-  AlertCircle, AlertTriangle, Camera, Calendar, Check, Divide, FileText, Gift, Heart, LayoutGrid,
-  Lightbulb, Lock, Mic, Music2, PawPrint, Pencil, RefreshCw, ShieldCheck, Star,
-  Trophy, Video, WifiOff, X,
+  AlertCircle, AlertTriangle, Camera, Calendar, Check, Divide, EyeOff, FileText, Gift, Heart, LayoutGrid,
+  Lightbulb, Lock, Mic, Music2, PawPrint, Pencil, Play, RefreshCw, ShieldCheck, Star,
+  Trash2, Trophy, Video, WifiOff, X,
 } from 'lucide-react-native';
+import MediaViewerModal from './MediaViewerModal';
 import { supabase } from '../../lib/supabase';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
@@ -26,6 +27,11 @@ import DiaryNarration from './DiaryNarration';
 interface CardProps {
   event: TimelineEvent;
   t: (k: string, opts?: Record<string, string>) => string;
+  onDelete?: (id: string) => void;
+  /** True when the current user is the pet's root admin (owner role). */
+  isOwner?: boolean;
+  /** Admin-only: deactivate a record that belongs to another tutor. */
+  onAdminDeactivate?: (id: string) => void;
 }
 
 interface DiaryCardProps extends CardProps {
@@ -33,6 +39,65 @@ interface DiaryCardProps extends CardProps {
   getMoodData: (id: string | null | undefined) => { label: string; color: string } | null;
   onEdit: (id: string) => void;
   onRetry?: (id: string) => void;
+}
+
+// ── CardActions ── permission-aware: creator gets pencil→trash; owner gets EyeOff
+
+const HIT = { top: 12, bottom: 12, left: 12, right: 12 } as const;
+
+function CardActions({
+  event, onDelete, isOwner, onAdminDeactivate,
+}: {
+  event: TimelineEvent;
+  onDelete?: (id: string) => void;
+  isOwner?: boolean;
+  onAdminDeactivate?: (id: string) => void;
+}) {
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const [deleteMode, setDeleteMode] = useState(false);
+
+  if (!currentUserId) return null;
+
+  const isCreator = event.registeredBy === currentUserId;
+
+  // Admin (owner) viewing another tutor's record → deactivate button
+  if (!isCreator && isOwner && onAdminDeactivate) {
+    return (
+      <TouchableOpacity
+        onPress={() => onAdminDeactivate(event.id)}
+        style={cas.trashBtn}
+        hitSlop={HIT}
+      >
+        <EyeOff size={rs(14)} color={colors.danger} strokeWidth={1.8} />
+      </TouchableOpacity>
+    );
+  }
+
+  // Record creator → pencil toggle → trash + cancel
+  if (!isCreator || !onDelete) return null;
+
+  if (deleteMode) {
+    return (
+      <View style={cas.row}>
+        <TouchableOpacity
+          onPress={() => { setDeleteMode(false); onDelete(event.id); }}
+          style={cas.trashBtn}
+          hitSlop={HIT}
+        >
+          <Trash2 size={rs(15)} color={colors.danger} strokeWidth={1.8} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setDeleteMode(false)} style={cas.cancelBtn} hitSlop={HIT}>
+          <X size={rs(13)} color={colors.textDim} strokeWidth={2} />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity onPress={() => setDeleteMode(true)} style={cas.editBtn} hitSlop={HIT}>
+      <Pencil size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+    </TouchableOpacity>
+  );
 }
 
 // ── Helper: match classification type → module row ──
@@ -73,13 +138,27 @@ function PhotoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
   const hasToxic = toxCheck?.has_toxic_items === true;
   const toxItems = toxCheck?.items as Array<{name: string; toxicity_level: string; description: string}> | undefined;
 
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   return (
     <View style={styles.subcard}>
       <View style={styles.subcardHeader}>
         <Camera size={rs(12)} color={colors.success} strokeWidth={1.8} />
         <Text style={styles.subcardLabel}>{t('diary.photoAnalysis').toUpperCase()}</Text>
       </View>
-      {uri && <Image source={{ uri }} style={styles.subcardImage} resizeMode="cover" />}
+      {uri && (
+        <TouchableOpacity onPress={() => setViewerOpen(true)} activeOpacity={0.85}>
+          <Image source={{ uri }} style={styles.subcardImage} resizeMode="cover" />
+        </TouchableOpacity>
+      )}
+      {uri && (
+        <MediaViewerModal
+          visible={viewerOpen}
+          type="photo"
+          uri={uri}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
       {hasToxic && toxItems && toxItems.length > 0 && (
         <View style={[styles.toxicAlert, { backgroundColor: colors.danger + '12' }]}>
           <AlertTriangle size={rs(14)} color={colors.danger} strokeWidth={1.8} />
@@ -110,16 +189,45 @@ function VideoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
   const thumbUri = media.thumbnailUrl
     ? (media.thumbnailUrl.startsWith('http') ? media.thumbnailUrl : getPublicUrl('pet-photos', media.thumbnailUrl))
     : null;
+  const videoUri = media.mediaUrl?.startsWith('http')
+    ? media.mediaUrl
+    : media.mediaUrl ? getPublicUrl('pet-photos', media.mediaUrl) : null;
   const desc = (media.analysis as Record<string, unknown> | undefined)?.description as string | undefined;
   const va = media.videoAnalysis;
+  const hasAIData = !!(desc || va?.behavior_summary);
+
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <View style={[styles.subcard, { borderColor: colors.sky + '30' }]}>
       <View style={styles.subcardHeader}>
         <Video size={rs(12)} color={colors.sky} strokeWidth={1.8} />
-        <Text style={[styles.subcardLabel, { color: colors.sky }]}>{t('diary.videoAnalysis').toUpperCase()}</Text>
+        <Text style={[styles.subcardLabel, { color: colors.sky }]}>
+          {(hasAIData ? t('diary.videoAnalysis') : t('diary.video')).toUpperCase()}
+        </Text>
       </View>
-      {thumbUri && <Image source={{ uri: thumbUri }} style={styles.subcardImage} resizeMode="cover" />}
+      {(thumbUri || videoUri) && (
+        <TouchableOpacity onPress={() => setViewerOpen(true)} activeOpacity={0.85} style={styles.videoThumbWrap}>
+          {thumbUri
+            ? <Image source={{ uri: thumbUri }} style={styles.subcardImage} resizeMode="cover" />
+            : <View style={[styles.subcardImage, { backgroundColor: colors.bgDeep }]} />}
+          <View style={styles.videoThumbPlayOverlay}>
+            <View style={styles.videoThumbPlayBtn}>
+              <Play size={rs(22)} color="#fff" fill="#fff" strokeWidth={0} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
+      {videoUri && (
+        <MediaViewerModal
+          visible={viewerOpen}
+          type="video"
+          uri={videoUri}
+          thumbnailUri={thumbUri}
+          openInPlayerLabel={t('diary.openInPlayer')}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
       {desc && <Text style={styles.subcardBodyText}>{desc}</Text>}
       {va?.behavior_summary && <Text style={styles.subcardBodyText}>{va.behavior_summary}</Text>}
       {(() => {
@@ -158,6 +266,11 @@ function VideoSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
 function AudioSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, opts?: Record<string, string>) => string }) {
   const pa = media.petAudioAnalysis;
   const fileName = media.fileName ?? t('diary.audioFile');
+  const audioUri = media.mediaUrl?.startsWith('http')
+    ? media.mediaUrl
+    : media.mediaUrl ? getPublicUrl('pet-photos', media.mediaUrl) : null;
+
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <View style={[styles.subcard, { borderColor: colors.rose + '30' }]}>
@@ -165,10 +278,24 @@ function AudioSubcard({ media, t }: { media: MediaAnalysisItem; t: (k: string, o
         <Mic size={rs(12)} color={colors.rose} strokeWidth={1.8} />
         <Text style={[styles.subcardLabel, { color: colors.rose }]}>{t('diary.audioAnalysis').toUpperCase()}</Text>
       </View>
-      <View style={styles.audioFileRow}>
+      <TouchableOpacity
+        onPress={() => audioUri && setViewerOpen(true)}
+        activeOpacity={audioUri ? 0.75 : 1}
+        style={styles.audioFileRow}
+      >
         <Music2 size={rs(20)} color={colors.rose} strokeWidth={1.6} />
         <Text style={styles.audioFileName} numberOfLines={1}>{fileName}</Text>
-      </View>
+        {audioUri && <Play size={rs(16)} color={colors.rose} fill={colors.rose} strokeWidth={0} />}
+      </TouchableOpacity>
+      {audioUri && (
+        <MediaViewerModal
+          visible={viewerOpen}
+          type="audio"
+          uri={audioUri}
+          fileName={fileName}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
       {pa && (
         <>
           <Text style={styles.subcardBodyText}>
@@ -277,6 +404,9 @@ function OCRSubcard({
   const docType = (media.ocrData as Record<string, unknown>)?.document_type as string | undefined;
   const isFinancial = docType === 'nota_fiscal' || docType === 'invoice' || docType === 'receipt';
 
+  // ── Viewer state ──────────────────────────────────────────────────────────
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   // ── Edit state ────────────────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [editedFields, setEditedFields] = useState<OCRFieldItem[]>(() => media.ocrData?.fields ?? []);
@@ -376,7 +506,19 @@ function OCRSubcard({
         )}
       </View>
 
-      {uri && <Image source={{ uri }} style={styles.subcardImage} resizeMode="cover" />}
+      {uri && (
+        <TouchableOpacity onPress={() => setViewerOpen(true)} activeOpacity={0.85}>
+          <Image source={{ uri }} style={styles.subcardImage} resizeMode="cover" />
+        </TouchableOpacity>
+      )}
+      {uri && (
+        <MediaViewerModal
+          visible={viewerOpen}
+          type="photo"
+          uri={uri}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
 
       {/* Barra de ação — editar / salvar / cancelar */}
       {isEditing ? (
@@ -557,8 +699,9 @@ export const MonthSummaryCard = React.memo(({ event, t }: CardProps) => {
 
 // ── DiaryCard ──
 
-export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, onRetry }: DiaryCardProps) => {
+export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, onRetry, onDelete, isOwner, onAdminDeactivate }: DiaryCardProps) => {
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const isCreator = !!currentUserId && event.registeredBy === currentUserId;
   console.log('[CARD]', event.id.slice(-8), '| fotos:', event.photos?.length ?? 0, '| narration:', !!event.narration, '| photoAnalysis:', !!event.photoAnalysisData, '| videoUrl:', !!event.videoUrl, '| classif:', event.classifications?.length ?? 0, '| modules:', !!event.modules);
   console.log('[CARD-MEDIA]', event.id?.slice(0,8),
     'mediaAnalyses:', event.mediaAnalyses?.length ?? 0,
@@ -655,10 +798,19 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
           <Text style={styles.entryDate}>{dateStr}</Text>
           <Text style={styles.entryTime}>{timeStr}</Text>
         </View>
-        {!event.isRegistrationEntry && (
-          <TouchableOpacity onPress={() => onEdit(event.id)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Pencil size={rs(16)} color={colors.accent} strokeWidth={1.8} />
-          </TouchableOpacity>
+        {!event.isRegistrationEntry && (isCreator || (!isCreator && isOwner && onAdminDeactivate)) && (
+          <View style={styles.diaryCardActions}>
+            {isCreator ? (
+              <TouchableOpacity onPress={() => onEdit(event.id)} hitSlop={HIT}>
+                <Pencil size={rs(16)} color={colors.accent} strokeWidth={1.8} />
+              </TouchableOpacity>
+            ) : (
+              // Admin (owner) deactivating another tutor's diary entry
+              <TouchableOpacity onPress={() => onAdminDeactivate!(event.id)} style={cas.trashBtn} hitSlop={HIT}>
+                <EyeOff size={rs(15)} color={colors.danger} strokeWidth={1.8} />
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
 
@@ -669,8 +821,6 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
         </View>
       )}
 
-      {/* Original tutor text hidden — narration only shown */}
-
       {event.narration ? (
         <View style={styles.narrationWrapper}>
           <DiaryNarration
@@ -679,6 +829,8 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
             petName={petName}
           />
         </View>
+      ) : event.content && event.content !== '(media)' ? (
+        <Text style={styles.tutorContent}>{event.content}</Text>
       ) : null}
 
       {/* Media subcards — one per attachment */}
@@ -813,7 +965,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
 
 // ── HealthCard ──
 
-export const HealthCard = React.memo(({ event, t }: CardProps) => {
+export const HealthCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => {
   const severityColor = event.severity === 'high' ? colors.danger
     : event.severity === 'medium' ? colors.warning : colors.success;
   const severityLabel = event.severity === 'high' ? t('diary.severityHigh')
@@ -830,6 +982,7 @@ export const HealthCard = React.memo(({ event, t }: CardProps) => {
         <View style={[styles.severityBadge, { backgroundColor: severityColor + '20' }]}>
           <Text style={[styles.severityText, { color: severityColor }]}>{severityLabel}</Text>
         </View>
+        <CardActions event={event} onDelete={onDelete} isOwner={isOwner} onAdminDeactivate={onAdminDeactivate} />
       </View>
       <Text style={styles.cardTitle}>{event.title}</Text>
       <Text style={styles.cardDetail}>{event.detail}</Text>
@@ -848,7 +1001,7 @@ const INTENSITY_COLOR: Record<string, string> = {
   high: '#E74C3C',
 };
 
-export const AudioAnalysisCard = React.memo(({ event, t }: CardProps) => {
+export const AudioAnalysisCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => {
   const pa = event.petAudioAnalysis;
   const dateObj = new Date(event.date);
   const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -862,37 +1015,57 @@ export const AudioAnalysisCard = React.memo(({ event, t }: CardProps) => {
 
   const intensityColor = pa?.intensity ? (INTENSITY_COLOR[pa.intensity] ?? colors.rose) : colors.rose;
 
+  const audioUri = event.audioUrl
+    ? (event.audioUrl.startsWith('http') ? event.audioUrl : getPublicUrl('pet-photos', event.audioUrl))
+    : null;
+  const audioFileName = event.audioUrl?.split('/').pop() ?? t('diary.audioFile');
+
+  const [playerOpen, setPlayerOpen] = useState(false);
+
   return (
     <View style={styles.cardBase}>
       <View style={styles.cardIconRow}>
         <Mic size={rs(16)} color={colors.rose} strokeWidth={1.8} />
         <Text style={[styles.cardTypeLabel, { color: colors.rose }]}>{t('diary.audioAnalysis')}</Text>
         {event.audioDuration != null && (
-          <View style={[styles.severityBadge, { backgroundColor: colors.rose + '20', marginLeft: 'auto' }]}>
+          <View style={[styles.severityBadge, { backgroundColor: colors.rose + '20' }]}>
             <Text style={[styles.severityText, { color: colors.rose }]}>
               {formatDuration(event.audioDuration)}
             </Text>
           </View>
         )}
+        <CardActions event={event} onDelete={onDelete} isOwner={isOwner} onAdminDeactivate={onAdminDeactivate} />
       </View>
 
       <Text style={styles.entryDate}>{dateStr}</Text>
       <Text style={styles.entryTime}>{timeStr}</Text>
 
-      {event.audioUrl && (
-        <View style={styles.audioBanner}>
-          <View style={styles.audioIconCircle}>
-            <Music2 size={rs(22)} color={colors.rose} strokeWidth={1.6} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.audioFileName} numberOfLines={1}>
-              {event.audioUrl.split('/').pop() ?? t('diary.audioFile')}
-            </Text>
-            {event.audioDuration != null && (
-              <Text style={styles.audioFileMeta}>{formatDuration(event.audioDuration)}</Text>
-            )}
-          </View>
-        </View>
+      {audioUri && (
+        <>
+          <TouchableOpacity
+            style={styles.audioBanner}
+            onPress={() => setPlayerOpen(true)}
+            activeOpacity={0.75}
+          >
+            <View style={styles.audioIconCircle}>
+              <Music2 size={rs(22)} color={colors.rose} strokeWidth={1.6} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.audioFileName} numberOfLines={1}>{audioFileName}</Text>
+              {event.audioDuration != null && (
+                <Text style={styles.audioFileMeta}>{formatDuration(event.audioDuration)}</Text>
+              )}
+            </View>
+            <Play size={rs(18)} color={colors.rose} fill={colors.rose} strokeWidth={0} style={{ marginRight: rs(4) }} />
+          </TouchableOpacity>
+          <MediaViewerModal
+            visible={playerOpen}
+            type="audio"
+            uri={audioUri}
+            fileName={audioFileName}
+            onClose={() => setPlayerOpen(false)}
+          />
+        </>
       )}
 
       {event.narration && (
@@ -944,11 +1117,12 @@ export const AudioAnalysisCard = React.memo(({ event, t }: CardProps) => {
 
 // ── PhotoAnalysisCard ──
 
-export const PhotoAnalysisCard = React.memo(({ event, t }: CardProps) => (
+export const PhotoAnalysisCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => (
   <View style={styles.cardBase}>
     <View style={styles.cardIconRow}>
       <Camera size={rs(16)} color={colors.success} strokeWidth={1.8} />
       <Text style={[styles.cardTypeLabel, { color: colors.success }]}>{t('diary.photoAnalysis')}</Text>
+      <CardActions event={event} onDelete={onDelete} />
     </View>
     <Text style={styles.cardTitle}>{event.title}</Text>
     <Text style={styles.cardDetail}>{event.detail}</Text>
@@ -968,7 +1142,7 @@ function ScoreBadge({ label, value, color }: { label: string; value: number; col
 
 // ── VideoAnalysisCard ──
 
-export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
+export const VideoAnalysisCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => {
   const va = event.videoAnalysis;
   const dateObj = new Date(event.date);
   const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -985,8 +1159,12 @@ export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
   const frameUri = framePhoto
     ? (framePhoto.startsWith('http') ? framePhoto : getPublicUrl('pet-photos', framePhoto))
     : null;
+  const videoUri = event.videoUrl
+    ? (event.videoUrl.startsWith('http') ? event.videoUrl : getPublicUrl('pet-photos', event.videoUrl))
+    : null;
 
   const photoDesc = event.photoAnalysisData?.description as string | undefined;
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   return (
     <View style={styles.videoCard}>
@@ -995,7 +1173,7 @@ export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
         <Video size={rs(14)} color={colors.sky} strokeWidth={1.8} />
         <Text style={styles.videoCardLabel}>{t('diary.videoAnalysis').toUpperCase()}</Text>
         {event.videoDuration != null && (
-          <View style={[styles.severityBadge, { backgroundColor: colors.sky + '20', marginLeft: 'auto' }]}>
+          <View style={[styles.severityBadge, { backgroundColor: colors.sky + '20' }]}>
             <Text style={[styles.severityText, { color: colors.sky }]}>
               {formatDuration(event.videoDuration)}
             </Text>
@@ -1008,14 +1186,34 @@ export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
             </Text>
           </View>
         )}
+        <CardActions event={event} onDelete={onDelete} isOwner={isOwner} onAdminDeactivate={onAdminDeactivate} />
       </View>
 
       <Text style={[styles.entryDate, { paddingHorizontal: rs(12) }]}>{dateStr}</Text>
       <Text style={[styles.entryTime, { paddingHorizontal: rs(12), marginBottom: rs(8) }]}>{timeStr}</Text>
 
-      {/* Frame image (uploaded as photos[0]) */}
+      {/* Frame image (uploaded as photos[0]) — tap to open video in player */}
       {frameUri && (
-        <Image source={{ uri: frameUri }} style={styles.videoCardFrame} resizeMode="cover" />
+        <TouchableOpacity onPress={() => setViewerOpen(true)} activeOpacity={0.85} style={styles.videoThumbWrap}>
+          <Image source={{ uri: frameUri }} style={styles.videoCardFrame} resizeMode="cover" />
+          {(videoUri || frameUri) && (
+            <View style={styles.videoThumbPlayOverlay}>
+              <View style={styles.videoThumbPlayBtn}>
+                <Play size={rs(22)} color="#fff" fill="#fff" strokeWidth={0} />
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
+      {(videoUri || frameUri) && (
+        <MediaViewerModal
+          visible={viewerOpen}
+          type="video"
+          uri={videoUri ?? frameUri!}
+          thumbnailUri={frameUri}
+          openInPlayerLabel={t('diary.openInPlayer')}
+          onClose={() => setViewerOpen(false)}
+        />
       )}
 
       {/* Frame description from analyze-pet-photo */}
@@ -1083,8 +1281,11 @@ export const VideoAnalysisCard = React.memo(({ event, t }: CardProps) => {
 
 // ── MilestoneCard ──
 
-export const MilestoneCard = React.memo(({ event, t }: CardProps) => (
+export const MilestoneCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => (
   <View style={[styles.cardBase, styles.milestoneCard]}>
+    <View style={styles.milestoneActions}>
+      <CardActions event={event} onDelete={onDelete} />
+    </View>
     <Trophy size={rs(28)} color={colors.gold} strokeWidth={1.8} />
     <Text style={styles.milestoneTitle}>{event.title}</Text>
     <Text style={styles.milestoneDetail}>{event.detail}</Text>
@@ -1099,7 +1300,7 @@ export const MilestoneCard = React.memo(({ event, t }: CardProps) => (
 
 // ── CapsuleCard ──
 
-export const CapsuleCard = React.memo(({ event, t }: CardProps) => (
+export const CapsuleCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => (
   <View style={styles.cardBase}>
     <View style={styles.cardIconRow}>
       {event.locked
@@ -1114,6 +1315,7 @@ export const CapsuleCard = React.memo(({ event, t }: CardProps) => (
           </Text>
         </View>
       )}
+      <CardActions event={event} onDelete={onDelete} />
     </View>
     <Text style={styles.cardTitle}>{event.title}</Text>
     {event.locked && event.condition && (
@@ -1137,11 +1339,12 @@ export const CapsuleCard = React.memo(({ event, t }: CardProps) => (
 
 // ── ConnectionCard ──
 
-export const ConnectionCard = React.memo(({ event, t }: CardProps) => (
+export const ConnectionCard = React.memo(({ event, t, onDelete, isOwner, onAdminDeactivate }: CardProps) => (
   <View style={styles.cardBase}>
     <View style={styles.cardIconRow}>
       <Heart size={rs(16)} color={colors.petrol} strokeWidth={1.8} />
       <Text style={[styles.cardTypeLabel, { color: colors.petrol }]}>{t('diary.connectionLabel')}</Text>
+      <CardActions event={event} onDelete={onDelete} />
     </View>
     <Text style={styles.cardTitle}>{t('diary.newFriend')}: {event.friendName}</Text>
     <Text style={styles.cardDetail}>{event.detail}</Text>
@@ -1412,6 +1615,17 @@ const styles = StyleSheet.create({
   ocrScaleSep: { width: 1, alignSelf: 'stretch', backgroundColor: colors.warning + '40' },
   ocrScaleMultiplyIcon: { fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.warning },
 
+  // DiaryCard actions (pencil + trash side-by-side)
+  diaryCardActions: { flexDirection: 'row', alignItems: 'center', gap: rs(10) },
+
+  // MilestoneCard actions (top-right absolute area)
+  milestoneActions: { position: 'absolute', top: rs(12), right: rs(12) },
+
+  // Video thumbnail with play overlay
+  videoThumbWrap: { position: 'relative' },
+  videoThumbPlayOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  videoThumbPlayBtn: { width: rs(52), height: rs(52), borderRadius: rs(26), backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
+
   // ScheduledEventCard
   schedCard: { borderColor: colors.petrol + '40', backgroundColor: colors.petrolSoft },
   schedHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginBottom: rs(8) },
@@ -1425,4 +1639,25 @@ const styles = StyleSheet.create({
   schedDetail: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec, lineHeight: fs(18), marginTop: rs(4) },
   schedMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8), marginTop: rs(8) },
   schedMetaText: { fontFamily: 'Sora_500Medium', fontSize: fs(11), color: colors.textDim, backgroundColor: colors.bgCard, paddingHorizontal: rs(8), paddingVertical: rs(3), borderRadius: rs(8) },
+});
+
+// ── CardActions styles ──
+const cas = StyleSheet.create({
+  editBtn: {
+    width: rs(28), height: rs(28), borderRadius: rs(8),
+    backgroundColor: colors.accent + '12',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },
+  trashBtn: {
+    width: rs(28), height: rs(28), borderRadius: rs(8),
+    backgroundColor: colors.danger + '15',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  cancelBtn: {
+    width: rs(26), height: rs(26), borderRadius: rs(7),
+    backgroundColor: colors.bgCard,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
 });

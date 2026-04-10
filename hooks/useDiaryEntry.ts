@@ -853,9 +853,11 @@ export interface SubmitEntryParams {
   mediaUris?: string[];      // all attachment URIs (photos + video + audio) in attachment order
   videoDuration?: number;
   audioDuration?: number;
+  audioOriginalName?: string; // original filename as picked/recorded by the tutor (e.g. "latido.mp3")
   additionalContext?: string; // e.g. "The media shows a DIFFERENT pet, not the owner's pet."
   hasVideo?: boolean;         // true when video URIs are present regardless of inputType
   docBase64?: string;         // inline base64 of a scanned document (uploaded + OCR'd separately from photos)
+  skipAI?: boolean;           // when true, skip AI classification/narration — just save text + upload media
 }
 
 export interface PDFImportParams {
@@ -883,11 +885,13 @@ async function _backgroundClassifyAndSave(opts: {
   mediaUris?: string[];   // all attachment URIs (photos first, then video/audio)
   videoDuration?: number;
   audioDuration?: number;
+  audioOriginalName?: string;
   additionalContext?: string;
   hasVideo?: boolean;
   docBase64?: string;     // inline base64 of a scanned document (upload + OCR in parallel with main classify)
+  skipAI?: boolean;       // skip AI pipeline — upload media + save entry with manual defaults
 }): Promise<void> {
-  const { qc, petId, userId, queryKey, tempId, originalEntry, text, photosBase64, inputType, photos, mediaUris, videoDuration, audioDuration, additionalContext } = opts;
+  const { qc, petId, userId, queryKey, tempId, originalEntry, text, photosBase64, inputType, photos, mediaUris, videoDuration, audioDuration, audioOriginalName, additionalContext } = opts;
 
   // Mark as processing immediately so useSyncQueue doesn't pick it up and create a duplicate
   updatePendingStatus(tempId, 'processing');
@@ -895,24 +899,42 @@ async function _backgroundClassifyAndSave(opts: {
   // Upload all media types in parallel before classify so URLs are ready
   let uploadedPhotos: string[] = photos;
   let uploadedVideoUrls: string[] = [];
+  let videoThumbUrls: (string | null)[] = [];
   let uploadedAudioUrl: string | null = null;
   let uploadedDocUrl: string | null = null;
 
   const { uploadPetMedia, getPublicUrl } = await import('../lib/storage');
 
-  // Photos: first N URIs where N = photosBase64.length (photos are always added before video/audio)
-  const photoCount = photosBase64?.length ?? 0;
+  // Photos: first N URIs that are not video or audio
+  // AI path: N = photosBase64.length (explicit count)
+  // skip-AI path: infer from URI extension (docs excluded — they come via docBase64, not mediaUris)
+  const nonMediaRe = /\.(mp4|mov|webm|m4v|avi|m4a|aac|mp3|wav|ogg)$/i;
+  const photoCount = photosBase64?.length
+    ?? (mediaUris ?? []).filter((u) => !nonMediaRe.test(u ?? '')).length;
   const photoUris = photoCount > 0 ? (mediaUris ?? []).slice(0, photoCount) : [];
   // Video/audio: the URI right after the photos (if any)
   const mediaUri = (mediaUris ?? []).slice(photoCount)[0] ?? undefined;
 
   await Promise.allSettled([
-    // 1. Photos — upload whenever photoUris exist, regardless of inputType
+    // 1. Photos — compress + upload whenever photoUris exist
+    //    (no longer gated on photosBase64 — skip-AI path has no base64 but still needs upload)
     (async () => {
-      if (photoUris.length === 0 || !photosBase64?.length) return;
+      if (photoUris.length === 0) return;
       try {
+        const ImageManipulator = require('expo-image-manipulator');
         const paths = await Promise.all(
-          photoUris.map((uri) => uploadPetMedia(userId, petId, uri, 'photo')),
+          photoUris.map(async (uri) => {
+            try {
+              const comp = await ImageManipulator.manipulateAsync(
+                uri,
+                [{ resize: { width: 1200 } }],
+                { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG },
+              );
+              return uploadPetMedia(userId, petId, comp.uri, 'photo');
+            } catch {
+              return uploadPetMedia(userId, petId, uri, 'photo');
+            }
+          }),
         );
         uploadedPhotos = paths.map((p) => getPublicUrl('pet-photos', p));
       } catch (e) {
@@ -920,15 +942,29 @@ async function _backgroundClassifyAndSave(opts: {
       }
     })(),
 
-    // 2. Videos — upload all video URIs (may be multiple)
+    // 2. Videos — upload all video URIs + generate thumbnails (may be multiple)
     (async () => {
       const videoUris = (mediaUris ?? []).filter((u) => /\.(mp4|mov|webm|m4v|avi)$/i.test(u ?? ''));
       if (videoUris.length === 0) return;
       try {
-        const paths = await Promise.all(
-          videoUris.map((u) => uploadPetMedia(userId, petId, u, 'video')),
+        const VideoThumbnails = await import('expo-video-thumbnails');
+        const results = await Promise.all(
+          videoUris.map(async (u) => {
+            const videoPath = await uploadPetMedia(userId, petId, u, 'video');
+            const videoUrl = getPublicUrl('pet-photos', videoPath);
+            let thumbUrl: string | null = null;
+            try {
+              const { uri: thumbLocalUri } = await VideoThumbnails.getThumbnailAsync(u, { time: 1000, quality: 0.3 });
+              const thumbPath = await uploadPetMedia(userId, petId, thumbLocalUri, 'photo');
+              thumbUrl = getPublicUrl('pet-photos', thumbPath);
+            } catch {
+              // thumbnail optional — video still works without it
+            }
+            return { videoUrl, thumbUrl };
+          }),
         );
-        uploadedVideoUrls = paths.map((p) => getPublicUrl('pet-photos', p));
+        uploadedVideoUrls = results.map((r) => r.videoUrl);
+        videoThumbUrls = results.map((r) => r.thumbUrl);
       } catch (e) {
         console.warn('[BG] video upload failed:', String(e));
       }
@@ -950,7 +986,7 @@ async function _backgroundClassifyAndSave(opts: {
       console.log('[AUDIO-UP] scheme:', aUri.split('://')[0], '| isContent:', aUri.startsWith('content://'));
       const t0 = Date.now();
       try {
-        const path = await uploadPetMedia(userId, petId, aUri, 'video'); // audio stored in video bucket
+        const path = await uploadPetMedia(userId, petId, aUri, 'video', audioOriginalName ?? undefined); // audio stored in video bucket — originalName preserves extension
         uploadedAudioUrl = getPublicUrl('pet-photos', path);
         console.log('[AUDIO-UP] ✅ upload OK em', Date.now() - t0, 'ms | path:', path);
         console.log('[AUDIO-UP] publicUrl:', uploadedAudioUrl?.slice(0, 80));
@@ -978,6 +1014,122 @@ async function _backgroundClassifyAndSave(opts: {
   console.log('[S2] uploadedPhotos:', uploadedPhotos?.length, uploadedPhotos?.[0]?.slice(0,60));
   console.log('[S2] uploadedVideoUrls:', uploadedVideoUrls.length, uploadedVideoUrls[0]?.slice(0,60));
   console.log('[S2] uploadedAudioUrl:', uploadedAudioUrl?.slice(0,60));
+
+  // ── Skip AI path — just save entry + media, no classification ────────────────
+  if (opts.skipAI) {
+    try {
+      const inputMethod: import('../types/database').DiaryEntry['input_method'] =
+        inputType === 'ocr_scan' ? 'ocr_scan'
+        : inputType === 'pdf' ? 'pdf'
+        : ['photo', 'gallery'].includes(inputType) ? 'gallery'
+        : inputType === 'voice' ? 'voice'
+        : inputType === 'video' ? 'video'
+        : inputType === 'audio' ? 'audio'
+        : inputType === 'pet_audio' ? 'pet_audio'
+        : 'text';
+
+      const entryData = {
+        pet_id: petId,
+        user_id: userId,
+        content: text ?? '(media)',
+        input_method: inputMethod,
+        mood_id: 'calm' as const,
+        mood_score: 50,
+        mood_source: 'manual' as const,
+        tags: [] as string[],
+        photos: uploadedPhotos,
+        is_special: false,
+      };
+      const entryId = await api.createDiaryEntry(entryData);
+
+      const extraFields: Record<string, unknown> = {
+        input_type: inputType,
+        primary_type: 'moment',
+      };
+      if (uploadedVideoUrls.length > 0) {
+        extraFields.video_url = uploadedVideoUrls[0];
+        extraFields.video_duration = videoDuration ?? null;
+      }
+      if (uploadedAudioUrl) {
+        extraFields.audio_url = uploadedAudioUrl;
+        extraFields.audio_duration = audioDuration ?? null;
+      }
+
+      const mediaAnalysesArr: Array<Record<string, unknown>> = [];
+      if (inputType !== 'video' && inputType !== 'pet_audio' && uploadedPhotos.length > 0) {
+        uploadedPhotos.forEach((url) => {
+          mediaAnalysesArr.push({ type: 'photo', mediaUrl: url, analysis: null });
+        });
+      }
+      uploadedVideoUrls.forEach((url, i) => {
+        mediaAnalysesArr.push({ type: 'video', mediaUrl: url, thumbnailUrl: videoThumbUrls[i] ?? null, analysis: null, videoAnalysis: null });
+      });
+      if (uploadedAudioUrl) {
+        const audioFilename = audioOriginalName
+          ?? (mediaUris ?? []).find((u) => /\.(m4a|aac|mp3|wav|ogg)$/i.test(u ?? ''))?.split('/').pop()
+          ?? 'audio';
+        mediaAnalysesArr.push({ type: 'audio', mediaUrl: uploadedAudioUrl, fileName: audioFilename, petAudioAnalysis: null, analysis: null });
+      }
+      if (mediaAnalysesArr.length > 0) extraFields.media_analyses = mediaAnalysesArr;
+
+      await supabase.from('diary_entries').update(extraFields).eq('id', entryId);
+
+      generateEmbedding(petId, 'diary', entryId, text ?? '', 0.5, userId).catch(() => {});
+      updatePendingStatus(tempId, 'synced');
+
+      const { data: freshEntry } = await supabase
+        .from('diary_entries')
+        .select(`*, expenses:expenses!expenses_diary_entry_id_fkey(id, total, currency, category, notes, vendor), vaccines:vaccines!diary_entries_linked_vaccine_id_fkey(id, name, laboratory, veterinarian, clinic, date_administered, next_due_date, batch_number), consultations:consultations!diary_entries_linked_consultation_id_fkey(id, veterinarian, clinic, type, diagnosis, date), clinical_metrics:clinical_metrics!diary_entries_linked_weight_metric_id_fkey(id, metric_type, value, unit, measured_at), medications:medications!diary_entries_linked_medication_id_fkey(id, name, dosage, frequency, veterinarian)`)
+        .eq('id', entryId)
+        .single();
+
+      const finalEntry = (freshEntry ?? {
+        ...entryData,
+        id: entryId,
+        narration: null,
+        entry_type: 'manual' as const,
+        primary_type: 'moment',
+        classifications: [],
+        input_type: inputType,
+        urgency: 'none',
+        mood_confidence: null,
+        is_registration_entry: false,
+        linked_photo_analysis_id: null,
+        entry_date: new Date().toISOString().split('T')[0],
+        is_active: true,
+        processing_status: 'done' as const,
+        created_at: originalEntry.created_at,
+        updated_at: new Date().toISOString(),
+        video_url: uploadedVideoUrls[0] ?? null,
+        audio_url: uploadedAudioUrl,
+        media_analyses: mediaAnalysesArr.length > 0 ? mediaAnalysesArr : null,
+      }) as import('../types/database').DiaryEntry;
+
+      qc.setQueryData<import('../types/database').DiaryEntry[]>(queryKey, (old) => {
+        const withoutTemp = (old ?? []).filter((e) => !e.id.startsWith('temp-'));
+        return [finalEntry, ...withoutTemp];
+      });
+      setTimeout(() => {
+        qc.fetchQuery({
+          queryKey: ['pets', petId, 'diary'],
+          queryFn: async () => {
+            const { fetchDiaryEntries } = await import('../lib/api');
+            const fresh = await fetchDiaryEntries(petId);
+            if (fresh && fresh.length > 0) return fresh;
+            return qc.getQueryData(['pets', petId, 'diary']) ?? [];
+          },
+        }).catch(() => {});
+      }, 5000);
+
+      qc.invalidateQueries({ queryKey: ['pets', petId, 'moods'] });
+    } catch (err) {
+      console.error('[SKIP-AI] save failed:', err);
+      qc.setQueryData<import('../types/database').DiaryEntry[]>(queryKey, (old) =>
+        old?.map((e) => e.id === tempId ? { ...e, processing_status: 'error' as const } : e) ?? [],
+      );
+    }
+    return;
+  }
 
   try {
     // ── Extract video frames for visual analysis ──────────────────────────────
@@ -1080,7 +1232,7 @@ async function _backgroundClassifyAndSave(opts: {
     const _classifyStart = Date.now();
     const [classification, photoAnalysisResults, audioClassification] = await Promise.all([
       // A: unified classify — text + frames/photos + input type (always runs)
-      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language, undefined, inputType === 'pet_audio' ? (uploadedAudioUrl ?? undefined) : undefined),
+      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language, undefined, inputType === 'pet_audio' ? (uploadedAudioUrl ?? undefined) : undefined, inputType === 'pet_audio' ? (audioDuration ?? undefined) : undefined, inputType === 'video' ? (uploadedVideoUrls[0] ?? undefined) : undefined),
 
       // B: per-frame/photo deep analysis via analyze-pet-photo (parallel, non-blocking)
       // Fotos primeiro, depois frames de vídeo se houver espaço (max 3 total)
@@ -1385,9 +1537,10 @@ async function _backgroundClassifyAndSave(opts: {
 
       // C) Áudio
       if (uploadedAudioUrl) {
-        const audioFilename = (mediaUris ?? [])
-          .find((u) => /\.(m4a|aac|mp3|wav|ogg)$/i.test(u ?? ''))
-          ?.split('/').pop() ?? 'audio';
+        // Use original filename from tutor's file pick — fall back to URI-derived name
+        const audioFilename = audioOriginalName
+          ?? (mediaUris ?? []).find((u) => /\.(m4a|aac|mp3|wav|ogg)$/i.test(u ?? ''))?.split('/').pop()
+          ?? 'audio';
         mediaAnalysesArr.push({
           type: 'audio',
           mediaUrl: uploadedAudioUrl,
@@ -1999,9 +2152,11 @@ export function useDiaryEntry(petId: string) {
       mediaUris: params.mediaUris,
       videoDuration: params.videoDuration,
       audioDuration: params.audioDuration,
+      audioOriginalName: params.audioOriginalName,
       additionalContext: params.additionalContext,
       hasVideo: params.hasVideo,
       docBase64: params.docBase64,
+      skipAI: params.skipAI,
       species: petSpecies,
       petName: cachedPets.find(p => p.id === petId)?.name ?? undefined,
       petBreed: cachedPets.find(p => p.id === petId)?.breed ?? undefined,

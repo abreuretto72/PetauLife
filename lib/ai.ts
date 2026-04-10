@@ -118,6 +118,8 @@ export async function classifyDiaryEntry(
   language: string = 'pt-BR',
   pdfBase64?: string,
   audioUrl?: string,
+  audioDurationSeconds?: number,
+  videoUrl?: string,
 ): Promise<ClassifyDiaryResponse> {
   const { data, error } = await supabase.functions.invoke('classify-diary-entry', {
     body: {
@@ -126,6 +128,8 @@ export async function classifyDiaryEntry(
       photos_base64: photosBase64,
       pdf_base64: pdfBase64 ?? undefined,
       audio_url: audioUrl ?? undefined,
+      audio_duration_seconds: audioDurationSeconds ?? undefined,
+      video_url: videoUrl ?? undefined,
       input_type: inputType,
       language,
     },

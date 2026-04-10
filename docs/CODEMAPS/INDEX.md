@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-04
-**Scope:** MVP Phase (Diário Inteligente + Co-Tutores + Auditoria + Registros Excluídos)
+**Last Updated:** 2026-04-10
+**Scope:** MVP Phase (Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Model Separation + Video Thumbnails)
 
 ---
 

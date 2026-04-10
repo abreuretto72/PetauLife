@@ -1,21 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet,
+  ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
-import { ChevronLeft, Check, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Check, Trash2, Video, Play, Image as ImageIcon, Music2, FileText } from 'lucide-react-native';
 import { supabase } from '../../../../../../lib/supabase';
 import { useToast } from '../../../../../../components/Toast';
 import DiaryNarration from '../../../../../../components/diary/DiaryNarration';
 import { DiaryModuleCard } from '../../../../../../components/diary/DiaryModuleCard';
+import MediaViewerModal from '../../../../../../components/diary/MediaViewerModal';
 import { colors } from '../../../../../../constants/colors';
 import { rs, fs } from '../../../../../../hooks/useResponsive';
 import { moods, type MoodId } from '../../../../../../constants/moods';
+import { getPublicUrl } from '../../../../../../lib/storage';
 import type { DiaryEntry } from '../../../../../../types/database';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -35,12 +37,15 @@ const MODULE_TYPE_TO_KEY: Record<string, string> = {
 
 const EDIT_SELECT = `
   id, content, mood_id, narration, classifications, processing_status, tags, is_special,
+  media_analyses, video_url, audio_url, photos,
   expenses(id, total, currency, category, notes, vendor),
   vaccines(id, name, laboratory, veterinarian, clinic, date_administered, next_due_date, batch_number),
   consultations(id, veterinarian, clinic, type, diagnosis, date),
   clinical_metrics(id, metric_type, value, unit, measured_at),
   medications(id, name, dosage, frequency, veterinarian)
 `.trim();
+
+type MediaItem = { type: 'photo' | 'video' | 'audio' | 'document'; mediaUrl?: string | null; thumbnailUrl?: string | null; fileName?: string | null };
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
@@ -97,15 +102,18 @@ export default function DiaryEntryEditScreen() {
   });
 
   // Initialise immediately from prefill params (passed by diary.tsx from cache)
-  const [text, setText] = useState(prefillContent ?? '');
+  // Filter out '(media)' sentinel — it means the entry has no real text
+  const sanitize = (v?: string) => (!v || v === '(media)' ? '' : v);
+  const [text, setText] = useState(sanitize(prefillContent));
   const [moodId, setMoodId] = useState<MoodId | null>((prefillMoodId as MoodId) || null);
+  const [viewerMedia, setViewerMedia] = useState<{ uri: string; type: 'photo' | 'video' | 'audio'; thumb?: string | null } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [initialised, setInitialised] = useState(false);
 
   useEffect(() => {
     if (entry && !initialised) {
       // Only override if prefill was empty (e.g. entry not in cache when navigating)
-      if (!prefillContent && entry.content) setText(entry.content);
+      if (!prefillContent && entry.content) setText(sanitize(entry.content));
       if (!prefillMoodId && entry.mood_id) setMoodId(entry.mood_id as MoodId);
       setInitialised(true);
     }
@@ -265,6 +273,21 @@ export default function DiaryEntryEditScreen() {
   const classifications = (entry?.classifications as Array<{ type: string; confidence: number; extracted_data: Record<string, unknown> }> | null) ?? [];
   const visibleClassifications = classifications.filter((c) => c.confidence >= 0.5);
 
+  // Resolve media items from media_analyses or legacy fields
+  const mediaItems: MediaItem[] = (() => {
+    const raw = (entry as unknown as Record<string, unknown>)?.media_analyses;
+    if (Array.isArray(raw) && raw.length > 0) return raw as MediaItem[];
+    // Legacy: single video_url
+    const items: MediaItem[] = [];
+    const vidUrl = (entry as unknown as Record<string, unknown>)?.video_url as string | null;
+    const audUrl = (entry as unknown as Record<string, unknown>)?.audio_url as string | null;
+    const photos = (entry as unknown as Record<string, unknown>)?.photos as string[] | null;
+    if (vidUrl) items.push({ type: 'video', mediaUrl: vidUrl });
+    if (audUrl) items.push({ type: 'audio', mediaUrl: audUrl });
+    (photos ?? []).forEach((p) => items.push({ type: 'photo', mediaUrl: p }));
+    return items;
+  })();
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -325,6 +348,77 @@ export default function DiaryEntryEditScreen() {
               />
             </View>
           ) : null}
+
+          {/* Attached media — read-only display */}
+          {mediaItems.length > 0 && (
+            <View style={s.mediaSection}>
+              <Text style={s.label}>{t('diary.editMediaLabel')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: rs(10) }}>
+              {mediaItems.map((m, idx) => {
+                const rawUrl = m.mediaUrl ?? null;
+                const resolvedUrl = rawUrl
+                  ? (rawUrl.startsWith('http') ? rawUrl : getPublicUrl('pet-photos', rawUrl))
+                  : null;
+                const thumbRaw = m.thumbnailUrl ?? null;
+                const thumbUrl = thumbRaw
+                  ? (thumbRaw.startsWith('http') ? thumbRaw : getPublicUrl('pet-photos', thumbRaw))
+                  : null;
+
+                const IconComp = m.type === 'video' ? Video
+                  : m.type === 'audio' ? Music2
+                  : m.type === 'document' ? FileText
+                  : ImageIcon;
+                const iconColor = m.type === 'video' ? colors.sky
+                  : m.type === 'audio' ? colors.rose
+                  : colors.accent;
+
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={s.mediaItem}
+                    activeOpacity={resolvedUrl ? 0.7 : 1}
+                    onPress={() => {
+                      if (!resolvedUrl) return;
+                      if (m.type === 'document') return;
+                      setViewerMedia({ uri: resolvedUrl, type: m.type === 'audio' ? 'audio' : m.type, thumb: thumbUrl });
+                    }}
+                  >
+                    {m.type === 'photo' && resolvedUrl ? (
+                      <Image source={{ uri: resolvedUrl }} style={s.mediaThumb} resizeMode="cover" />
+                    ) : (
+                      <View style={[s.mediaThumb, s.mediaThumbPlaceholder]}>
+                        <IconComp size={rs(24)} color={iconColor} strokeWidth={1.8} />
+                      </View>
+                    )}
+                    {(m.type === 'video' || m.type === 'audio') && (
+                      <View style={s.mediaPlayOverlay}>
+                        <Play size={rs(16)} color="#fff" fill="#fff" strokeWidth={0} />
+                      </View>
+                    )}
+                    <Text style={s.mediaTypeLabel} numberOfLines={1}>
+                      {m.type === 'video' ? t('diary.video')
+                        : m.type === 'audio' ? t('diary.audio')
+                        : m.type === 'document' ? (m.fileName ?? t('diary.document'))
+                        : t('diary.photo')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* MediaViewerModal */}
+          {viewerMedia && (
+            <MediaViewerModal
+              visible
+              type={viewerMedia.type}
+              uri={viewerMedia.uri}
+              thumbnailUri={viewerMedia.thumb ?? null}
+              openInPlayerLabel={t('diary.openInPlayer')}
+              onClose={() => setViewerMedia(null)}
+            />
+          )}
 
           {/* Module cards — read-only */}
           {visibleClassifications.length > 0 && (
@@ -492,5 +586,48 @@ const s = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     fontSize: fs(16),
     color: '#fff',
+  },
+  mediaSection: {
+    marginTop: rs(4),
+  },
+  mediaItem: {
+    width: rs(90),
+    marginRight: rs(10),
+    marginBottom: rs(4),
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: rs(4),
+  },
+  mediaThumb: {
+    width: rs(90),
+    height: rs(90),
+    borderRadius: rs(10),
+    overflow: 'hidden',
+  },
+  mediaThumbPlaceholder: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaPlayOverlay: {
+    position: 'absolute',
+    top: rs(30),
+    left: rs(30),
+    width: rs(30),
+    height: rs(30),
+    borderRadius: rs(15),
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaTypeLabel: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: fs(10),
+    color: colors.textDim,
+    textAlign: 'center',
   },
 });

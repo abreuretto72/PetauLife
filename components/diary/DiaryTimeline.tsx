@@ -14,6 +14,9 @@ import {
   BookOpen, Pencil, Sparkles,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../../lib/supabase';
+import { useToast } from '../Toast';
+import { useMyPetRole } from '../../hooks/usePetMembers';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import PawIcon from '../PawIcon';
@@ -55,6 +58,7 @@ interface DiaryTimelineProps {
   entries: DiaryEntry[];
   scheduledEvents?: ScheduledEvent[];
   isLoading: boolean;
+  petId: string;
   petName: string;
   petSpecies?: string;
   petAvatarUrl?: string | null;
@@ -72,6 +76,7 @@ export default function DiaryTimeline({
   entries,
   scheduledEvents = [],
   isLoading,
+  petId,
   petName,
   petSpecies,
   petAvatarUrl,
@@ -84,8 +89,43 @@ export default function DiaryTimeline({
   headerExtra,
 }: DiaryTimelineProps) {
   const { t, i18n } = useTranslation();
+  const { toast, confirm } = useToast();
+  const { isOwner } = useMyPetRole(petId);
 
   const petColor = petSpecies === 'cat' ? colors.purple : colors.accent;
+
+  const handleDeleteEntry = useCallback(async (id: string) => {
+    const yes = await confirm({ text: t('diary.deleteConfirm'), type: 'warning' });
+    if (!yes) return;
+    try {
+      const { error } = await supabase
+        .from('diary_entries')
+        .update({ is_active: false })
+        .eq('id', id);
+      if (error) throw error;
+      onRefresh();
+      toast(t('toast.entryDeleted'), 'success');
+    } catch {
+      toast(t('errors.generic'), 'error');
+    }
+  }, [confirm, t, toast, onRefresh]);
+
+  // Admin (owner) deactivating another tutor's record
+  const handleAdminDeactivate = useCallback(async (id: string) => {
+    const yes = await confirm({ text: t('diary.adminDeactivateConfirm'), type: 'warning' });
+    if (!yes) return;
+    try {
+      const { error } = await supabase
+        .from('diary_entries')
+        .update({ is_active: false })
+        .eq('id', id);
+      if (error) throw error;
+      onRefresh();
+      toast(t('toast.adminEntryDeactivated'), 'success');
+    } catch {
+      toast(t('errors.generic'), 'error');
+    }
+  }, [confirm, t, toast, onRefresh]);
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
 
   const getMoodData = useCallback(
@@ -126,37 +166,40 @@ export default function DiaryTimeline({
       const config = EVENT_TYPE_CONFIG[item.type];
       const isLast = index === timelineEvents.length - 1;
 
+      // Admin props — only owner sees the EyeOff deactivate button on others' records
+      const adminProps = { isOwner, onAdminDeactivate: isOwner ? handleAdminDeactivate : undefined };
+
       let cardContent: React.ReactNode = null;
       switch (item.type) {
         case 'month_summary':
           cardContent = <MonthSummaryCard event={item} t={t} />;
           break;
         case 'diary':
-          cardContent = <DiaryCard event={item} petName={petName} t={t} getMoodData={getMoodData} onEdit={onEditEntry} onRetry={onRetryEntry} />;
+          cardContent = <DiaryCard event={item} petName={petName} t={t} getMoodData={getMoodData} onEdit={onEditEntry} onRetry={onRetryEntry} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'audio_analysis':
-          cardContent = <AudioAnalysisCard event={item} t={t} />;
+          cardContent = <AudioAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'photo_analysis':
-          cardContent = <PhotoAnalysisCard event={item} t={t} />;
+          cardContent = <PhotoAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'video_analysis':
-          cardContent = <VideoAnalysisCard event={item} t={t} />;
+          cardContent = <VideoAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'milestone':
-          cardContent = <MilestoneCard event={item} t={t} />;
+          cardContent = <MilestoneCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'capsule':
-          cardContent = <CapsuleCard event={item} t={t} />;
+          cardContent = <CapsuleCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'connection':
-          cardContent = <ConnectionCard event={item} t={t} />;
+          cardContent = <ConnectionCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'scheduled_event':
           cardContent = <ScheduledEventCard event={item} t={t} />;
           break;
         default:
-          cardContent = <HealthCard event={item} t={t} />;
+          cardContent = <HealthCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
       }
 
@@ -168,7 +211,7 @@ export default function DiaryTimeline({
         </View>
       );
     },
-    [timelineEvents.length, petName, t, getMoodData, onEditEntry, onRetryEntry],
+    [timelineEvents.length, petName, t, getMoodData, onEditEntry, onRetryEntry, handleDeleteEntry, handleAdminDeactivate, isOwner],
   );
 
   // ── Header ──
