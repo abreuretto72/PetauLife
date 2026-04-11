@@ -30,7 +30,7 @@ import { usePet } from '../../../../../hooks/usePets';
 import { useToast } from '../../../../../components/Toast';
 import { getErrorMessage } from '../../../../../utils/errorMessages';
 import { useDiaryEntry } from '../../../../../hooks/useDiaryEntry';
-import { Audio } from 'expo-audio';
+import { setAudioModeAsync } from 'expo-audio';
 import DocumentScanner from '../../../../../components/diary/DocumentScanner';
 import VideoRecorder from '../../../../../components/diary/VideoRecorder';
 import PetAudioRecorder from '../../../../../components/diary/PetAudioRecorder';
@@ -308,12 +308,12 @@ export default function NewDiaryEntryScreen() {
     setIsListening(true);
     setInterimText('');
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: false,
-        playThroughEarpieceAndroid: false,
-        staysActiveInBackground: false,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        interruptionMode: 'doNotMix',
+        shouldRouteThroughEarpiece: false,
+        shouldPlayInBackground: false,
       });
     } catch (_e) { /* ignorar — não crítico */ }
     SpeechModule.start({
@@ -333,12 +333,12 @@ export default function NewDiaryEntryScreen() {
     intentionalStopRef.current = true;
     if (SpeechModule && isListening) SpeechModule.stop();
     setIsListening(false);
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-      playsInSilentModeIOS: false,
-      shouldDuckAndroid: true,
-      playThroughEarpieceAndroid: false,
-      staysActiveInBackground: false,
+    setAudioModeAsync({
+      allowsRecording: false,
+      playsInSilentMode: false,
+      interruptionMode: 'duckOthers',
+      shouldRouteThroughEarpiece: false,
+      shouldPlayInBackground: false,
     }).catch(() => { /* ignorar */ });
   }, [isListening]);
 
@@ -1469,6 +1469,28 @@ export default function NewDiaryEntryScreen() {
               )}
             </View>
 
+            {/* AI toggle */}
+            <View style={styles.aiToggleRow}>
+              <Sparkles size={rs(16)} color={analyzeWithAI ? colors.purple : colors.textDim} strokeWidth={1.8} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.aiToggleLabel}>{t('mic.analyzeWithAI')}</Text>
+                <Text style={styles.aiToggleDesc}>
+                  {analyzeWithAI ? t('mic.analyzeWithAIDesc') : t('mic.skipAIDesc')}
+                </Text>
+              </View>
+              <Switch
+                value={analyzeWithAI}
+                onValueChange={setAnalyzeWithAI}
+                trackColor={{ false: colors.border, true: colors.purple + '50' }}
+                thumbColor={analyzeWithAI ? colors.purple : colors.textDim}
+              />
+            </View>
+
+            {/* AI hint */}
+            {analyzeWithAI && (
+              <Text style={styles.aiHint}>{t('mic.aiHint', { name: petName })}</Text>
+            )}
+
             {/* Attachments */}
             <AttachmentsPreview attachments={attachments} onRemove={removeAttachment} />
 
@@ -1505,28 +1527,6 @@ export default function NewDiaryEntryScreen() {
                 <ScanLine size={rs(18)} color={colors.success} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.scanner')}</Text>
               </TouchableOpacity>
-            </View>
-
-            {/* AI hint */}
-            {analyzeWithAI && (
-              <Text style={styles.aiHint}>{t('mic.aiHint', { name: petName })}</Text>
-            )}
-
-            {/* AI toggle */}
-            <View style={styles.aiToggleRow}>
-              <Sparkles size={rs(16)} color={analyzeWithAI ? colors.purple : colors.textDim} strokeWidth={1.8} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aiToggleLabel}>{t('mic.analyzeWithAI')}</Text>
-                <Text style={styles.aiToggleDesc}>
-                  {analyzeWithAI ? t('mic.analyzeWithAIDesc') : t('mic.skipAIDesc')}
-                </Text>
-              </View>
-              <Switch
-                value={analyzeWithAI}
-                onValueChange={setAnalyzeWithAI}
-                trackColor={{ false: colors.border, true: colors.purple + '50' }}
-                thumbColor={analyzeWithAI ? colors.purple : colors.textDim}
-              />
             </View>
           </ScrollView>
 

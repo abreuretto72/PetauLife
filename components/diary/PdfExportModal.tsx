@@ -8,16 +8,45 @@ import {
   View, Text, ScrollView, TouchableOpacity, Modal, Pressable,
   TextInput, ActivityIndicator, StyleSheet,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Download, FileText, Star, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { moods } from '../../constants/moods';
-import { generatePdfUri } from '../../lib/pdf';
-import PdfPreviewModal from './PdfPreviewModal';
+import * as FileSystem from 'expo-file-system/legacy';
+import { previewPdf } from '../../lib/pdf';
 import { getPublicUrl } from '../../lib/storage';
 import { useToast } from '../Toast';
 import type { TimelineEvent } from './timelineTypes';
+
+/**
+ * Download a photo and return a base64 data URI for PDF embedding.
+ * Photos may be stored as full public URLs (https://…) or storage paths —
+ * both cases are handled.
+ */
+async function photoToDataUri(path: string): Promise<string | null> {
+  try {
+    // If already a full URL use it directly; otherwise derive the public URL
+    const isFullUrl = path.startsWith('https://') || path.startsWith('http://');
+    const downloadUrl = isFullUrl ? path : getPublicUrl('pet-photos', path);
+
+    const ext = path.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
+    const mime = ext === 'webp' ? 'image/webp' : ext === 'png' ? 'image/png' : 'image/jpeg';
+    const tmpExt = ext === 'webp' ? 'webp' : ext === 'png' ? 'png' : 'jpg';
+    const tmpPath = `${FileSystem.cacheDirectory}pdf_p_${Date.now()}_${Math.random().toString(36).slice(2)}.${tmpExt}`;
+
+    const result = await FileSystem.downloadAsync(downloadUrl, tmpPath);
+    if (result.status < 200 || result.status >= 300) return null;
+
+    const b64 = await FileSystem.readAsStringAsync(tmpPath, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return b64 ? `data:${mime};base64,${b64}` : null;
+  } catch {
+    return null;
+  }
+}
 
 interface PdfExportModalProps {
   visible: boolean;
@@ -37,6 +66,7 @@ const MOOD_COLORS: Record<string, string> = {
 export default function PdfExportModal({ visible, onClose, events, petName, getMoodData }: PdfExportModalProps) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
 
   const [dateFrom, setDateFrom] = useState('');
@@ -44,9 +74,6 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
   const [onlySpecial, setOnlySpecial] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [previewUri, setPreviewUri] = useState<string | null>(null);
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewFileName, setPreviewFileName] = useState('');
 
   const formatDateInput = useCallback((text: string, setter: (v: string) => void) => {
     const clean = text.replace(/\D/g, '');
@@ -82,6 +109,16 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
         return;
       }
 
+      // Pre-download all photos as base64 data URIs so expo-print can render them
+      const uniquePhotoPaths = [...new Set(
+        filtered.flatMap((e) => e.photos ?? []).filter((p) => !p.endsWith('.mp4') && !p.endsWith('.mov')),
+      )];
+      const photoDataUriMap = new Map<string, string>();
+      await Promise.all(uniquePhotoPaths.map(async (p) => {
+        const uri = await photoToDataUri(p);
+        if (uri) photoDataUriMap.set(p, uri);
+      }));
+
       const entriesHtml = filtered.map((e) => {
         const dateObj = new Date(e.date);
         const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -92,8 +129,11 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
         const photosHtml = (e.photos && e.photos.length > 0)
           ? `<div class="entry-photos">${e.photos.map((p) => {
               const isVideo = p.endsWith('.mp4') || p.endsWith('.mov');
-              return isVideo ? '<span style="font-size:9px;color:#888;">video</span>'
-                : `<img src="${getPublicUrl('pet-photos', p)}" class="entry-photo" />`;
+              if (isVideo) return '<span style="font-size:9px;color:#888;">video</span>';
+              const isUrl = p.startsWith('https://') || p.startsWith('http://');
+              const fallback = isUrl ? p : getPublicUrl('pet-photos', p);
+              const src = photoDataUriMap.get(p) ?? fallback;
+              return `<img src="${src}" class="entry-photo" />`;
             }).join('')}</div>`
           : '';
 
@@ -114,17 +154,13 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
         ? `<p style="text-align:center;color:#888;font-size:10px;margin-top:16px;">${t('diary.pdfTruncated', { shown: String(MAX_PDF_ENTRIES), total: String(totalFound) })}</p>`
         : '';
 
-      const fname = `auExpert_${petName}_${new Date().toISOString().split('T')[0]}.pdf`;
-      const uri = await generatePdfUri({
+      await previewPdf({
         title: t('diary.pdfTitle', { name: petName }),
         subtitle: t('diary.pdfSubtitle', { count: String(filtered.length) }),
         bodyHtml: entriesHtml + truncNote,
         language: i18n.language,
-      }, fname);
-      setPreviewFileName(fname);
-      setPreviewUri(uri);
+      });
       onClose();
-      setPreviewVisible(true);
     } catch {
       toast(t('errors.generic'), 'error');
     } finally {
@@ -132,16 +168,12 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
     }
   }, [events, dateFrom, dateTo, moodFilter, onlySpecial, petName, t, i18n.language, getMoodData, toast, onClose]);
 
+
   return (
-    <PdfPreviewModal
-      visible={previewVisible}
-      pdfUri={previewUri}
-      fileName={previewFileName}
-      onClose={() => setPreviewVisible(false)}
-    />
+    <>
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={() => {}}>
+        <Pressable style={[styles.sheet, { paddingBottom: rs(20) + insets.bottom }]} onPress={() => {}}>
           <View style={styles.handle} />
 
           <View style={styles.header}>
@@ -217,12 +249,13 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
         </Pressable>
       </Pressable>
     </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(11, 18, 25, 0.6)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.bgCard, borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26), padding: rs(20), paddingBottom: rs(40), maxHeight: '80%' },
+  sheet: { backgroundColor: colors.bgCard, borderTopLeftRadius: rs(26), borderTopRightRadius: rs(26), padding: rs(20), maxHeight: '85%' },
   handle: { width: rs(40), height: rs(5), borderRadius: rs(3), backgroundColor: colors.textGhost, alignSelf: 'center', marginBottom: rs(16) },
   header: { flexDirection: 'row', alignItems: 'center', gap: rs(10), marginBottom: rs(20) },
   headerTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(17), color: colors.text },

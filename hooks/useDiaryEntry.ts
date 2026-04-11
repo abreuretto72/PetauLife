@@ -1191,10 +1191,20 @@ async function _backgroundClassifyAndSave(opts: {
       ? `${text ?? ''}\n\n[CONTEXT: ${additionalContext}]`.trim()
       : text;
 
-    // Fetch token explicitly so analyze-pet-photo invoke works from background context
-    const { data: { session: bgSession } } = await supabase.auth.getSession();
-    const bgAuthHeader = bgSession?.access_token ? { Authorization: `Bearer ${bgSession.access_token}` } : {};
-    console.log('[DIAG] bgSession token present:', !!bgSession?.access_token);
+    // refreshSession() forces a network call to exchange the refresh token for a
+    // new access token — guarantees the JWT is fresh and not stale from SecureStore.
+    // (getSession() reads SecureStore which can race with autoRefresh writes.)
+    const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+    const bgToken = refreshError || !refreshData.session
+      ? (await supabase.auth.getSession()).data.session?.access_token   // fallback
+      : refreshData.session.access_token;
+    const bgAuthHeader: Record<string, string> = bgToken
+      ? { Authorization: `Bearer ${bgToken}` }
+      : {};
+    console.log('[DIAG] refreshSession error:', refreshError?.message ?? 'none');
+    console.log('[DIAG] bgToken present:', !!bgToken);
+    console.log('[DIAG] bgToken prefix:', bgToken?.slice(0, 20) ?? 'NONE');
+    console.log('[DIAG] bgAuthHeader keys:', Object.keys(bgAuthHeader).join(','));
 
     console.log('[S3-PRE] textForClassify length:', (textForClassify ?? '').length);
     console.log('[S3-PRE] textForClassify FULL:', textForClassify ?? '');
@@ -1232,7 +1242,7 @@ async function _backgroundClassifyAndSave(opts: {
     const _classifyStart = Date.now();
     const [classification, photoAnalysisResults, audioClassification] = await Promise.all([
       // A: unified classify — text + frames/photos + input type (always runs)
-      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language, undefined, inputType === 'pet_audio' ? (uploadedAudioUrl ?? undefined) : undefined, inputType === 'pet_audio' ? (audioDuration ?? undefined) : undefined, inputType === 'video' ? (uploadedVideoUrls[0] ?? undefined) : undefined),
+      classifyDiaryEntry(petId, textForClassify, analysisFramesCapped.length > 0 ? analysisFramesCapped : photosBase64, inputType, i18n.language, undefined, inputType === 'pet_audio' ? (uploadedAudioUrl ?? undefined) : undefined, inputType === 'pet_audio' ? (audioDuration ?? undefined) : undefined, inputType === 'video' ? (uploadedVideoUrls[0] ?? undefined) : undefined, Object.keys(bgAuthHeader).length > 0 ? bgAuthHeader : undefined),
 
       // B: per-frame/photo deep analysis via analyze-pet-photo (parallel, non-blocking)
       // Fotos primeiro, depois frames de vídeo se houver espaço (max 3 total)
@@ -1278,7 +1288,7 @@ async function _backgroundClassifyAndSave(opts: {
       (uploadedAudioUrl && inputType !== 'pet_audio')
         ? (() => {
             console.log('[AUDIO-CLASSIFY] disparando classify secundário pet_audio | audioUrl:', uploadedAudioUrl?.slice(0, 60));
-            return classifyDiaryEntry(petId, textForClassify, null, 'pet_audio', i18n.language, undefined, uploadedAudioUrl ?? undefined).catch((e) => {
+            return classifyDiaryEntry(petId, textForClassify, null, 'pet_audio', i18n.language, undefined, uploadedAudioUrl ?? undefined, undefined, undefined, Object.keys(bgAuthHeader).length > 0 ? bgAuthHeader : undefined).catch((e) => {
               console.warn('[AUDIO-CLASSIFY] ❌ classify secundário falhou:', String(e));
               return null;
             });
@@ -1295,7 +1305,7 @@ async function _backgroundClassifyAndSave(opts: {
     // to avoid concurrent heavy Claude API calls that cause timeouts.
     // Used ONLY for media_analysis OCR display; main classify already extracted structured data.
     const ocrClassification = opts.docBase64
-      ? await classifyDiaryEntry(petId, null, [opts.docBase64], 'ocr_scan', i18n.language).catch((e) => {
+      ? await classifyDiaryEntry(petId, null, [opts.docBase64], 'ocr_scan', i18n.language, undefined, undefined, undefined, undefined, Object.keys(bgAuthHeader).length > 0 ? bgAuthHeader : undefined).catch((e) => {
           console.warn('[DOC-ATTACH] OCR classify falhou:', String(e));
           return null;
         })
@@ -1558,24 +1568,27 @@ async function _backgroundClassifyAndSave(opts: {
         ? (classification as Record<string, unknown>)
         : ((ocrClassification as Record<string, unknown> | null) ?? null);
 
-      if (docMediaUrl && docOcrSource) {
+      if (docMediaUrl) {
         console.log('[OCR-MOD] docMediaUrl:', docMediaUrl?.slice(0, 60));
-        console.log('[OCR-MOD] docOcrSource keys:', Object.keys(docOcrSource).join(', '));
-        console.log('[OCR-MOD] document_type:', (docOcrSource as Record<string,unknown>).document_type);
-        const _ocrData = (docOcrSource as Record<string,unknown>).ocr_data as Record<string,unknown> | undefined;
-        console.log('[OCR-MOD] ocr_data.fields count:', (_ocrData?.fields as unknown[])?.length ?? 0);
-        if ((_ocrData?.fields as unknown[])?.length) {
-          console.log('[OCR-MOD] ocr_data first 3 fields:', JSON.stringify((_ocrData.fields as unknown[]).slice(0, 3)));
-        } else {
-          console.warn('[OCR-MOD] ocr_data.fields EMPTY | full ocr_data:', JSON.stringify(_ocrData));
+        console.log('[OCR-MOD] docOcrSource:', docOcrSource ? 'present' : 'null (OCR falhou — doc salvo sem campos)');
+        if (docOcrSource) {
+          console.log('[OCR-MOD] docOcrSource keys:', Object.keys(docOcrSource).join(', '));
+          console.log('[OCR-MOD] document_type:', (docOcrSource as Record<string,unknown>).document_type);
+          const _ocrData = (docOcrSource as Record<string,unknown>).ocr_data as Record<string,unknown> | undefined;
+          console.log('[OCR-MOD] ocr_data.fields count:', (_ocrData?.fields as unknown[])?.length ?? 0);
+          if ((_ocrData?.fields as unknown[])?.length) {
+            console.log('[OCR-MOD] ocr_data first 3 fields:', JSON.stringify((_ocrData.fields as unknown[]).slice(0, 3)));
+          } else {
+            console.warn('[OCR-MOD] ocr_data.fields EMPTY | full ocr_data:', JSON.stringify(_ocrData));
+          }
         }
         mediaAnalysesArr.push({
           type: 'document',
           mediaUrl: docMediaUrl,
           ocrData: {
-            fields: (docOcrSource.ocr_data as { fields?: Array<{key: string; value: string}> } | undefined)?.fields ?? [],
-            document_type: (docOcrSource.document_type as string) ?? 'other',
-            items: (docOcrSource.ocr_data as { items?: Array<{name: string; qty: number; unit_price: number}> } | undefined)?.items ?? undefined,
+            fields: (docOcrSource?.ocr_data as { fields?: Array<{key: string; value: string}> } | undefined)?.fields ?? [],
+            document_type: (docOcrSource?.document_type as string) ?? 'other',
+            items: (docOcrSource?.ocr_data as { items?: Array<{name: string; qty: number; unit_price: number}> } | undefined)?.items ?? undefined,
           },
           analysis: inputType === 'ocr_scan' ? (photoResultsRaw[0] ?? null) : null,
         });

@@ -120,8 +120,10 @@ export async function classifyDiaryEntry(
   audioUrl?: string,
   audioDurationSeconds?: number,
   videoUrl?: string,
+  headers?: Record<string, string>,
 ): Promise<ClassifyDiaryResponse> {
   const { data, error } = await supabase.functions.invoke('classify-diary-entry', {
+    headers,
     body: {
       pet_id: petId,
       text,
@@ -139,9 +141,18 @@ export async function classifyDiaryEntry(
   console.log('[AI] error:', error ? JSON.stringify(error).slice(0, 400) : 'nenhum');
   console.log('[AI] data keys:', data ? Object.keys(data).join(', ') : 'null');
   if (error) {
-    const ctx = (error as Record<string,unknown>).context as Record<string,unknown> | undefined;
+    const ctx = (error as Record<string,unknown>).context as Response | undefined;
     console.log('[AI-ERR] status HTTP:', ctx?.status);
     console.log('[AI-ERR] url:', ctx?.url);
+    try {
+      const errBody = await (ctx as any)?.json?.();
+      console.log('[AI-ERR] body:', JSON.stringify(errBody));
+    } catch {
+      try {
+        const errText = await (ctx as any)?.text?.();
+        console.log('[AI-ERR] body text:', errText?.slice(0, 300));
+      } catch {}
+    }
   }
 
   if (error) {

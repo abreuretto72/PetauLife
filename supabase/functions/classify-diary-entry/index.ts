@@ -42,10 +42,11 @@ Deno.serve(async (req: Request) => {
       return errorResponse('ANTHROPIC_API_KEY not configured', 500);
     }
 
-    // 2. Authenticate (optional for now — log warning if missing)
+    // 2. Authenticate — required (verify_jwt disabled at gateway level due to ES256/HS256
+    // mismatch; auth is enforced here via getUser() which handles ES256 correctly)
     const user = await validateAuth(req);
     if (!user) {
-      console.warn('[classify-diary-entry] No valid auth token — proceeding with service role');
+      return errorResponse('Unauthorized', 401);
     }
 
     // 3. Parse and validate input

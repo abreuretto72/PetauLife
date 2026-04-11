@@ -8,6 +8,42 @@ import { colors } from '../constants/colors';
 // ── Cache logo base64 ──
 let logoBase64Cache: string | null = null;
 
+// ── Inline remote images so expo-print WebView can render them ──
+function mimeFromUrl(url: string): { mime: string; tmpExt: string } {
+  const ext = url.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
+  if (ext === 'webp') return { mime: 'image/webp', tmpExt: 'webp' };
+  if (ext === 'png')  return { mime: 'image/png',  tmpExt: 'png'  };
+  if (ext === 'gif')  return { mime: 'image/gif',  tmpExt: 'gif'  };
+  return { mime: 'image/jpeg', tmpExt: 'jpg' };
+}
+
+async function inlineRemoteImages(html: string): Promise<string> {
+  const urlRegex = /src="(https?:\/\/[^"]+)"/g;
+  const uniqueUrls = [...new Set([...html.matchAll(urlRegex)].map((m) => m[1]))];
+  if (uniqueUrls.length === 0) return html;
+
+  const base64Map: Record<string, string> = {};
+  await Promise.all(
+    uniqueUrls.map(async (url) => {
+      try {
+        const { mime, tmpExt } = mimeFromUrl(url);
+        const tmpPath = `${FileSystem.cacheDirectory}pdf_img_${Date.now()}_${Math.random().toString(36).slice(2)}.${tmpExt}`;
+        const result = await FileSystem.downloadAsync(url, tmpPath);
+        if (result.status < 200 || result.status >= 300) return; // skip failed downloads
+        const b64 = await FileSystem.readAsStringAsync(tmpPath, { encoding: FileSystem.EncodingType.Base64 });
+        base64Map[url] = `data:${mime};base64,${b64}`;
+      } catch {
+        // skip — image omitted from PDF
+      }
+    })
+  );
+
+  return html.replace(urlRegex, (_match, url) => {
+    const b64 = base64Map[url];
+    return b64 ? `src="${b64}"` : `src=""`;
+  });
+}
+
 async function getLogoBase64(): Promise<string> {
   if (logoBase64Cache) return logoBase64Cache;
   try {
@@ -229,7 +265,7 @@ function buildHtml(logoB64: string, options: PdfOptions): string {
  */
 export async function previewPdf(options: PdfOptions): Promise<void> {
   const logoB64 = await getLogoBase64();
-  const html = buildHtml(logoB64, options);
+  const html = await inlineRemoteImages(buildHtml(logoB64, options));
   await Print.printAsync({ html });
 }
 
@@ -238,7 +274,7 @@ export async function previewPdf(options: PdfOptions): Promise<void> {
  */
 export async function sharePdf(options: PdfOptions, fileName: string): Promise<void> {
   const logoB64 = await getLogoBase64();
-  const html = buildHtml(logoB64, options);
+  const html = await inlineRemoteImages(buildHtml(logoB64, options));
   const { uri } = await Print.printToFileAsync({ html });
   // Rename to desired filename
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
@@ -251,7 +287,7 @@ export async function sharePdf(options: PdfOptions, fileName: string): Promise<v
  */
 export async function generatePdfUri(options: PdfOptions, fileName: string): Promise<string> {
   const logoB64 = await getLogoBase64();
-  const html = buildHtml(logoB64, options);
+  const html = await inlineRemoteImages(buildHtml(logoB64, options));
   const { uri } = await Print.printToFileAsync({ html });
   const dest = `${FileSystem.cacheDirectory}${fileName}`;
   await FileSystem.moveAsync({ from: uri, to: dest });

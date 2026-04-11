@@ -1,6 +1,7 @@
 /**
- * PdfPreviewModal — in-app PDF viewer with share button.
- * Uses react-native-pdf for rendering and expo-sharing for export.
+ * PdfPreviewModal — PDF ready screen with native share/open.
+ * Does NOT use react-native-pdf (requires unbuilt native module).
+ * Opens the system PDF viewer via expo-sharing.
  */
 
 import React, { useCallback } from 'react';
@@ -8,9 +9,8 @@ import {
   View, Text, TouchableOpacity, Modal,
   StyleSheet, ActivityIndicator, Platform,
 } from 'react-native';
-import { Share2, X } from 'lucide-react-native';
+import { Share2, X, FileText, Download } from 'lucide-react-native';
 import { shareAsync } from 'expo-sharing';
-import Pdf from 'react-native-pdf';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
@@ -49,26 +49,28 @@ export default function PdfPreviewModal({
             <X size={rs(20)} color={colors.text} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>{fileName}</Text>
-          <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
+          <TouchableOpacity style={styles.headerBtn} onPress={handleShare} disabled={!pdfUri}>
             <Share2 size={rs(20)} color={colors.accent} strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
-        {pdfUri ? (
-          <Pdf
-            source={{ uri: pdfUri, cache: true }}
-            style={styles.pdf}
-            trustAllCerts={false}
-            renderActivityIndicator={() => (
-              <ActivityIndicator size="large" color={colors.accent} />
-            )}
-            onError={(err) => console.warn('[PdfPreview] error:', err)}
-          />
-        ) : (
-          <View style={styles.loading}>
+        <View style={styles.body}>
+          {pdfUri ? (
+            <>
+              <View style={styles.iconWrap}>
+                <FileText size={rs(56)} color={colors.accent} strokeWidth={1.4} />
+              </View>
+              <Text style={styles.readyTitle}>{t('diary.pdfReady')}</Text>
+              <Text style={styles.readyDesc}>{t('diary.pdfReadyDesc')}</Text>
+              <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.7}>
+                <Download size={rs(18)} color="#fff" strokeWidth={2} />
+                <Text style={styles.shareBtnText}>{t('diary.pdfOpen')}</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
             <ActivityIndicator size="large" color={colors.accent} />
-          </View>
-        )}
+          )}
+        </View>
       </View>
     </Modal>
   );
@@ -108,14 +110,51 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginHorizontal: rs(8),
   },
-  pdf: {
-    flex: 1,
-    width: '100%',
-    backgroundColor: colors.bg,
-  },
-  loading: {
+  body: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: rs(32),
+    gap: rs(16),
+  },
+  iconWrap: {
+    width: rs(100),
+    height: rs(100),
+    borderRadius: rs(22),
+    backgroundColor: colors.accentGlow,
+    borderWidth: 1.5,
+    borderColor: colors.accent + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: rs(8),
+  },
+  readyTitle: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(18),
+    color: colors.text,
+    textAlign: 'center',
+  },
+  readyDesc: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(13),
+    color: colors.textSec,
+    textAlign: 'center',
+    lineHeight: fs(20),
+  },
+  shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: rs(8),
+    backgroundColor: colors.accent,
+    borderRadius: rs(14),
+    paddingVertical: rs(14),
+    paddingHorizontal: rs(28),
+    marginTop: rs(8),
+  },
+  shareBtnText: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(15),
+    color: '#fff',
   },
 });
