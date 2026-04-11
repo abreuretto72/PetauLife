@@ -334,13 +334,18 @@ export default function NewDiaryEntryScreen() {
     intentionalStopRef.current = true;
     if (SpeechModule && isListening) SpeechModule.stop();
     setIsListening(false);
-    setAudioModeAsync({
-      allowsRecording: false,
-      playsInSilentMode: false,
-      interruptionMode: 'duckOthers',
-      shouldRouteThroughEarpiece: false,
-      shouldPlayInBackground: false,
-    }).catch(() => { /* ignorar */ });
+    // Guard: setAudioModeAsync can be undefined on certain emulators/devices (expo-audio v55)
+    try {
+      if (typeof setAudioModeAsync === 'function') {
+        setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: false,
+          interruptionMode: 'duckOthers',
+          shouldRouteThroughEarpiece: false,
+          shouldPlayInBackground: false,
+        }).catch(() => { /* ignorar */ });
+      }
+    } catch { /* ignorar — setAudioModeAsync indisponível no dispositivo */ }
   }, [isListening]);
 
   const handleMicToggle = useCallback(async () => {
@@ -1000,6 +1005,7 @@ export default function NewDiaryEntryScreen() {
   const handleSubmitText = useCallback(async () => {
     console.log('[SUBMIT] handleSubmitText chamado');
     console.log('[SUBMIT] attachments:', attachments.length);
+    console.log('[handleSubmitText] media:', attachments.map((m) => m.type));
     attachments.forEach((a, i) => {
       console.log(`[SUBMIT] attachment[${i}]: type=${a.type} uri=${a.localUri?.slice(-30)} size=${a.fileSize}`);
     });
