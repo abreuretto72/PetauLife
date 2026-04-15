@@ -1,10 +1,16 @@
 # CLAUDE.md — auExpert Project Rules (v8-merged)
 # Merge: CLAUDE.md v8 original + contexto Claude Code Skills
-# Última atualização: 11/04/2026
+# Última atualização: 13/04/2026
 
 > Fonte de verdade para o Claude Code. Toda decisão segue estas diretrizes.
 
 ---
+
+Add under a ## Database section near the top of CLAUDE.md\n\nWhen modifying database schemas or Supabase migrations, always verify the actual current schema first using `mcp__claude_ai_Supabase__execute_sql` before writing migration code. Never assume column names or types from code alone.
+Add under a ## Code Quality section\n\nNever include mock/placeholder data in production code. If mock data is needed for development, put it in clearly labeled test files that are excluded from production builds.
+Add under a ## Platform Compatibility section\n\nBefore using any API or library function (e.g., crypto.randomUUID, SecureStore), verify it exists and is compatible with the target platform (React Native, web, iOS, Android). Check platform-specific limitations upfront.
+Add under a ## Important Rules section\n\nWhen making changes, do NOT overwrite user's custom assets (icons, images, themes) with auto-generated replacements. Always ask before replacing any visual assets.
+Add under a ## Testing & Verification section\n\nAfter fixing a bug, always verify the fix doesn't break related functionality. For Supabase RLS policies, check ALL CRUD operations (SELECT, INSERT, UPDATE, DELETE) not just the one being fixed.
 
 ## 0. CONTEXTO DO PROJETO (Claude Code)
 
@@ -22,6 +28,13 @@
 - `fetchDiaryEntries` retorna zero results — log `[fetchDiaryEntries] count:` ATIVO
 - Null crash em `handleSubmitText` com vídeo sem foto — log `[handleSubmitText] media:` ATIVO
 - API totals mostrando 0 no load inicial — log `[apiTotals] data:` ATIVO
+
+### Features concluídas (13/04/2026)
+- ✅ **Input-first UX em modais de saúde** — Step 0 com Input + mic em todos os 4 modais
+- ✅ **Consultation card: time field** — Hora da consulta (HH:MM) adicionada e exibida
+- ✅ **Consultation card: diagnosis dedup** — Diagnóstico só aparece se diferente de summary
+- ✅ **Consultation card: registered-by name** — Mostra quem criou o registro (via user join)
+- ✅ **Novo i18n** — consultTime, addedBy, source_* keys em pt-BR + en-US
 
 ### Features pendentes (não marcar como concluídas sem confirmação)
 - **Painel tab** no Help modal: listar 20 lentes com ícones Lucide + descrições i18n

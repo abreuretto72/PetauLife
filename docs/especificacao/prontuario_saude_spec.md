@@ -298,38 +298,259 @@ Status: Dentro do ideal para Labrador 3 anos.
 
 ---
 
-## 4. ENTRADA DE DADOS NO PRONTUÁRIO — AI-FIRST
+## 4. ENTRADA DE DADOS NO PRONTUÁRIO — INPUT-FIRST (v13/04/2026)
 
-Seguindo CLAUDE.md seção 1.1 (Filosofia AI-First), a entrada de dados no Prontuário segue esta hierarquia:
+Seguindo CLAUDE.md seção 1.1 (Filosofia AI-First), todos os modais de saúde (vacinas, exames, medicações, consultas) implementam padrão **input-first com Step 0** obrigatório:
 
 ```
-1º  CÂMERA + IA    → Foto da carteirinha de vacina → OCR extrai tudo
-                   → Foto da receita → IA extrai medicação e dose
-                   → Foto do laudo → IA extrai resultados de exame
-2º  MICROFONE (STT) → Tutor fala "Rex tomou V10 hoje" → IA registra
-                   → Tutor fala "Consultei Dra. Carla" → IA cria consulta
-3º  SELEÇÃO RÁPIDA  → Chips para tipo, toggles, date picker
-4º  DIGITAÇÃO       → Último recurso, apenas quando inevitável
+Hierarquia de entrada:
+1º  TEXTO/VOZ (Step 0)  → Campo Input com mic (STT) para tutor FALAR primeiro
+                        → Divider "ou importe com"
+                        → 3 cards de método visual abaixo
+2º  CÂMERA + IA         → Foto carteirinha/receita/laudo → OCR/Vision
+3º  GALERIA + IA        → Selecionar foto já tirada
+4º  MANUAL              → Formulário com campos
 ```
 
-### Fluxo de cadastro de vacina (exemplo)
+### 4.1 Padrão Step 0 — Implementado em TODOS os 4 modais
+
+**Modais afetados:**
+- `AddVaccineModal` (vacinas)
+- `AddExamModal` (exames)
+- `AddMedicationModal` (medicações)
+- `AddConsultationModal` (consultas)
+
+**Estrutura do Step 0:**
+
+```
+┌─────────────────────────────────────┐
+│ Modal abre em Step 0               │
+├─────────────────────────────────────┤
+│                                     │
+│  Input (multiline) + Mic icon      │ ← SEMPRE VISÍVEL, mic em laranja
+│  "Fale ou digite aqui..."          │
+│                                     │
+│  ─ ou importe com ─                │ ← Divider com i18n key
+│                                     │
+│  [📷 Câmera] [🖼️ Galeria] [✏️ Manual] │ ← 3 cards de método
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Propriedades do Input de Step 0:**
+
+| Propriedade | Valor |
+|------------|-------|
+| **Component** | `Input` (multiline) |
+| **Placeholder** | `health.addRecordPlaceholder` (i18n) |
+| **Mic button** | Sempre presente, color `accent` (laranja) |
+| **onChange** | Atualiza estado local |
+| **Visibilidade** | SEM condição — SEMPRE visível quando modal abre |
+
+**Divider e cards:**
+
+```typescript
+// Step 0 layout (pseudo-code):
+<View style={styles.step0Container}>
+  <Input 
+    multiline 
+    placeholder={t('health.addRecordPlaceholder')}
+    value={inputText}
+    onChangeText={setInputText}
+    showMic={true}
+  />
+  
+  <Text style={styles.divider}>{t('health.orImportWith')}</Text>
+  
+  <View style={styles.methodCards}>
+    <PhotoCard onPress={() => /* Step 1 com source:'photo' */} />
+    <GalleryCard onPress={() => /* Step 1 com source:'gallery' */} />
+    <ManualCard onPress={() => /* Step 1 com source:'manual' */} />
+  </View>
+</View>
+```
+
+**Novos i18n keys (adicionados em pt-BR.json e en-US.json):**
+
+```json
+{
+  "health": {
+    "addRecordPlaceholder": "Fale ou digite aqui... (ex: 'V10 aplicada hoje')",
+    "orImportWith": "— ou importe com —",
+    "consultTime": "Hora da consulta",
+    "consultTimePlaceholder": "HH:MM (opcional)",
+    "addedBy": "Registrado por",
+    "source_manual": "Manual",
+    "source_ocr": "OCR",
+    "source_voice": "Voz",
+    "source_ai": "IA"
+  }
+}
+```
+
+### 4.2 Fluxo de cadastro de vacina (exemplo atualizado)
 
 ```
 Tutor abre Prontuário do Rex
     → Toca "+" (FAB)
     → Seleciona "Vacina"
-    → Opção 1: FOTO (prioridade)
+    → Modal abre em Step 0 (INPUT-FIRST)
+        ┌─────────────────────────────────────┐
+        │ Input com mic                       │ ← PRIMEIRA COISA QUE VÊ
+        │ "Fale ou digite aqui..."            │
+        │ [🎤]                                │
+        │                                     │
+        │ — ou importe com —                  │
+        │ [📷] [🖼️] [✏️]                       │
+        └─────────────────────────────────────┘
+    
+    → Opção 1: FALAR (ou digitar)
+        → Tutor toca mic e fala: "V10 aplicada hoje pela Dra. Carla"
+        → STT transcreve no Input
+        → Tutor toca [Próximo] ou card "Manual"
+        → Step 1: form com campos pré-preenchidos (se IA inferiu)
+    
+    → Opção 2: FOTO
+        → Tutor toca card [📷 Câmera]
         → Tira foto da carteirinha
-        → IA (OCR) extrai: nome, lab, lote, data, vet
-        → Mostra resultado com % confiança em cada campo
-        → Tutor confirma ou corrige
-        → Salva na tabela vaccines
-    → Opção 2: VOZ
-        → Tutor fala: "Rex tomou V10 na Dra. Carla hoje"
-        → IA extrai: nome=V10, vet=Dra. Carla, data=hoje
-        → Mostra resultado para confirmação
-    → Opção 3: MANUAL
-        → Formulário com campos pré-sugeridos pela IA
+        → Vai para Step 1 (OCR extract + confirmação)
+    
+    → Opção 3: GALERIA
+        → Tutor toca card [🖼️ Galeria]
+        → Seleciona foto existente
+        → Vai para Step 1 (OCR extract + confirmação)
+    
+    → Opção 4: MANUAL
+        → Tutor toca card [✏️ Manual]
+        → Vai para Step 1 (formulário vazio ou com sugestões IA)
+```
+
+### 4.3 Nova coluna em consultas: `time`
+
+**Campo adicionado à tabela consultations:**
+
+```sql
+time            TIME,    -- Hora da consulta (HH:MM), nullable
+```
+
+**Implementação em AddConsultationModal:**
+
+- Nova linha entre Date e Veterinarian em Step 1
+- Ícone `Clock` em laranja
+- Input com placeholder `consultTimePlaceholder` (i18n)
+- Formato: HH:MM (opcional)
+- Type: `time` (HTML5 ou custom time picker)
+
+**Exibição em consultation card (health.tsx renderConsultations):**
+
+```typescript
+// Subtitle do card: data · hora · clínica
+const subtitle = [
+  formatDate(c.date),        // "10 abr. 2026"
+  c.time && formatTime(c.time), // "14:30" (se existir)
+  c.clinic_name
+].filter(Boolean).join(' · ');
+
+// Exemplo: "10 abr. 2026 · 14:30 · Clínica VetCare"
+```
+
+### 4.4 Improvements no consultation card
+
+**1. Diagnosis deduplication:**
+
+```typescript
+// ANTES: mostrava summary E diagnosis sempre
+// AGORA: diagnosis só aparece se diferente de summary
+
+{c.diagnosis && c.diagnosis !== c.summary && (
+  <Text>{t('health.diagnosis')}: {c.diagnosis}</Text>
+)}
+```
+
+**2. Registered-by field:**
+
+```typescript
+// ANTES: source badge (manual/ocr/voice/ai)
+// AGORA: pessoa que registrou (via user join)
+
+const registeredBy = c.registered_by_user?.full_name;
+const label = registeredBy === currentUserName ? t('common.you') : registeredBy;
+
+<Text style={styles.registeredBy}>
+  {t('health.addedBy')}: {label}
+</Text>
+```
+
+**Database change (fetchConsultations):**
+
+```typescript
+// ANTES:
+.select('*')
+
+// AGORA:
+.select('*, registered_by_user:users!user_id(full_name)')
+```
+
+### 4.5 Fluxo detalhado por tipo de registro
+
+#### **Vacinas**
+
+```
+Input: "V10 aplicada ontem na Dra. Carla"
+↓
+Step 1 (form completo):
+  - Nome: "V10 (Polivalente)" (sugerido/editável)
+  - Lab: "" (vazio, tutor digita)
+  - Lote: "" (vazio)
+  - Vet: "Dra. Carla" (extraído)
+  - Data: [yesterday] (inferida)
+  - Próxima: [auto-calcula baseado em vacina]
+  - Clínica: "" (vazio)
+  - Status: "ok"
+```
+
+#### **Medicações**
+
+```
+Input: "Simparic mensal, começou ontem"
+↓
+Step 1 (form):
+  - Nome: "Simparic" (sugerido)
+  - Tipo: "antiparasitic" (sugerido)
+  - Dosagem: "" (vazio)
+  - Frequência: "Mensal" (extraído)
+  - Data início: [yesterday]
+  - Data fim: "" (continuo)
+  - Ativo: true
+```
+
+#### **Consultas**
+
+```
+Input: "Fui no vet hoje, ALT elevado"
+↓
+Step 1 (form):
+  - Tipo: "routine" (default)
+  - Data: [today] (inferida)
+  - Hora: "" (vazio — novo campo)
+  - Vet: "" (vazio)
+  - Clínica: "" (vazio)
+  - Resumo: "Fui no vet hoje, ALT elevado" (pré-preenchido)
+  - Diagnóstico: "" (vazio)
+```
+
+#### **Exames**
+
+```
+Input: "Hemograma saiu, tudo ok"
+↓
+Step 1 (form):
+  - Nome: "Hemograma" (sugerido)
+  - Data: [today]
+  - Status: "normal" (inferido)
+  - Lab: "" (vazio)
+  - Vet: "" (vazio)
+  - Notas: "tudo ok" (pré-preenchido)
 ```
 
 ---

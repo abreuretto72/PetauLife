@@ -333,10 +333,20 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.vaccineMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.vaccineNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      {/* OCR — Camera */}
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
+
+        {/* OCR — Camera */}
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
         <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
           <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
         </View>
@@ -370,6 +380,9 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         </View>
         <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
       </TouchableOpacity>
+
+        <View style={{ height: rs(16) }} />
+      </ScrollView>
     </View>
   );
 
@@ -617,6 +630,18 @@ const styles = StyleSheet.create({
     color: colors.textSec,
     marginBottom: spacing.lg,
   },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(11),
+    color: colors.textDim,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
+  },
   // Method cards (step 0)
   methodCard: {
     flexDirection: 'row',
@@ -687,7 +712,7 @@ const styles = StyleSheet.create({
   },
   // Form
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

@@ -10,7 +10,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   Syringe,
@@ -19,6 +19,7 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   Sparkles,
   FileText,
   Pill,
@@ -29,6 +30,7 @@ import {
   Info,
   X,
   TrendingUp,
+  Receipt,
 } from 'lucide-react-native';
 import MetricsCharts from '../../../../components/lenses/MetricsCharts';
 import ExpensesLens from '../../../../components/lenses/ExpensesLens';
@@ -37,7 +39,7 @@ import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
-import { useVaccines, useAllergies, useExams, useMedications, useConsultations, useSurgeries } from '../../../../hooks/useHealth';
+import { useVaccines, useAllergies, useExams, useMedications, useConsultations, useSurgeries, useMetrics, useExpensesMutations } from '../../../../hooks/useHealth';
 import { HealthScoreCircle } from '../../../../components/HealthScoreCircle';
 import { Skeleton } from '../../../../components/Skeleton';
 import AddVaccineModal, { type VaccineData } from '../../../../components/AddVaccineModal';
@@ -45,8 +47,11 @@ import AddExamModal, { type ExamData } from '../../../../components/AddExamModal
 import AddMedicationModal, { type MedicationData } from '../../../../components/AddMedicationModal';
 import AddConsultationModal, { type ConsultationData } from '../../../../components/AddConsultationModal';
 import AddSurgeryModal, { type SurgeryData } from '../../../../components/AddSurgeryModal';
+import AddMetricsModal, { type MetricData } from '../../../../components/AddMetricsModal';
+import AddExpensesModal, { type ExpenseData } from '../../../../components/AddExpensesModal';
 import { useToast } from '../../../../components/Toast';
 import { useAuthStore } from '../../../../stores/authStore';
+import PetBottomNav, { type PetTab } from '../../../../components/layout/PetBottomNav';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 import { formatAge, formatWeight, formatDate } from '../../../../utils/format';
 
@@ -189,6 +194,7 @@ function SeverityBadge({ severity, t }: { severity: string; t: (key: string) => 
 export default function HealthScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { t } = useTranslation();
+  const router = useRouter();
   const validTabs: TabId[] = ['general', 'vaccines', 'exams', 'medications', 'consultations', 'surgeries', 'metrics', 'expenses'];
   const initialTab: TabId = (tab && validTabs.includes(tab as TabId)) ? (tab as TabId) : 'general';
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -201,6 +207,8 @@ export default function HealthScreen() {
   const { medications, refetch: refetchMeds, addMedication, isAdding: isAddingMed } = useMedications(id!);
   const { consultations, refetch: refetchCons, addConsultation, isAdding: isAddingCons } = useConsultations(id!);
   const { surgeries, refetch: refetchSurg, addSurgery, isAdding: isAddingSurg } = useSurgeries(id!);
+  const { addMetric, isAdding: isAddingMetric } = useMetrics(id!);
+  const { addExpense, isAdding: isAddingExpense } = useExpensesMutations(id!);
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
@@ -208,6 +216,8 @@ export default function HealthScreen() {
   const [showAddMed, setShowAddMed] = useState(false);
   const [showAddCons, setShowAddCons] = useState(false);
   const [showAddSurg, setShowAddSurg] = useState(false);
+  const [showAddMetric, setShowAddMetric] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [showBloodTypeInfo, setShowBloodTypeInfo] = useState(false);
 
   const isLoading = petLoading || vaccinesLoading || allergiesLoading;
@@ -326,25 +336,25 @@ export default function HealthScreen() {
           <StatCard
             icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
             iconColor={colors.petrol}
-            value={0}
+            value={exams.length}
             label={t('health.totalExams')}
           />
           <StatCard
             icon={<Stethoscope size={rs(18)} color={colors.sky} strokeWidth={1.8} />}
             iconColor={colors.sky}
-            value={0}
+            value={consultations.length}
             label={t('health.totalConsultations')}
           />
           <StatCard
             icon={<Pill size={rs(18)} color={colors.purple} strokeWidth={1.8} />}
             iconColor={colors.purple}
-            value={0}
+            value={medications.length}
             label={t('health.totalMedications')}
           />
           <StatCard
             icon={<Scissors size={rs(18)} color={colors.rose} strokeWidth={1.8} />}
             iconColor={colors.rose}
-            value={0}
+            value={surgeries.length}
             label={t('health.totalSurgeries')}
           />
           <StatCard
@@ -356,7 +366,7 @@ export default function HealthScreen() {
         </View>
       </>
     );
-  }, [pet, vaccines, allergies, overdueCount, isDog, healthLabel, t]);
+  }, [pet, vaccines, allergies, exams, consultations, medications, surgeries, overdueCount, isDog, healthLabel, t]);
 
   // ──────────────────────────────────────
   // TAB: VACCINES
@@ -412,6 +422,22 @@ export default function HealthScreen() {
       toast(t('toast.petCreated', { name: data.name }), 'success');
     } catch (err) { toast(getErrorMessage(err), 'error'); }
   }, [addSurgery, id, user?.id, toast, t]);
+
+  const handleAddMetric = useCallback(async (data: MetricData) => {
+    try {
+      await addMetric({ ...data, pet_id: id!, user_id: user?.id ?? '' });
+      setShowAddMetric(false);
+      toast(t('toast.petCreated', { name: t(`health.${data.metric_type}` as never, { defaultValue: data.metric_type }) }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addMetric, id, user?.id, toast, t]);
+
+  const handleAddExpense = useCallback(async (data: ExpenseData) => {
+    try {
+      await addExpense({ ...data, pet_id: id!, user_id: user?.id ?? '' });
+      setShowAddExpense(false);
+      toast(t('toast.petCreated', { name: t(`expenses.category.${data.category}` as never, { defaultValue: data.category }) }), 'success');
+    } catch (err) { toast(getErrorMessage(err), 'error'); }
+  }, [addExpense, id, user?.id, toast, t]);
 
   const renderVaccines = useCallback(() => {
     return (
@@ -630,7 +656,11 @@ export default function HealthScreen() {
                     <Stethoscope size={rs(16)} color={typeColor} strokeWidth={1.8} />
                     <View style={styles.vaccineHeaderInfo}>
                       <Text style={styles.vaccineHeaderName}>{String(c.veterinarian ?? '')}</Text>
-                      <Text style={styles.vaccineHeaderDate}>{formatDate(String(c.date ?? ''))}{c.clinic ? ` · ${String(c.clinic)}` : ''}</Text>
+                      <Text style={styles.vaccineHeaderDate}>
+                        {formatDate(String(c.date ?? ''))}
+                        {c.time ? ` · ${String(c.time).substring(0, 5)}` : ''}
+                        {c.clinic ? ` · ${String(c.clinic)}` : ''}
+                      </Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: typeColor + '15' }]}>
                       <Text style={[styles.statusBadgeText, { color: typeColor }]}>{String(c.type ?? '')}</Text>
@@ -640,10 +670,19 @@ export default function HealthScreen() {
               >
                 <View style={styles.vaccineDetails}>
                   {!!c.summary && <InfoRow label={t('health.summary')} value={String(c.summary)} isFirst />}
-                  {!!c.diagnosis && <InfoRow label={t('health.diagnosis')} value={String(c.diagnosis)} />}
+                  {!!c.diagnosis && c.diagnosis !== c.summary && (
+                    <InfoRow label={t('health.diagnosis')} value={String(c.diagnosis)} />
+                  )}
                   {!!c.prescriptions && <InfoRow label={t('health.prescriptions')} value={String(c.prescriptions)} />}
                   {!!c.follow_up_at && <InfoRow label={t('health.followUp')} value={formatDate(String(c.follow_up_at))} />}
                   {!!c.notes && <InfoRow label={t('health.notes')} value={String(c.notes)} />}
+                  {(() => {
+                    const byUser = c.registered_by_user as { full_name?: string } | null;
+                    const name = byUser?.full_name
+                      ? (c.user_id === user?.id ? t('health.registeredByYou') : String(byUser.full_name))
+                      : t('health.registeredByUnknown');
+                    return <InfoRow label={t('health.addedBy')} value={name} />;
+                  })()}
                 </View>
               </ExpandableCard>
             );
@@ -700,12 +739,32 @@ export default function HealthScreen() {
   }, [surgeries, t]);
 
   const renderMetrics = useCallback(() => (
-    <MetricsCharts petId={id} />
-  ), [id]);
+    <>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => setShowAddMetric(true)}
+        activeOpacity={0.7}
+      >
+        <TrendingUp size={rs(18)} color="#fff" strokeWidth={2} />
+        <Text style={styles.addButtonText}>{t('health.addMetric')}</Text>
+      </TouchableOpacity>
+      <MetricsCharts petId={id} />
+    </>
+  ), [id, t]);
 
   const renderExpenses = useCallback(() => (
-    <ExpensesLens petId={id} />
-  ), [id]);
+    <>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => setShowAddExpense(true)}
+        activeOpacity={0.7}
+      >
+        <Receipt size={rs(18)} color="#fff" strokeWidth={2} />
+        <Text style={styles.addButtonText}>{t('health.addExpense')}</Text>
+      </TouchableOpacity>
+      <ExpensesLens petId={id} />
+    </>
+  ), [id, t]);
 
   // ──────────────────────────────────────
   // Tab content renderer
@@ -739,12 +798,22 @@ export default function HealthScreen() {
   if (isLoading) {
     return (
       <View style={styles.root}>
+        {/* Keep header visible during load so layout doesn't jump */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {pet?.name ?? '...'}
+          </Text>
+          <View style={styles.headerBtn} />
+        </View>
         <View style={styles.skeletonTabs}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} width={rs(70)} height={rs(32)} radius={rs(16)} />
           ))}
         </View>
-        <View style={styles.skeletonContent}>
+        <View style={[styles.skeletonContent, { flex: 1 }]}>
           <Skeleton width={rs(200)} height={rs(16)} />
           <Skeleton
             width={'100%' as unknown as number}
@@ -760,12 +829,30 @@ export default function HealthScreen() {
             style={{ marginTop: rs(12) }}
           />
         </View>
+        <PetBottomNav
+          active="painel"
+          onChange={(navTab: PetTab) => {
+            if (navTab === 'painel') return;
+            router.replace(`/pet/${id}?initialTab=${navTab}` as never);
+          }}
+        />
       </View>
     );
   }
 
   return (
     <View style={styles.root}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {pet?.name ?? '...'}
+        </Text>
+        <View style={styles.headerBtn} />
+      </View>
+
       {/* Sub-tabs */}
       <ScrollView
         horizontal
@@ -792,6 +879,7 @@ export default function HealthScreen() {
 
       {/* Content */}
       <ScrollView
+        style={styles.contentScroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -847,6 +935,31 @@ export default function HealthScreen() {
         petId={id!}
         userId={user?.id ?? ''}
         isSubmitting={isAddingSurg}
+      />
+      <AddMetricsModal
+        visible={showAddMetric}
+        onClose={() => setShowAddMetric(false)}
+        onSubmit={handleAddMetric}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingMetric}
+      />
+      <AddExpensesModal
+        visible={showAddExpense}
+        onClose={() => setShowAddExpense(false)}
+        onSubmit={handleAddExpense}
+        petId={id!}
+        userId={user?.id ?? ''}
+        isSubmitting={isAddingExpense}
+      />
+
+      {/* Bottom Nav — same as diary/painel tabs */}
+      <PetBottomNav
+        active="painel"
+        onChange={(navTab: PetTab) => {
+          if (navTab === 'painel') return; // already here
+          router.replace(`/pet/${id}?initialTab=${navTab}` as never);
+        }}
       />
 
       {/* Blood Type Info Modal */}
@@ -911,6 +1024,32 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+
+  // ── Header ──
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(8),
+    gap: rs(12),
+  },
+  headerBtn: {
+    width: rs(40),
+    height: rs(40),
+    borderRadius: rs(12),
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    flex: 1,
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(18),
+    color: colors.text,
+    textAlign: 'center',
   },
 
   // ── Tabs ──
@@ -992,6 +1131,9 @@ const styles = StyleSheet.create({
   },
 
   // ── Content ──
+  contentScroll: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: rs(20),
     paddingTop: rs(16),

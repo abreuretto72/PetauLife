@@ -304,9 +304,19 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.examMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.examNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
+
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
         <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
           <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
         </View>
@@ -338,8 +348,9 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         </View>
         <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
       </TouchableOpacity>
-    </View>
-  );
+    </ScrollView>
+  </View>
+);
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
@@ -606,8 +617,18 @@ const styles = StyleSheet.create({
     fontSize: fs(11),
     color: colors.purple,
   },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(12),
+    color: colors.textSec,
+    textAlign: 'center',
+    marginVertical: spacing.sm,
+  },
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

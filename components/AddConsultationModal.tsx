@@ -21,6 +21,7 @@ import {
   ImageIcon,
   PenLine,
   Calendar,
+  Clock,
   Building2,
   Stethoscope,
   FileText,
@@ -42,6 +43,7 @@ export type ConsultationType = 'check-up' | 'emergency' | 'specialty' | 'follow-
 
 export interface ConsultationData {
   date: string;
+  time?: string | null;
   veterinarian: string;
   clinic?: string | null;
   type: ConsultationType;
@@ -105,6 +107,7 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
 
   // Form fields
   const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [veterinarian, setVeterinarian] = useState('');
   const [clinic, setClinic] = useState('');
   const [consultType, setConsultType] = useState<ConsultationType>('check-up');
@@ -151,6 +154,7 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
     setAnalyzing(false);
     setOcrConfidence(null);
     setDate('');
+    setTime('');
     setVeterinarian('');
     setClinic('');
     setConsultType('check-up');
@@ -272,6 +276,7 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
 
     const consultation: ConsultationData = {
       date: displayToIso(date.trim()),
+      time: time.trim() || null,
       veterinarian: veterinarian.trim(),
       clinic: clinic.trim() || null,
       type: consultType,
@@ -304,9 +309,19 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.consultMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.summary')}
+          placeholder={t('health.summaryPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={summary}
+          onChangeText={setSummary}
+          multiline
+        />
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
+
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
         <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
           <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
         </View>
@@ -338,6 +353,9 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
         </View>
         <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
       </TouchableOpacity>
+
+        <View style={{ height: rs(16) }} />
+      </ScrollView>
     </View>
   );
 
@@ -383,6 +401,16 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
           value={date}
           onChangeText={setDate}
           error={errors.date}
+          type="numeric"
+          showMic={false}
+        />
+
+        <Input
+          label={t('health.consultTime')}
+          placeholder={t('health.consultTimePlaceholder')}
+          icon={<Clock size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={time}
+          onChangeText={setTime}
           type="numeric"
           showMic={false}
         />
@@ -533,6 +561,18 @@ const styles = StyleSheet.create({
     fontSize: fs(14),
     color: colors.textSec,
     marginBottom: spacing.lg,
+  },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(11),
+    color: colors.textDim,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   methodCard: {
     flexDirection: 'row',

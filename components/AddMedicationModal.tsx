@@ -323,40 +323,52 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.medMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.medNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          showMic
+        />
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
-          <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.photoPrescription')}</Text>
-          <Text style={styles.methodDesc}>{t('health.photoPrescriptionDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
 
-      <TouchableOpacity style={styles.methodCard} onPress={handlePickFromGallery} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.petrolSoft }]}>
-          <ImageIcon size={rs(28)} color={colors.petrol} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.galleryPrescription')}</Text>
-          <Text style={styles.methodDesc}>{t('health.galleryPrescriptionDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
+            <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.photoPrescription')}</Text>
+            <Text style={styles.methodDesc}>{t('health.photoPrescriptionDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleManualEntry} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.accentGlow }]}>
-          <PenLine size={rs(28)} color={colors.accent} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.manualMedEntry')}</Text>
-          <Text style={styles.methodDesc}>{t('health.manualMedEntryDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.methodCard} onPress={handlePickFromGallery} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.petrolSoft }]}>
+            <ImageIcon size={rs(28)} color={colors.petrol} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.galleryPrescription')}</Text>
+            <Text style={styles.methodDesc}>{t('health.galleryPrescriptionDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.methodCard} onPress={handleManualEntry} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.accentGlow }]}>
+            <PenLine size={rs(28)} color={colors.accent} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.manualMedEntry')}</Text>
+            <Text style={styles.methodDesc}>{t('health.manualMedEntryDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 
@@ -637,8 +649,18 @@ const styles = StyleSheet.create({
     fontSize: fs(11),
     color: colors.purple,
   },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(12),
+    color: colors.textSec,
+    textAlign: 'center',
+    marginVertical: spacing.sm,
+  },
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

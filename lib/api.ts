@@ -6,8 +6,6 @@ import type { Pet, DiaryEntry, Vaccine, Allergy, MoodLog } from '../types/databa
 // ══════════════════════════════════════
 
 export async function fetchPets(): Promise<Pet[]> {
-  console.log('[api.fetchPets] iniciando query...');
-
   // 1. Pets que sou dono (RLS filtra por user_id automaticamente)
   const { data: ownedPets, error: ownedError } = await supabase
     .from('pets')
@@ -15,7 +13,6 @@ export async function fetchPets(): Promise<Pet[]> {
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
-  console.log('[api.fetchPets] owned:', ownedPets?.length ?? 0, '| error:', ownedError?.message ?? 'ok');
   if (ownedError) throw ownedError;
 
   // 2. Pets onde sou co-tutor/cuidador/visualizador ativo
@@ -25,7 +22,6 @@ export async function fetchPets(): Promise<Pet[]> {
     .eq('is_active', true)
     .not('accepted_at', 'is', null);
 
-  console.log('[api.fetchPets] shared:', memberRows?.length ?? 0, '| error:', memberError?.message ?? 'ok');
   if (memberError) throw memberError;
 
   // Combinar e deduplicar
@@ -379,7 +375,7 @@ export async function createMedication(medication: Record<string, unknown>) {
 export async function fetchConsultations(petId: string) {
   const { data, error } = await supabase
     .from('consultations')
-    .select('*')
+    .select('*, registered_by_user:users!user_id(full_name)')
     .eq('pet_id', petId)
     .eq('is_active', true)
     .order('date', { ascending: false });
