@@ -104,7 +104,52 @@ Deno.serve(async (req: Request) => {
       petContext,
     });
 
-    // 6. Record anonymized training data — fire-and-forget, consent checked inside DB function
+    // 6. Auto-save allergy classifications to the allergies table — fire-and-forget
+    // When the tutor mentions an allergy in the diary, it should automatically appear
+    // in the health screen's Allergies section without manual data entry.
+    const allergyClassifications = (result.classifications ?? []).filter(
+      (c: { type: string; confidence: number; extracted_data: Record<string, unknown> }) =>
+        c.type === 'allergy' && c.confidence >= 0.7 && c.extracted_data?.allergen,
+    );
+    if (allergyClassifications.length > 0 && user?.id) {
+      const supabaseAllergy = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      // Fetch existing allergens for this pet to avoid duplicates (case-insensitive)
+      const { data: existing } = await supabaseAllergy
+        .from('allergies')
+        .select('allergen')
+        .eq('pet_id', pet_id)
+        .eq('is_active', true);
+      const existingLower = new Set((existing ?? []).map((r: { allergen: string }) => r.allergen.toLowerCase()));
+
+      for (const c of allergyClassifications) {
+        const d = c.extracted_data as Record<string, unknown>;
+        const allergen = String(d.allergen ?? '').trim();
+        if (!allergen || existingLower.has(allergen.toLowerCase())) continue;
+        supabaseAllergy
+          .from('allergies')
+          .insert({
+            pet_id,
+            user_id: user.id,
+            allergen,
+            reaction: d.reaction_type ? String(d.reaction_type) : null,
+            severity: (['mild', 'moderate', 'severe'].includes(String(d.severity ?? ''))
+              ? String(d.severity)
+              : 'mild'),
+            diagnosed_date: d.first_observed ? String(d.first_observed) : null,
+            diagnosed_by: null,
+            is_active: true,
+          })
+          .then(() => {
+            console.log('[classify-diary-entry] allergy auto-saved:', allergen, '| pet:', pet_id);
+          })
+          .catch((err: unknown) => {
+            console.warn('[classify-diary-entry] allergy insert skipped:', String(err));
+          });
+        existingLower.add(allergen.toLowerCase()); // prevent double-insert within same request
+      }
+    }
+
+    // 7. Record anonymized training data — fire-and-forget, consent checked inside DB function
     if (user?.id) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
       supabase.rpc('anonymize_and_insert_training_record', {
@@ -127,7 +172,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 7. Return structured result
+    // 8. Return structured result
     return jsonResponse(result);
 
   } catch (err) {

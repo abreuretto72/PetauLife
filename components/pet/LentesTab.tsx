@@ -1,12 +1,11 @@
 /**
- * LentesTab — 2-column grid of 9 lens cards for the pet screen "Lentes" tab.
+ * LentesTab — 2-column grid of 8 lens cards for the pet screen "Lentes" tab.
  *
  * Each card shows:
  *   - Colored icon (large, 40px container)
  *   - Lens name
  *   - Dynamic badge (count / value / status)
  *
- * The 9th card (Agenda) spans full width.
  * Badge data comes from lightweight queries so this tab doesn't re-fetch
  * what's already loaded by other hooks.
  */
@@ -16,7 +15,7 @@ import {
 } from 'react-native';
 import {
   ShieldCheck, UtensilsCrossed, Receipt, Heart,
-  Trophy, Smile, Plane, CalendarDays,
+  Trophy, Smile, Plane,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -27,31 +26,6 @@ import { spacing, radii } from '../../constants/spacing';
 import PawIcon from '../PawIcon';
 import { useLensExpenses, useLensNutrition, useLensFriends, useLensPlans, useLensAchievements, useLensMoodTrend, useLensTravel } from '../../hooks/useLens';
 import { useVaccines } from '../../hooks/useHealth';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
-
-// ── Upcoming-events count (next 7 days) ───────────────────────────────────────
-
-function useAgendaBadge(petId: string) {
-  return useQuery({
-    queryKey: ['pets', petId, 'lens', 'agenda', 'badge'],
-    queryFn: async (): Promise<number> => {
-      const now = new Date();
-      const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const { count, error } = await supabase
-        .from('scheduled_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('pet_id', petId)
-        .eq('is_active', true)
-        .in('status', ['scheduled', 'confirmed'])
-        .gte('scheduled_for', now.toISOString())
-        .lte('scheduled_for', in7.toISOString());
-      if (error) throw error;
-      return count ?? 0;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 // ── Badge formatting helpers ──────────────────────────────────────────────────
 
@@ -116,8 +90,6 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
   const { data: achievements } = useLensAchievements(petId);
   const { data: happiness } = useLensMoodTrend(petId);
   const { data: travels } = useLensTravel(petId);
-  const { data: agendaCount } = useAgendaBadge(petId);
-
   // ── Badge values ─────────────────────────────────────────────────────────
 
   // Health
@@ -166,11 +138,6 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
       : t('lenses.badgeNoData')
     : null;
 
-  // Agenda
-  const agendaBadge = agendaCount != null && agendaCount > 0
-    ? `${agendaCount} ${t('lenses.badgeNext7Days')}`
-    : null;
-
   const nav = (route: string) => router.push(`/pet/${petId}/${route}` as never);
 
   return (
@@ -198,7 +165,7 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
         <LensCard
           icon={Receipt} color={colors.gold}
           label={t('lenses.expenses')} badge={expensesBadge}
-          onPress={() => router.push(`/pet/${petId}/health?tab=expenses` as never)}
+          onPress={() => nav('expenses')}
         />
         <LensCard
           icon={PawIcon as unknown as React.ElementType} isPaw color={colors.accent}
@@ -230,15 +197,6 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
           onPress={() => nav('plans')}
         />
 
-        {/* Row 5: Agenda — full width */}
-        <LensCard
-          icon={CalendarDays} color={colors.petrol}
-          label={t('lenses.agenda')}
-          badge={agendaBadge}
-          badgeColor={agendaCount && agendaCount > 0 ? colors.petrol : undefined}
-          fullWidth
-          onPress={() => nav('agenda')}
-        />
       </View>
     </ScrollView>
   );

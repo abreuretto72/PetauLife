@@ -21,8 +21,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import {
-  Dog, Cat, Camera, AlertTriangle, ShieldCheck,
-  Sparkles, Clock, ChevronLeft, FileText, Users, Trash2,
+  Dog, Cat, Camera, AlertTriangle, ShieldCheck, Sparkles,
+  ChevronLeft, FileText, Users, CalendarDays,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -42,6 +42,7 @@ import { getErrorMessage } from '../../../../utils/errorMessages';
 import { formatAge, formatWeight } from '../../../../utils/format';
 import DiaryTimeline from '../../../../components/diary/DiaryTimeline';
 import PdfExportModal from '../../../../components/diary/PdfExportModal';
+import DiaryCalendarModal from '../../../../components/diary/DiaryCalendarModal';
 import { diaryEntryToEvent } from '../../../../components/diary/timelineTypes';
 import PetBottomNav, { PetTab } from '../../../../components/layout/PetBottomNav';
 import LentesTab from '../../../../components/pet/LentesTab';
@@ -61,6 +62,8 @@ export default function PetScreen() {
   const [activeTab, setActiveTab] = useState<PetTab>((initialTab as PetTab) ?? 'diario');
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [pdfModalVisible, setPdfModalVisible] = useState(false);
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const { data: pet, isLoading, refetch } = usePet(id!);
   const { vaccines, overdueCount } = useVaccines(id!);
@@ -68,6 +71,21 @@ export default function PetScreen() {
   const { moodLogs } = useMoodLogs(id!);
   const { entries: diaryEntries, isLoading: diaryLoading, refetch: diaryRefetch } = useDiary(id!);
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
+
+  // Dates that have at least one diary entry (for calendar dots)
+  const markedDates = useMemo(() => {
+    const dates = new Set<string>();
+    diaryEntries.forEach((e) => {
+      if (e.created_at) dates.add(e.created_at.slice(0, 10));
+    });
+    return dates;
+  }, [diaryEntries]);
+
+  // Filtered entries when a calendar date is active
+  const filteredDiaryEntries = useMemo(() => {
+    if (!selectedDate) return diaryEntries;
+    return diaryEntries.filter((e) => e.created_at?.slice(0, 10) === selectedDate);
+  }, [diaryEntries, selectedDate]);
 
   const timelineEvents = useMemo(() => {
     const events = diaryEntries.map(diaryEntryToEvent);
@@ -182,7 +200,7 @@ export default function PetScreen() {
           <View style={s.nameRow}>
             <Text style={s.petName}>{pet.name}</Text>
             {pet.sex && (
-              <Text style={{ fontFamily: 'Sora_700Bold', fontSize: fs(16), color: pet.sex === 'male' ? colors.petrol : colors.rose }}>
+              <Text style={{ fontSize: fs(18), color: pet.sex === 'male' ? colors.petrol : colors.rose }}>
                 {pet.sex === 'male' ? '♂' : '♀'}
               </Text>
             )}
@@ -241,7 +259,7 @@ export default function PetScreen() {
         </TouchableOpacity>
       )}
 
-      {/* AI Personality */}
+      {/* AI Personality — gerada automaticamente a cada 10 entradas */}
       {pet.ai_personality && (
         <View style={s.aiCard}>
           <View style={s.aiHeader}>
@@ -284,13 +302,17 @@ export default function PetScreen() {
         </TouchableOpacity>
         <Text style={s.headerTitle} numberOfLines={1}>{pet.name}</Text>
         <View style={s.headerRight}>
-          {canSeeDeleted && (
+          {activeTab === 'diario' && (
             <TouchableOpacity
-              onPress={() => router.push(`/pet/${id}/deleted-records` as never)}
-              style={s.headerBtn}
+              onPress={() => setCalendarVisible(true)}
+              style={[s.headerBtn, !!selectedDate && s.headerBtnActive]}
               activeOpacity={0.7}
             >
-              <Trash2 size={rs(20)} color={colors.danger} strokeWidth={1.8} />
+              <CalendarDays
+                size={rs(20)}
+                color={selectedDate ? colors.accent : colors.textDim}
+                strokeWidth={1.8}
+              />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -314,13 +336,13 @@ export default function PetScreen() {
         {/* ── Aba Diário ─────────────────────────────────────────── */}
         {activeTab === 'diario' && (
           <DiaryTimeline
-            entries={diaryEntries}
+            entries={filteredDiaryEntries}
             isLoading={diaryLoading}
+            petId={id!}
             petName={pet.name}
             petSpecies={pet.species}
             petAvatarUrl={pet.avatar_url}
             petCreatedAt={pet.created_at}
-            petPersonality={pet.ai_personality}
             onRefresh={onRefresh}
             onNewEntry={handleNewEntry}
             onEditEntry={handleEditEntry}
@@ -362,6 +384,14 @@ export default function PetScreen() {
         petName={pet.name}
         getMoodData={getMoodData}
       />
+
+      <DiaryCalendarModal
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        markedDates={markedDates}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+      />
     </SafeAreaView>
   );
 }
@@ -372,6 +402,7 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: rs(16), paddingVertical: rs(8), gap: rs(12), borderBottomWidth: 1, borderBottomColor: colors.border },
   headerBtn: { width: rs(40), height: rs(40), borderRadius: rs(12), backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  headerBtnActive: { borderColor: colors.accent + '50', backgroundColor: colors.accentGlow },
   headerTitle: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: fs(18), color: colors.text, textAlign: 'center' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: rs(8) },
   tabContent: { flex: 1 },

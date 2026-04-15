@@ -41,6 +41,7 @@ import { getErrorMessage } from '../../utils/errorMessages';
 import { supabase } from '../../lib/supabase';
 
 interface TutorProfile {
+  full_name: string | null;
   avatar_url: string | null;
   city: string | null;
   state: string | null;
@@ -84,10 +85,21 @@ export default function HubScreen() {
       // Perfil
       const { data } = await supabase
         .from('users')
-        .select('avatar_url, city, state, xp, level, created_at')
+        .select('full_name, avatar_url, city, state, xp, level, created_at')
         .eq('id', userId)
         .single();
-      if (data) setTutorProfile(data as TutorProfile);
+      if (data) {
+        setTutorProfile(data as TutorProfile);
+        // Primeiro login: redirecionar para completar o perfil se nome estiver vazio
+        // Só redireciona se a conta foi criada há menos de 2 minutos (primeiro login real)
+        if (!data.full_name?.trim() && data.created_at) {
+          const createdMs = new Date(data.created_at).getTime();
+          const ageMinutes = (Date.now() - createdMs) / 60000;
+          if (ageMinutes < 2) {
+            router.push('/profile' as never);
+          }
+        }
+      }
 
       // Contadores — buscar pets do tutor e contar entradas/análises
       const { data: userPets } = await supabase

@@ -9,11 +9,10 @@ import {
   TextInput, ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Download, FileText, Star, X } from 'lucide-react-native';
+import { Download, FileText, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
-import { moods } from '../../constants/moods';
 import * as FileSystem from 'expo-file-system/legacy';
 import { previewPdf } from '../../lib/pdf';
 import { getPublicUrl } from '../../lib/storage';
@@ -67,12 +66,9 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const insets = useSafeAreaInsets();
-  const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [moodFilter, setMoodFilter] = useState<string | null>(null);
-  const [onlySpecial, setOnlySpecial] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   const formatDateInput = useCallback((text: string, setter: (v: string) => void) => {
@@ -95,9 +91,7 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
 
       let filtered = events
         .filter((e) => e.type === 'diary' || e.type === 'photo_analysis')
-        .filter((e) => e.sortDate >= fromTs && e.sortDate <= toTs)
-        .filter((e) => !moodFilter || e.moodId === moodFilter)
-        .filter((e) => !onlySpecial || e.isSpecial);
+        .filter((e) => e.sortDate >= fromTs && e.sortDate <= toTs);
 
       const totalFound = filtered.length;
       const wasTruncated = totalFound > MAX_PDF_ENTRIES;
@@ -166,7 +160,7 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
     } finally {
       setGenerating(false);
     }
-  }, [events, dateFrom, dateTo, moodFilter, onlySpecial, petName, t, i18n.language, getMoodData, toast, onClose]);
+  }, [events, dateFrom, dateTo, petName, t, i18n.language, getMoodData, toast, onClose]);
 
 
   return (
@@ -215,28 +209,6 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
             </View>
             <Text style={styles.dateHint}>{t('diary.pdfDateHint')}</Text>
 
-            {/* Mood filter */}
-            <Text style={styles.label}>{t('diary.pdfMoodFilter')}</Text>
-            <View style={styles.chipsRow}>
-              <TouchableOpacity style={[styles.chip, !moodFilter && styles.chipActive]} onPress={() => setMoodFilter(null)}>
-                <Text style={[styles.chipText, !moodFilter && styles.chipTextActive]}>{t('diary.pdfAllMoods')}</Text>
-              </TouchableOpacity>
-              {moods.filter((m) => !['playful', 'sick'].includes(m.id)).map((m) => {
-                const sel = moodFilter === m.id;
-                return (
-                  <TouchableOpacity key={m.id} style={[styles.chip, sel && { backgroundColor: m.color + '20', borderColor: m.color + '50' }]} onPress={() => setMoodFilter(sel ? null : m.id)}>
-                    <Text style={[styles.chipText, sel && { color: m.color }]}>{isEnglish ? m.label_en : m.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Special only */}
-            <TouchableOpacity style={[styles.toggle, onlySpecial && styles.toggleActive]} onPress={() => setOnlySpecial(!onlySpecial)}>
-              <Star size={rs(16)} color={onlySpecial ? colors.gold : colors.textGhost} strokeWidth={1.8} fill={onlySpecial ? colors.gold : 'none'} />
-              <Text style={[styles.toggleText, onlySpecial && { color: colors.gold }]}>{t('diary.pdfOnlySpecial')}</Text>
-            </TouchableOpacity>
-
             <Text style={styles.info}>{t('diary.pdfMaxEntries', { max: String(MAX_PDF_ENTRIES) })}</Text>
 
             <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} disabled={generating} activeOpacity={0.7}>
@@ -265,14 +237,6 @@ const styles = StyleSheet.create({
   dateLabel: { fontFamily: 'Sora_500Medium', fontSize: fs(10), color: colors.textDim, marginBottom: rs(4) },
   dateInput: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(10), fontFamily: 'JetBrainsMono_400Regular', fontSize: fs(13), color: colors.text, textAlign: 'center' },
   dateHint: { fontFamily: 'Sora_400Regular', fontSize: fs(9), color: colors.textGhost, textAlign: 'center', marginTop: rs(6) },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(6) },
-  chip: { paddingHorizontal: rs(12), paddingVertical: rs(6), borderRadius: rs(8), backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border },
-  chipActive: { backgroundColor: colors.accent + '15', borderColor: colors.accent + '50' },
-  chipText: { fontFamily: 'Sora_500Medium', fontSize: fs(11), color: colors.textDim },
-  chipTextActive: { color: colors.accent, fontFamily: 'Sora_700Bold' },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: rs(10), backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: rs(12), padding: rs(12), marginTop: rs(14) },
-  toggleActive: { backgroundColor: colors.gold + '08', borderColor: colors.gold + '30' },
-  toggleText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.textSec },
   info: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textGhost, textAlign: 'center', marginTop: rs(14) },
   generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.accent, borderRadius: rs(14), paddingVertical: rs(14), marginTop: rs(16) },
   generateBtnText: { fontFamily: 'Sora_700Bold', fontSize: fs(15), color: '#fff' },

@@ -31,8 +31,24 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"
       }
     },
+    "apk": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"
+      }
+    },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"

@@ -37,6 +37,7 @@ import { Input } from './ui/Input';
 import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type MedicationType = 'antibiotic' | 'anti-inflammatory' | 'supplement' | 'antiparasitic' | 'vermifuge' | 'other';
 
@@ -102,6 +103,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>(0);
   const [analyzing, setAnalyzing] = useState(false);
@@ -509,7 +511,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]} pointerEvents={visible ? 'auto' : 'none'}>
       <Animated.View style={[styles.overlay, { opacity: overlayAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
@@ -518,7 +520,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.sheet, { paddingBottom: rs(16) + insets.bottom, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>
@@ -546,7 +548,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     maxHeight: '92%',
-    paddingBottom: rs(16),
   },
   handleWrap: {
     alignItems: 'center',

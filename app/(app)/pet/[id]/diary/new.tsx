@@ -17,6 +17,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChevronLeft, Mic, Check, Trash2, Camera, Video, Music2, FileText, Ear, Square, Image as ImageIcon, HelpCircle, PawPrint, X as XIcon, ShieldCheck, Stethoscope, FlaskConical, Pill, Scale, DollarSign, ThermometerSun, Utensils, AlertTriangle, Scissors, Activity, ShoppingBag, MapPin, Sparkles, ScanLine, Wifi } from 'lucide-react-native';
 import { Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +34,7 @@ import { getErrorMessage } from '../../../../../utils/errorMessages';
 import { useDiaryEntry } from '../../../../../hooks/useDiaryEntry';
 import { setAudioModeAsync } from 'expo-audio';
 import DocumentScanner from '../../../../../components/diary/DocumentScanner';
+import PhotoCamera from '../../../../../components/diary/PhotoCamera';
 import VideoRecorder from '../../../../../components/diary/VideoRecorder';
 import PetAudioRecorder from '../../../../../components/diary/PetAudioRecorder';
 import { AttachmentsPreview } from '../../../../../components/diary/AttachmentsPreview';
@@ -61,6 +63,7 @@ try {
 type Step =
   | 'mic'
   | 'text'
+  | 'photo_camera'         // in-app camera (avoids Android process death)
   | 'scanner'
   | 'document_scan'
   | 'video_record'
@@ -71,7 +74,7 @@ type Step =
   | 'audio_preview'
   | 'document_preview';
 
-const FULLSCREEN_STEPS: Step[] = ['scanner', 'document_scan', 'video_record', 'listen_record'];
+const FULLSCREEN_STEPS: Step[] = ['photo_camera', 'scanner', 'document_scan', 'video_record', 'listen_record'];
 // 'voice' was removed — voice entries use the dedicated /diary/voice screen
 const PREVIEW_STEPS: Step[] = ['photo_preview', 'gallery_preview', 'video_preview', 'audio_preview', 'document_preview'];
 
@@ -123,6 +126,26 @@ export default function NewDiaryEntryScreen() {
   const [step, setStep] = useState<Step>(isEditing ? 'text' : 'mic');
   const [tutorText, setTutorText] = useState(editingEntry?.content ?? '');
   const [isListening, setIsListening] = useState(false);
+
+  // ── Draft persistence (survives Android process death during camera) ──────
+  // Only active for new entries (not edits).
+
+  const draftKey = `diary_draft_${id}`;
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (isEditing || !id) return;
+    AsyncStorage.getItem(draftKey)
+      .then((saved) => { if (saved?.trim()) setTutorText(saved); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save draft whenever text changes
+  useEffect(() => {
+    if (isEditing || !id) return;
+    void AsyncStorage.setItem(draftKey, tutorText);
+  }, [tutorText, isEditing, id, draftKey]);
   const [interimText, setInterimText] = useState('');
 
   // Capture state (shared across preview steps)
@@ -183,6 +206,8 @@ export default function NewDiaryEntryScreen() {
   tutorTextRef.current = tutorText;
   const stepRef = useRef(step);
   stepRef.current = step;
+  // remembers the step to return to after photo_camera closes
+  const prevStepRef = useRef<Step>('mic');
   const intentionalStopRef = useRef(false);
   const isListeningRef = useRef(isListening);
   isListeningRef.current = isListening;
@@ -430,7 +455,7 @@ export default function NewDiaryEntryScreen() {
       setCapturedDocBase64(base64);
       setStep('document_preview');
     } else {
-      // Quick OCR scan — if there's existing text or attachments, merge into the entry
+      // Inline scanner — always preview before confirming, never auto-submit
       const hasExistingContent = tutorText.trim().length > 0 || attachments.length > 0;
       if (hasExistingContent) {
         // Add the scanned doc as a document attachment (base64 stored for later submission)
@@ -443,13 +468,13 @@ export default function NewDiaryEntryScreen() {
         }]);
         setStep('text');
       } else {
-        // No existing content — submit immediately as single OCR entry
-        void submitEntry({ text: null, photosBase64: [base64], inputType: 'ocr_scan' });
-        showAnalyzingAndBack();
+        // Show document_preview so the tutor can confirm before submitting
+        setCapturedDocBase64(base64);
+        setStep('document_preview');
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitEntry, tutorText, attachments]);
+  }, [tutorText, attachments]);
 
   const handleVideoCapture = useCallback(async (uri: string, durationSeconds: number) => {
     setCapturedVideoUri(uri);
@@ -508,9 +533,10 @@ export default function NewDiaryEntryScreen() {
       ringLoop.stop();
       dotsLoop.stop();
       pawAnim.setValue(1);
+      void AsyncStorage.removeItem(draftKey);
       router.back();
     }, 2500);
-  }, [pawAnim, ringAnim, ringOpacity, dotsAnim, router]);
+  }, [pawAnim, ringAnim, ringOpacity, dotsAnim, draftKey, router]);
 
   // ── Confirm handlers (from preview steps) ────────────────────────────────
 
@@ -585,6 +611,26 @@ export default function NewDiaryEntryScreen() {
     showAnalyzingAndBack();
   }, [docType, capturedDocBase64, submitEntry, showAnalyzingAndBack]);
 
+  // ── Photo compression helper ────────────────────────────────────────────
+  // Compresses a photo to 1200px/78% quality BEFORE size validation.
+  // Returns compressed URI + estimated size. Falls back to original on error.
+
+  const compressPhoto = useCallback(async (uri: string): Promise<{ uri: string; size?: number }> => {
+    try {
+      const ImageManipulator = require('expo-image-manipulator');
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      // After 1200px / 78% compression the result is always well under 5 MB —
+      // no need to re-read the file size from disk.
+      return { uri: result.uri };
+    } catch {
+      return { uri };
+    }
+  }, []);
+
   // ── Attachment handlers (text/voice step) ───────────────────────────────
 
   const handleAttachPhoto = useCallback(async () => {
@@ -607,27 +653,28 @@ export default function NewDiaryEntryScreen() {
       });
       if (result.canceled || result.assets.length === 0) return;
       result.assets.forEach((a, i) => {
-        console.log(`[ATTACH] photo selecionada[${i}] | uri:`, a.uri?.slice(-30), '| size:', a.fileSize);
+        console.log(`[ATTACH] photo selecionada[${i}] | uri:`, a.uri?.slice(-30), '| size original:', a.fileSize);
       });
-      const newPhotos: Attachment[] = result.assets
-        .filter((asset) => {
-          if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.photo.maxSizeBytes) {
-            toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
-            return false;
-          }
-          return true;
-        })
-        .map((asset) => ({
+      const newPhotos: Attachment[] = [];
+      for (const asset of result.assets) {
+        const compressed = await compressPhoto(asset.uri);
+        console.log(`[ATTACH] photo comprimida | size:`, compressed.size);
+        if (compressed.size && compressed.size > MEDIA_LIMITS.photo.maxSizeBytes) {
+          toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
+          continue;
+        }
+        newPhotos.push({
           id:           `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           type:         'photo' as const,
-          localUri:     asset.uri,
-          thumbnailUri: asset.uri,
+          localUri:     compressed.uri,
+          thumbnailUri: compressed.uri,
           mimeType:     asset.mimeType ?? 'image/jpeg',
-          fileSize:     asset.fileSize,
+          fileSize:     compressed.size,
           // base64 not stored here — read lazily in handleSubmitText
-        }));
+        });
+      }
       setAttachments((prev) => [...prev, ...newPhotos]);
-      console.log('[ATTACH] photo adicionada | total attachments:', attachments.length + newPhotos.length);
+      console.log('[ATTACH] fotos adicionadas | total:', attachments.length + newPhotos.length);
     } catch (err) { toast(getErrorMessage(err), 'error'); }
     finally {
       if (Platform.OS === 'android') { await new Promise(r => setTimeout(r, 2000)); }
@@ -636,43 +683,47 @@ export default function NewDiaryEntryScreen() {
     }
   }, [attachments, canAddAttachment, toast, t]);
 
-  const handleAttachTakePhoto = useCallback(async () => {
-    console.log('[ATTACH] handleAttachTakePhoto iniciado');
-    if (isPickerOpenRef.current) { console.log('[ATTACH] picker já aberto — ignorando'); return; }
-    console.log('[ATTACH] abrindo picker...');
-    isPickerOpenRef.current = true;
-    if (!canAddAttachment('photo')) { toast(attachmentDeniedMsg('photo'), 'warning'); isPickerOpenRef.current = false; return; }
+  // ── In-app camera (replaces launchCameraAsync to prevent Android process death) ──
+  // launchCameraAsync launches an external Activity; Android kills the Expo JS
+  // process to free memory, causing a full app restart and losing all state.
+  // PhotoCamera uses CameraView directly inside the app — no process death risk.
+
+  const handleAttachTakePhoto = useCallback(() => {
+    console.log('[ATTACH] handleAttachTakePhoto → abrindo PhotoCamera in-app | step:', stepRef.current);
+    if (!canAddAttachment('photo')) {
+      toast(attachmentDeniedMsg('photo'), 'warning');
+      return;
+    }
+    prevStepRef.current = stepRef.current;
+    console.log('[ATTACH] prevStep salvo:', prevStepRef.current);
     const wasListening = isListeningRef.current;
     if (wasListening) stopListening();
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') { toast(t('toast.cameraPermission'), 'warning'); return; }
-      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
-      if (result.canceled || !result.assets[0]) return;
-      const asset = result.assets[0];
-      console.log('[ATTACH] foto câmera | uri:', asset.uri?.slice(-30), '| size:', asset.fileSize);
-      if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.photo.maxSizeBytes) {
-        toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
-        return;
-      }
-      setAttachments((prev) => [...prev, {
+    setStep('photo_camera');
+  }, [canAddAttachment, attachmentDeniedMsg, stopListening, toast]);
+
+  // Receives compressed URI from PhotoCamera after shutter or gallery pick
+  const handlePhotoCameraCapture = useCallback((uri: string) => {
+    console.log('[ATTACH] handlePhotoCameraCapture | uri suffix:', uri?.slice(-40));
+    setStep(prevStepRef.current);
+    console.log('[ATTACH] step restaurado para:', prevStepRef.current);
+    setAttachments((prev) => {
+      const next = [...prev, {
         id:           `photo-${Date.now()}`,
         type:         'photo' as const,
-        localUri:     asset.uri,
-        thumbnailUri: asset.uri,
+        localUri:     uri,
+        thumbnailUri: uri,
         mimeType:     'image/jpeg',
-        fileSize:     asset.fileSize,
-        // base64 not stored here — read lazily in handleSubmitText
-      }]);
-      console.log('[ATTACH] foto câmera adicionada | total:', attachments.length + 1);
-    } catch (err) { toast(getErrorMessage(err), 'error'); }
-    finally {
-      if (Platform.OS === 'android') { await new Promise(r => setTimeout(r, 2000)); }
-      isPickerOpenRef.current = false;
-      console.log('[ATTACH] picker fechado — liberando guard');
-      if (wasListening) await startListening();
-    }
-  }, [attachments, canAddAttachment, stopListening, startListening, toast, t]);
+      }];
+      console.log('[ATTACH] foto adicionada via PhotoCamera | total:', next.length);
+      return next;
+    });
+  }, []);
+
+  // User pressed back in PhotoCamera without capturing
+  const handlePhotoCameraClose = useCallback(() => {
+    console.log('[ATTACH] handlePhotoCameraClose | restaurando step:', prevStepRef.current);
+    setStep(prevStepRef.current);
+  }, []);
 
   // ── Galeria unificada — fotos, vídeos e documentos num único picker ──────
 
@@ -701,18 +752,19 @@ export default function NewDiaryEntryScreen() {
         const mime = asset.mimeType ?? '';
         if (mime.startsWith('image/')) {
           if (!canAddAttachment('photo', newAttachments.length)) { toast(attachmentDeniedMsg('photo'), 'warning'); continue; }
-          if (asset.size && asset.size > MEDIA_LIMITS.photo.maxSizeBytes) {
+          const compressed = await compressPhoto(asset.uri);
+          if (compressed.size && compressed.size > MEDIA_LIMITS.photo.maxSizeBytes) {
             toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
             continue;
           }
           newAttachments.push({
             id:           `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             type:         'photo',
-            localUri:     asset.uri,
-            thumbnailUri: asset.uri,
+            localUri:     compressed.uri,
+            thumbnailUri: compressed.uri,
             mimeType:     mime,
             fileName:     asset.name,
-            fileSize:     asset.size,
+            fileSize:     compressed.size,
             // base64 not stored here — read lazily in handleSubmitText
           });
         } else if (mime.startsWith('video/')) {
@@ -875,17 +927,18 @@ export default function NewDiaryEntryScreen() {
       for (const asset of result.assets) {
         if (asset.type === 'image') {
           if (!canAddAttachment('photo', newAttachments.length)) { toast(attachmentDeniedMsg('photo'), 'warning'); continue; }
-          if (asset.fileSize && asset.fileSize > MEDIA_LIMITS.photo.maxSizeBytes) {
+          const compressed = await compressPhoto(asset.uri);
+          if (compressed.size && compressed.size > MEDIA_LIMITS.photo.maxSizeBytes) {
             toast(t('diary.photoTooLarge', { max: MEDIA_LIMITS.photo.maxSizeMB }), 'warning');
             continue;
           }
           newAttachments.push({
             id:           `photo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
             type:         'photo',
-            localUri:     asset.uri,
-            thumbnailUri: asset.uri,
+            localUri:     compressed.uri,
+            thumbnailUri: compressed.uri,
             mimeType:     'image/jpeg',
-            fileSize:     asset.fileSize,
+            fileSize:     compressed.size,
           });
         } else if (asset.type === 'video') {
           if (!canAddAttachment('video', newAttachments.length)) { toast(attachmentDeniedMsg('video'), 'warning'); continue; }
@@ -1086,9 +1139,11 @@ export default function NewDiaryEntryScreen() {
       if (docBase64) photosBase64 = [docBase64];
     }
 
-    // Extract inline doc base64 for mixed entries (photos + scanned doc in the same submission).
-    // Passed as docBase64 so the pipeline uploads + OCR-classifies it separately from photos.
-    const inlineDocBase64 = inputType !== 'ocr_scan' && docAttachments.length > 0
+    // Extract inline doc base64 for ALL entries that have a scanned document attachment.
+    // For ocr_scan: used by runOCRClassification to extract fields; upload is handled by the
+    // OCR-specific path (analysisFramesCapped → uploadedPhotos[0]), not by DOC-ATTACH.
+    // For mixed entries (photos + doc): pipeline uploads + OCR-classifies it separately.
+    const inlineDocBase64 = docAttachments.length > 0
       ? (docAttachments[0].base64 ?? undefined)
       : undefined;
 
@@ -1162,9 +1217,10 @@ export default function NewDiaryEntryScreen() {
     if (step !== 'mic') {
       setStep('mic');
     } else {
+      void AsyncStorage.removeItem(draftKey);
       router.back();
     }
-  }, [step, confirm, t, stopListening, router]);
+  }, [step, confirm, t, stopListening, draftKey, router]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -1172,6 +1228,9 @@ export default function NewDiaryEntryScreen() {
     <View style={styles.root}>
 
       {/* ── Full-screen capture components ───────────────── */}
+      {step === 'photo_camera' && (
+        <PhotoCamera onCapture={handlePhotoCameraCapture} onClose={handlePhotoCameraClose} />
+      )}
       {(step === 'scanner' || step === 'document_scan') && (
         <DocumentScanner onCapture={handleScannerCapture} onClose={handleBack} />
       )}

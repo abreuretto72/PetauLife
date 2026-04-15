@@ -708,18 +708,30 @@ Note: Map ALL pet food, treat, or supplement packaging to type "food".
 
 ## EXTRACTION RULES:
 - Extract EVERY number, date, name, and measurement visible — including handwritten values
-- For handwritten text: attempt extraction and set confidence ≤ 0.6; mark illegible parts as null
+- For handwritten text: attempt extraction and set confidence ≤ 0.6; if truly illegible, OMIT the field entirely
 - For lab results: always include reference ranges and flag abnormal values
 - Confidence: 0.95=clearly legible | 0.7=partially obscured | 0.5=inferred | 0.3=handwritten/unclear
-- If a date is partially visible, estimate and note uncertainty
+- If a date is partially visible, estimate and note uncertainty in the value (e.g. "2024-03-?" or "~2024-03")
 - For NF/receipts: ALWAYS try to extract the TOTAL even if handwritten. Look for the largest number at the bottom or next to "TOTAL", "VALOR TOTAL", "Total a Pagar"
+
+## CRITICAL: FIELD VALUE RULES — DO NOT VIOLATE:
+- NEVER put descriptive text as a field value. Examples of what is FORBIDDEN as values:
+  "Não legível com precisão na imagem" ← FORBIDDEN
+  "Código de barras visível mas não legível" ← FORBIDDEN
+  "Parcialmente visível — não legível com precisão" ← FORBIDDEN
+  "Campo presente mas ilegível" ← FORBIDDEN
+  "Not readable in this image" ← FORBIDDEN
+- If you cannot extract an actual value, OMIT that field from the array entirely
+- Only include fields where value contains actual extracted data (numbers, text, dates, names)
+- A field with a descriptive apology is WORSE than no field at all — it pollutes the display
 - NARRATION: Write 2-3 sentences in THIRD PERSON for the tutor of ${pet.name}.
   - If pet-related document: explain what was found and any important dates/actions
   - If non-pet document (NF from hardware store, general retail, etc.): briefly acknowledge the document was scanned and mention the total and establishment name
   Respond in ${lang}.
 
-## MANDATORY: ocr_data.fields MUST always be populated — NEVER return fields: []
-The tutor sees ocr_data.fields in the app to confirm what was found. Include ALL visible values.
+## MANDATORY: ocr_data.fields must contain ONLY actual extracted values — never descriptive text.
+The tutor sees ocr_data.fields in the app. Include every field where you extracted a real value.
+If the image is too blurry to read any field, return fields: [] — that is better than fake descriptive values.
 
 By document type:
 - Lab exam / hemogram: one entry per row → {"key": "Hemoglobina", "value": "16 g/dL (ref: 12–18)", "confidence": 0.95}
@@ -734,7 +746,7 @@ The response MUST fit in 4000 tokens. Follow these rules strictly:
 - ocr_data.fields: Include ALL visible values — this is the primary display in the app
 - extracted_data: Summary ONLY — NO large arrays, NO results[], NO items[] inside extracted_data
   - exam: only { exam_name, date, lab_name, results_summary: "1-sentence" }
-  - nota_fiscal: only { amount, currency, merchant_name, date, nf_number }
+  - nota_fiscal: only { amount, currency, merchant_name, date, nf_number, category } — category: one of veterinary_service | medication | food | grooming | boarding | accessory | general_purchase | non_pet
   - vaccine: only { vaccine_name, date, next_due }
   - medication: only { medication_name, dosage, frequency }
   - consultation: only { date, vet_name, diagnosis }

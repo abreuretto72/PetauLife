@@ -6,7 +6,9 @@ import NetInfo from '@react-native-community/netinfo';
 // Quando reconecta: queries stale sao refetchadas automaticamente
 onlineManager.setEventListener((setOnline) => {
   return NetInfo.addEventListener((state) => {
-    setOnline(!!state.isConnected);
+    // null = NetInfo ainda não determinou o estado (startup no Android)
+    // Tratar null como online para não bloquear fetches no startup
+    setOnline(state.isConnected !== false);
   });
 });
 

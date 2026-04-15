@@ -33,14 +33,22 @@ export async function generatePersonality(
   petId: string,
   language: string = 'pt-BR',
 ): Promise<{ personality: string | null; traits: string[]; entries_analyzed: number }> {
+  console.log('[generatePersonality] ▶ chamando Edge Function | pet_id:', petId.slice(-8), '| lang:', language);
   const { data, error } = await supabase.functions.invoke('generate-personality', {
     body: { pet_id: petId, language },
   });
   if (error) {
-    console.error('[ai] generatePersonality ERRO →', error);
+    console.error('[generatePersonality] ✗ ERRO invoke →', error);
     throw error;
   }
-  return data as { personality: string | null; traits: string[]; entries_analyzed: number };
+  console.log('[generatePersonality] ✓ resposta raw →', JSON.stringify(data));
+  const result = data as { personality: string | null; reason?: string; count?: number; min?: number; traits: string[]; entries_analyzed: number };
+  if (!result.personality) {
+    console.warn('[generatePersonality] ⚠ personality null | reason:', result.reason, '| entries:', result.count, '/ min:', result.min);
+  } else {
+    console.log('[generatePersonality] ✓ personality gerada | length:', result.personality.length);
+  }
+  return result;
 }
 
 // ── New concept: unified classification + narration (3rd person) ──

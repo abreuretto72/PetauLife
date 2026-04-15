@@ -232,10 +232,15 @@ async function saveToModule(
             'documentacao', 'esporte', 'memorial', 'logistica', 'digital', 'outros',
           ];
           // Normalize synonyms the classifier may return (especially older model versions)
+          // Also covers OCR-specific category values: food | veterinary_service | medication |
+          // grooming | boarding | accessory | general_purchase | non_pet
           const CATEGORY_ALIASES: Record<string, string> = {
             // Health
-            veterinario: 'saude', veterinary: 'saude', health: 'saude', medical: 'saude',
-            vet: 'saude', consulta: 'saude', vacina: 'saude', exame: 'saude',
+            veterinario: 'saude', veterinary: 'saude', veterinary_service: 'saude',
+            health: 'saude', medical: 'saude', vet: 'saude',
+            consulta: 'saude', vacina: 'saude', exame: 'saude',
+            // Medication (health)
+            medication: 'saude', medicamento: 'saude', remedio: 'saude', remédio: 'saude',
             // Food
             food: 'alimentacao', nutrition: 'alimentacao', racao: 'alimentacao',
             ração: 'alimentacao', petisco: 'alimentacao', petiscos: 'alimentacao',
@@ -249,11 +254,13 @@ async function saveToModule(
             passeio: 'cuidados', cuidado: 'cuidados',
             // Training
             training: 'treinamento', adestramento: 'treinamento',
-            // Accessories
-            accessories: 'acessorios', acessório: 'acessorios', acessórios: 'acessorios',
+            // Accessories (OCR returns 'accessory')
+            accessory: 'acessorios', accessories: 'acessorios',
+            acessório: 'acessorios', acessórios: 'acessorios',
             // Plans
             insurance: 'plano', plan: 'plano', plano: 'plano', seguro: 'plano',
-            // Fallback
+            // General / non-pet → outros
+            general_purchase: 'outros', non_pet: 'outros',
             other: 'outros', outro: 'outros', others: 'outros',
           };
           const rawCategory = ((extracted.category as string) ?? (extracted.merchant_type as string) ?? '').toLowerCase().trim();
@@ -1022,16 +1029,25 @@ async function _backgroundClassifyAndSave(opts: {
       }
     })(),
 
-    // 4. Scanned document — write base64 to tmp file then upload to storage
+    // 4. Scanned document — write base64 to tmp file, compress, then upload to storage
+    // Skip for ocr_scan entries: the doc image is already uploaded via the OCR path above.
+    // AI already used the original base64 — compress here for Storage only.
     (async () => {
       if (!opts.docBase64) return;
+      if (inputType === 'ocr_scan') return;
       try {
         const ext = opts.docBase64.startsWith('/9j/') ? 'jpg' : 'png';
         const tmpUri = `${FileSystem.cacheDirectory}doc_attach_${Date.now()}.${ext}`;
         await FileSystem.writeAsStringAsync(tmpUri, opts.docBase64, { encoding: 'base64' as any });
-        const docPath = await uploadPetMedia(userId, petId, tmpUri, 'photo');
+        const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+        const compressed = await manipulateAsync(
+          tmpUri,
+          [{ resize: { width: 1400 } }],
+          { compress: 0.8, format: SaveFormat.JPEG, base64: false },
+        );
+        const docPath = await uploadPetMedia(userId, petId, compressed.uri, 'photo');
         uploadedDocUrl = getPublicUrl('pet-photos', docPath);
-        console.log('[DOC-ATTACH] doc upado:', uploadedDocUrl?.slice(0, 60));
+        console.log('[DOC-ATTACH] doc upado (comprimido):', uploadedDocUrl?.slice(0, 60));
       } catch (e) {
         console.warn('[DOC-ATTACH] upload falhou:', String(e));
       }
@@ -1241,18 +1257,23 @@ async function _backgroundClassifyAndSave(opts: {
       console.log('[OCR] base64 size KB:', Math.round(ocrBase64Size / 1024 * 0.75));
     }
     // Upload OCR scanner photo to Storage so it appears in the diary card
+    // AI already used the original base64 — compress here for Storage only
     if (inputType === 'ocr_scan' && analysisFramesCapped[0]) {
       try {
         const ocrBase64 = analysisFramesCapped[0];
         const ext = ocrBase64.startsWith('/9j/') ? 'jpg' : 'png';
         const tmpUri = `${FileSystem.cacheDirectory}ocr_${Date.now()}.${ext}`;
-        await FileSystem.writeAsStringAsync(tmpUri, ocrBase64, {
-          encoding: 'base64' as any,
-        });
-        const ocrPath = await uploadPetMedia(userId, petId, tmpUri, 'photo');
+        await FileSystem.writeAsStringAsync(tmpUri, ocrBase64, { encoding: 'base64' as any });
+        const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+        const compressed = await manipulateAsync(
+          tmpUri,
+          [{ resize: { width: 1400 } }],
+          { compress: 0.8, format: SaveFormat.JPEG, base64: false },
+        );
+        const ocrPath = await uploadPetMedia(userId, petId, compressed.uri, 'photo');
         const ocrUrl = getPublicUrl('pet-photos', ocrPath);
         uploadedPhotos = [ocrUrl];
-        console.log('[OCR] foto upada:', ocrUrl?.slice(0, 60));
+        console.log('[OCR] foto upada (comprimida):', ocrUrl?.slice(0, 60));
       } catch (e) {
         console.warn('[OCR] upload foto falhou:', String(e));
       }
@@ -1284,6 +1305,30 @@ async function _backgroundClassifyAndSave(opts: {
     const _classifyStart = Date.now();
     console.log('[ORCH] aiFlags:', JSON.stringify(aiFlags));
     console.log('[ORCH] hasVisualInput:', hasVisualInput, '| audioUrl:', !!uploadedAudioUrl, '| docBase64:', !!opts.docBase64, '| videoUrl:', !!uploadedVideoUrls[0]);
+
+    // ── Resize docBase64 for AI (Claude Vision limit: ~5 MB decoded) ──────────
+    // Original capture is full quality — must resize before sending to Claude.
+    // Storage path already compresses separately (1400px @ 0.8).
+    let docBase64ForAI = opts.docBase64;
+    if (opts.docBase64) {
+      try {
+        const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+        const ext = opts.docBase64.startsWith('/9j/') ? 'jpg' : 'png';
+        const tmpUriAI = `${FileSystem.cacheDirectory}ocr_ai_${Date.now()}.${ext}`;
+        await FileSystem.writeAsStringAsync(tmpUriAI, opts.docBase64, { encoding: 'base64' as any });
+        const resized = await manipulateAsync(
+          tmpUriAI,
+          [{ resize: { width: 2000 } }],
+          { compress: 0.9, format: SaveFormat.JPEG, base64: true },
+        );
+        if (resized.base64) {
+          docBase64ForAI = resized.base64;
+          console.log('[OCR-AI] resized for AI KB:', Math.round(resized.base64.length * 0.75 / 1024));
+        }
+      } catch (e) {
+        console.warn('[OCR-AI] resize failed, using original:', String(e));
+      }
+    }
 
     // ── 5 rotinas independentes em paralelo ───────────────────────────────────
     // Nenhuma lança exceção — cada uma retorna RoutineOutcome<T>.
@@ -1353,10 +1398,10 @@ async function _backgroundClassifyAndSave(opts: {
       // E: OCR document extraction (fields, document_type, items)
       // NOTE: document ALWAYS gets saved to diary — this outcome only controls
       //       whether OCR fields are populated. See docMediaUrl guard below.
-      aiFlags.analyzeOCR && opts.docBase64
+      aiFlags.analyzeOCR && docBase64ForAI
         ? runOCRClassification({
             petId,
-            docBase64: opts.docBase64,
+            docBase64: docBase64ForAI,
             language: i18n.language,
             authHeader,
           })
@@ -1525,10 +1570,17 @@ async function _backgroundClassifyAndSave(opts: {
     const postSavePromises: Promise<unknown>[] = [];
 
     // 1. Extra classification fields + video_analysis / pet_audio_analysis
+    // For ocr_scan: OCR classifier saw the actual image document → its classifications have
+    // correct extracted_data (amounts, dates, product names). The text classifier only
+    // saw minimal text and can return wrong types (e.g. 'symptom' from a product name)
+    // or null amounts. Use OCR classifications when available.
+    const ocrClsArr = inputType === 'ocr_scan' && ocrClassification?.classifications?.length
+      ? (ocrClassification.classifications as import('../lib/ai').ClassificationResult[])
+      : null;
     const extraFields: Record<string, unknown> = {
       input_type: inputType,
-      primary_type: classification.primary_type,
-      classifications: classification.classifications,
+      primary_type: ocrClsArr ? (ocrClassification!.primary_type ?? classification.primary_type) : classification.primary_type,
+      classifications: ocrClsArr ?? classification.classifications,
       mood_confidence: classification.mood_confidence,
       urgency: classification.urgency,
     };
@@ -1633,8 +1685,12 @@ async function _backgroundClassifyAndSave(opts: {
     }
 
     // 5. Module saves (vaccines, consultations, etc.) + linked_*_id writes back
+    // For ocr_scan: use OCR-derived classifications (correct extracted_data) not text classifier
+    const classificationForModules: import('../lib/ai').ClassifyDiaryResponse = ocrClsArr
+      ? { ...classification, classifications: ocrClsArr }
+      : classification;
     postSavePromises.push(
-      saveToModule(petId, userId, entryId, classification).catch((err) => {
+      saveToModule(petId, userId, entryId, classificationForModules).catch((err) => {
         console.warn('[LENTES] saveToModule falhou (non-critical):', err);
       }),
     );
@@ -1689,8 +1745,11 @@ async function _backgroundClassifyAndSave(opts: {
       //    1. Pure OCR entry (inputType === 'ocr_scan'): use main classify result + uploadedPhotos[0]
       //    2. Mixed entry (photos + scanned doc): use ocrClassification result + uploadedDocUrl
       const docMediaUrl = inputType === 'ocr_scan' ? uploadedPhotos[0] : uploadedDocUrl;
+      // For ocr_scan: use ocrClassification (runOCRClassification result) which has ocr_data.fields.
+      // Fall back to text classification only if OCR routine failed/skipped.
+      // For mixed entries (photos + doc): ocrClassification is always the OCR source.
       const docOcrSource = inputType === 'ocr_scan'
-        ? (classification as Record<string, unknown>)
+        ? ((ocrClassification as Record<string, unknown> | null) ?? (classification as Record<string, unknown>))
         : ((ocrClassification as Record<string, unknown> | null) ?? null);
 
       if (docMediaUrl) {
@@ -1918,7 +1977,31 @@ async function _backgroundClassifyAndSave(opts: {
     qc.invalidateQueries({ queryKey: ['pets', petId, 'scheduled_events'] });
     qc.invalidateQueries({ queryKey: ['pets', petId, 'vaccines'] });
     qc.invalidateQueries({ queryKey: ['pets', petId, 'consultations'] });
+    qc.invalidateQueries({ queryKey: ['pets', petId, 'allergies'] });
     qc.invalidateQueries({ queryKey: ['pets', petId, 'insights'] });
+
+    // ── Auto personality generation every 10 entries ──────────────────────────
+    // Fires silently in background — never blocks the save flow
+    void (async () => {
+      try {
+        const allEntries = (qc.getQueryData<import('../types/database').DiaryEntry[]>(queryKey) ?? [])
+          .filter((e) => e.is_active !== false && !e.id.startsWith('temp-'));
+        const count = allEntries.length;
+        if (count > 0 && count % 10 === 0) {
+          console.log('[PERSONALITY] Milestone:', count, 'entradas — gerando personalidade automaticamente');
+          const { generatePersonality } = await import('../lib/ai');
+          const result = await generatePersonality(petId, i18n.language);
+          if (result.personality) {
+            console.log('[PERSONALITY] ✓ Personalidade gerada | length:', result.personality.length);
+            qc.invalidateQueries({ queryKey: ['pet', petId] });
+          } else {
+            console.warn('[PERSONALITY] ⚠ Personalidade null | reason:', result.reason, '| count:', result.count);
+          }
+        }
+      } catch (e) {
+        console.warn('[PERSONALITY] Auto-generation falhou (silencioso):', String(e));
+      }
+    })();
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

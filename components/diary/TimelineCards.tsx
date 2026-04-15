@@ -315,6 +315,24 @@ const PRIORITY_KEYS = ['total', 'valor total', 'total a pagar', 'nf', 'nf_number
 const TOTAL_FIELD_KEYS = ['valor total nf', 'valor total da nota', 'total da nota', 'total nf', 'total a pagar', 'valor a pagar', 'total geral', 'valor total'];
 const TOTAL_FIELD_EXCLUDE = ['tributo', 'imposto', 'icms', 'aproximado', 'iss', 'ipi', 'pis', 'cofins'];
 
+// Defensive filter: if Claude returns a descriptive "not readable" text instead of null,
+// suppress the field so the tutor doesn't see apology messages in their OCR card.
+function isIllegibleDescription(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const v = value.toLowerCase();
+  return (
+    v.includes('não legível') ||
+    v.includes('nao legível') ||
+    v.includes('ilegível') ||
+    v.includes('not readable') ||
+    v.includes('illegible') ||
+    v.includes('campo presente mas') ||
+    v.includes('parcialmente visível') ||
+    (v.includes('visível') && v.includes('não legível')) ||
+    (v.includes('visível') && v.includes('não legivel'))
+  );
+}
+
 type OCRFieldItem = { key: string; value: string; confidence?: number };
 type OCRLineItem = { name: string; qty: number; unit_price: number };
 
@@ -388,15 +406,6 @@ function OCRSubcard({
   mediaIndex: number;
   allMediaAnalyses: MediaAnalysisItem[];
 }) {
-  console.log('[OCRSUBCARD] fields:', media.ocrData?.fields?.length ?? 0,
-    'docType:', media.ocrData?.document_type ?? 'none',
-    'items:', media.ocrData?.items?.length ?? 0);
-  if (media.ocrData?.fields?.length) {
-    console.log('[OCRSUBCARD] first 3 fields:', JSON.stringify(media.ocrData.fields.slice(0, 3)));
-  } else {
-    console.warn('[OCRSUBCARD] NO FIELDS | full ocrData:', JSON.stringify(media.ocrData));
-  }
-
   const uri = media.mediaUrl?.startsWith('http')
     ? media.mediaUrl
     : media.mediaUrl ? getPublicUrl('pet-photos', media.mediaUrl) : null;
@@ -616,7 +625,7 @@ function OCRSubcard({
       {/* Campos principais */}
       {sorted
         .filter((f) => !(isFinancial && !isEditing && totalField && f.key === totalField.key))
-        .filter((f) => isEditing || (f.value != null && String(f.value).trim() !== ''))
+        .filter((f) => isEditing || (f.value != null && String(f.value).trim() !== '' && !isIllegibleDescription(f.value)))
         .map((field, i) => (
           <View key={i} style={styles.ocrField}>
             <Text style={[styles.ocrKey, isMonetaryKey(field.key) && isFinancial && { color: colors.accent }]}>
@@ -700,7 +709,8 @@ export const MonthSummaryCard = React.memo(({ event, t }: CardProps) => {
 // ── DiaryCard ──
 
 export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, onRetry, onDelete, isOwner, onAdminDeactivate }: DiaryCardProps) => {
-  const currentUserId = useAuthStore((s) => s.user?.id);
+  const currentUser = useAuthStore((s) => s.user);
+  const currentUserId = currentUser?.id;
   const isCreator = !!currentUserId && event.registeredBy === currentUserId;
   console.log('[CARD]', event.id.slice(-8), '| fotos:', event.photos?.length ?? 0, '| narration:', !!event.narration, '| photoAnalysis:', !!event.photoAnalysisData, '| videoUrl:', !!event.videoUrl, '| classif:', event.classifications?.length ?? 0, '| modules:', !!event.modules);
   console.log('[CARD-MEDIA]', event.id?.slice(0,8),
@@ -713,12 +723,15 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
   const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' });
   const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
-  // Tutor attribution — only show when a different tutor created this entry
-  const tutorName = !isCreator
-    ? (event.registeredByUser?.full_name
-        ?? event.registeredByUser?.email?.split('@')[0]
-        ?? null)
-    : null;
+  // Tutor attribution — prefer the joined user row; fall back to current user
+  // profile when the DB join returns null (e.g. registered_by was null on older
+  // entries created before the column was backfilled).
+  const tutorName =
+    event.registeredByUser?.full_name
+    ?? event.registeredByUser?.email?.split('@')[0]
+    ?? (isCreator
+      ? (currentUser?.full_name ?? currentUser?.email?.split('@')[0] ?? t('diary.registeredByYou'))
+      : t('diary.registeredByUnknown'));
 
   // ── Pending state (saved offline, waiting for sync) ───────────────────────
   if (event.processingStatus === 'pending') {
@@ -861,16 +874,23 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
             if (media.type === 'photo') return <PhotoSubcard key={idx} media={media} t={t} />;
             if (media.type === 'video') return <VideoSubcard key={idx} media={media} t={t} />;
             if (media.type === 'audio') return <AudioSubcard key={idx} media={media} t={t} />;
-            if (media.type === 'document') return (
-              <OCRSubcard
-                key={idx}
-                media={media}
-                t={t}
-                entryId={event.id}
-                mediaIndex={idx}
-                allMediaAnalyses={event.mediaAnalyses!}
-              />
-            );
+            if (media.type === 'document') {
+              // Skip OCR subcard when doc type is "other" and no fields were extracted
+              // (e.g. user submitted a photo of their pet instead of a document)
+              const ocrDocType = (media.ocrData as Record<string, unknown>)?.document_type as string | undefined;
+              const ocrFieldCount = (media.ocrData?.fields?.length ?? 0);
+              if (ocrDocType === 'other' && ocrFieldCount === 0) return null;
+              return (
+                <OCRSubcard
+                  key={idx}
+                  media={media}
+                  t={t}
+                  entryId={event.id}
+                  mediaIndex={idx}
+                  allMediaAnalyses={event.mediaAnalyses!}
+                />
+              );
+            }
             return null;
           })}
         </View>

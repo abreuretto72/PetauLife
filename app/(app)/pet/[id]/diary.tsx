@@ -11,7 +11,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../../../constants/colors';
 import { useDiary } from '../../../../hooks/useDiary';
@@ -29,7 +28,6 @@ export default function DiaryScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
 
-  const qc = useQueryClient();
   const { data: pet } = usePet(id!);
   const { entries, isLoading, refetch, scheduledEvents } = useDiary(id!);
   const { retryEntry } = useDiaryEntry(id!);
@@ -101,7 +99,6 @@ export default function DiaryScreen() {
         petSpecies={pet?.species}
         petAvatarUrl={pet?.avatar_url}
         petCreatedAt={pet?.created_at}
-        petPersonality={pet?.ai_personality}
         onRefresh={refetch}
         onNewEntry={handleNewEntry}
         onEditEntry={handleEditEntry}

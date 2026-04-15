@@ -41,8 +41,9 @@ export default function PetTabLayout() {
 
   // Show nav ONLY for the exact tab root routes — NOT for sub-routes like
   // diary/new, diary/voice, diary/[entryId]/edit, health/*, etc.
+  // health.tsx uses PetBottomNav directly, so excluded here.
   // Each sub-route manages its own header and back button.
-  const showNav = TABS.filter((t) => t.key !== 'index').some(
+  const showNav = TABS.filter((t) => t.key !== 'index' && t.key !== 'health').some(
     (t) => pathname === `/pet/${id}/${t.key}` || pathname === `/pet/${id}/${t.key}/`,
   );
 

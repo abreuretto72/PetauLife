@@ -206,7 +206,18 @@ export function useAllergies(petId: string) {
 
   const query = useQuery({
     queryKey: ['pets', petId, 'allergies'],
-    queryFn: () => api.fetchAllergies(petId),
+    queryFn: async () => {
+      const allergies = await api.fetchAllergies(petId);
+      // If none found, try to backfill from diary classifications (best-effort)
+      if (allergies.length === 0 && onlineManager.isOnline()) {
+        const { data: inserted } = await supabase.rpc('sync_allergies_from_diary', { p_pet_id: petId });
+        if (inserted && inserted > 0) {
+          console.log('[useAllergies] backfilled', inserted, 'allergies from diary for pet:', petId);
+          return api.fetchAllergies(petId);
+        }
+      }
+      return allergies;
+    },
     enabled: isAuthenticated && !!petId,
   });
 
@@ -268,5 +279,78 @@ export function useMoodLogs(petId: string) {
     moodLogs: query.data ?? [],
     isLoading: query.isLoading,
     refetch: query.refetch,
+  };
+}
+
+// ══════════════════════════════════════
+// METRICS (clinical_metrics)
+// ══════════════════════════════════════
+
+export function useMetrics(petId: string) {
+  const qc = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: async (data: {
+      pet_id: string;
+      user_id: string;
+      metric_type: string;
+      value: number;
+      unit: string;
+      measured_at: string;
+      notes?: string | null;
+    }) => {
+      const { data: result, error } = await supabase
+        .from('clinical_metrics')
+        .insert({ ...data, source: 'manual', is_active: true })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pets', petId, 'clinical_metrics'] });
+    },
+  });
+
+  return {
+    addMetric: addMutation.mutateAsync,
+    isAdding: addMutation.isPending,
+  };
+}
+
+// ══════════════════════════════════════
+// EXPENSES
+// ══════════════════════════════════════
+
+export function useExpensesMutations(petId: string) {
+  const qc = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: async (data: {
+      pet_id: string;
+      user_id: string;
+      date: string;
+      vendor?: string | null;
+      category: string;
+      total: number;
+      currency: string;
+      notes?: string | null;
+    }) => {
+      const { data: result, error } = await supabase
+        .from('expenses')
+        .insert({ ...data, source: 'manual', is_active: true })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'expenses'] });
+    },
+  });
+
+  return {
+    addExpense: addMutation.mutateAsync,
+    isAdding: addMutation.isPending,
   };
 }

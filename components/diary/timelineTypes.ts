@@ -254,7 +254,7 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
     audioUrl: entry.audio_url ?? null,
     audioDuration: entry.audio_duration ?? null,
     petAudioAnalysis: entry.pet_audio_analysis ?? null,
-    registeredBy:     entry.registered_by ?? null,
+    registeredBy:     entry.user_id ?? null,      // diary_entries FK is user_id, not registered_by
     registeredByUser: entry.registered_by_user ?? null,
     updatedBy:        entry.updated_by ?? null,
     updatedByUser:    entry.updated_by_user ?? null,

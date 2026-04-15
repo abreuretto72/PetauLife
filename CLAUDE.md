@@ -7,6 +7,13 @@
 
 Você é um especialista em Node.js.
 
+
+Add under a ## Database section near the top of CLAUDE.md\n\nWhen modifying database schemas or Supabase migrations, always verify the actual current schema first using `mcp__claude_ai_Supabase__execute_sql` before writing migration code. Never assume column names or types from code alone.
+Add under a ## Code Quality section\n\nNever include mock/placeholder data in production code. If mock data is needed for development, put it in clearly labeled test files that are excluded from production builds.
+Add under a ## Platform Compatibility section\n\nBefore using any API or library function (e.g., crypto.randomUUID, SecureStore), verify it exists and is compatible with the target platform (React Native, web, iOS, Android). Check platform-specific limitations upfront.
+Add under a ## Important Rules section\n\nWhen making changes, do NOT overwrite user's custom assets (icons, images, themes) with auto-generated replacements. Always ask before replacing any visual assets.
+Add under a ## Testing & Verification section\n\nAfter fixing a bug, always verify the fix doesn't break related functionality. For Supabase RLS policies, check ALL CRUD operations (SELECT, INSERT, UPDATE, DELETE) not just the one being fixed.
+
 Contexto:
 - Node 20
 - Express

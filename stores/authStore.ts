@@ -74,6 +74,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkSession: async () => {
     set({ isLoading: true });
     const { data } = await auth.getSession();
+    console.log(
+      '[authStore] checkSession resultado:',
+      data.session ? `SESSÃO OK uid=${data.session.user.id.slice(0, 8)}…` : 'SEM SESSÃO',
+    );
     set({
       user: data.session?.user ? { id: data.session.user.id, email: data.session.user.email, ...data.session.user.user_metadata } as User | null : null,
       session: data.session ? { access_token: data.session.access_token } : null,

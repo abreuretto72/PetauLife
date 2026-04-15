@@ -1,6 +1,15 @@
 /**
- * DocumentScanner — full-screen camera with 4-corner document guide overlay.
- * Used for OCR scanning of vaccine cards, invoices, prescriptions, etc.
+ * PhotoCamera — in-app camera for capturing diary photo attachments.
+ *
+ * Why in-app instead of ImagePicker.launchCameraAsync:
+ *   launchCameraAsync launches an external Android Activity. Android can kill
+ *   the Expo JS process to free memory for the camera app, causing a full app
+ *   restart and losing all unsaved state (text, other attachments, draft).
+ *   CameraView keeps the camera within the app — no process death risk.
+ *
+ * Returns a compressed local URI via onCapture(uri) callback.
+ * Also provides a gallery picker option (launchImageLibraryAsync is safe —
+ * the gallery picker does not trigger process death on Android).
  */
 import React, { useRef, useState, useCallback } from 'react';
 import {
@@ -8,63 +17,102 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { ChevronLeft, Zap, ZapOff, ScanLine, Image as ImageIcon } from 'lucide-react-native';
+import { ChevronLeft, Zap, ZapOff, Camera, Image as ImageIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-interface DocumentScannerProps {
-  onCapture: (base64: string) => void;
+interface PhotoCameraProps {
+  onCapture: (uri: string) => void;
   onClose: () => void;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export default function DocumentScanner({ onCapture, onClose }: DocumentScannerProps) {
+export default function PhotoCamera({ onCapture, onClose }: PhotoCameraProps) {
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const [isCapturing, setIsCapturing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
+  // ── Compress to 1200px / 78% JPEG (matches compressPhoto in new.tsx) ──────
+  const compress = useCallback(async (uri: string): Promise<string> => {
+    console.log('[PHOTOCAM] compress start | uri suffix:', uri?.slice(-40));
+    try {
+      const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+      const result = await manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.78, format: SaveFormat.JPEG },
+      );
+      console.log('[PHOTOCAM] compress done | result suffix:', result.uri?.slice(-40));
+      return result.uri;
+    } catch (e) {
+      console.warn('[PHOTOCAM] compress failed — returning original URI:', e);
+      return uri;
+    }
+  }, []);
+
+  // ── In-app shutter capture ─────────────────────────────────────────────────
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current || isCapturing) return;
+    console.log('[PHOTOCAM] handleCapture start');
     setIsCapturing(true);
     try {
-      // Capture at full quality — compression happens only at Storage upload, not before AI analysis
       const photo = await cameraRef.current.takePictureAsync({
-        base64: true,
-        quality: 1,
+        quality: 0,      // raw capture — compression handles final quality
+        base64: false,   // URI only — avoids in-memory base64 OOM
         exif: false,
       });
-      if (photo?.base64) {
-        console.log('[SCANNER] original base64 KB:', Math.round((photo.base64.length) * 0.75 / 1024));
-        onCapture(photo.base64);
+      console.log('[PHOTOCAM] takePictureAsync done | uri:', photo?.uri?.slice(-40));
+      if (photo?.uri) {
+        const compressedUri = await compress(photo.uri);
+        console.log('[PHOTOCAM] calling onCapture with compressed URI');
+        onCapture(compressedUri);
+      } else {
+        console.warn('[PHOTOCAM] takePictureAsync returned no URI');
       }
+    } catch (e) {
+      console.error('[PHOTOCAM] handleCapture error:', e);
     } finally {
       setIsCapturing(false);
     }
-  }, [isCapturing, onCapture]);
+  }, [isCapturing, compress, onCapture]);
 
+  // ── Gallery picker (safe — no process death on Android) ───────────────────
   const handlePickFromGallery = useCallback(async () => {
     if (isCapturing) return;
+    console.log('[PHOTOCAM] handlePickFromGallery start');
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    // Request base64 directly — no compression before AI analysis
+    if (status !== 'granted') {
+      console.log('[PHOTOCAM] gallery permission denied');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 1,
+      quality: 0,
       allowsEditing: false,
-      base64: true,
+      allowsMultipleSelection: false,
     });
-    if (result.canceled || !result.assets[0]?.base64) return;
-    console.log('[SCANNER] gallery original base64 KB:', Math.round(result.assets[0].base64.length * 0.75 / 1024));
-    onCapture(result.assets[0].base64);
-  }, [isCapturing, onCapture]);
+    if (result.canceled || !result.assets[0]) {
+      console.log('[PHOTOCAM] gallery picker cancelled or no asset');
+      return;
+    }
+    console.log('[PHOTOCAM] gallery asset selected | uri:', result.assets[0].uri?.slice(-40));
+    setIsCapturing(true);
+    try {
+      const compressedUri = await compress(result.assets[0].uri);
+      console.log('[PHOTOCAM] gallery: calling onCapture with compressed URI');
+      onCapture(compressedUri);
+    } finally {
+      setIsCapturing(false);
+    }
+  }, [isCapturing, compress, onCapture]);
 
-  // ── Permission gate ──
+  // ── Permission gate ────────────────────────────────────────────────────────
 
   if (!permission) {
     return <View style={styles.root} />;
@@ -73,7 +121,7 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
   if (!permission.granted) {
     return (
       <View style={[styles.root, styles.permissionContainer]}>
-        <ScanLine size={rs(48)} color={colors.textDim} strokeWidth={1.5} />
+        <Camera size={rs(48)} color={colors.textDim} strokeWidth={1.5} />
         <Text style={styles.permissionTitle}>{t('diary.cameraRequired')}</Text>
         <Text style={styles.permissionSub}>{t('diary.scannerNeedsCamera')}</Text>
         <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission} activeOpacity={0.8}>
@@ -86,7 +134,7 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
     );
   }
 
-  // ── Scanner UI ──
+  // ── Camera UI ──────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.root}>
@@ -101,7 +149,7 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
           <TouchableOpacity style={styles.iconBtn} onPress={onClose} activeOpacity={0.7}>
             <ChevronLeft size={rs(22)} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
-          <Text style={styles.topTitle}>{t('diary.scannerTitle')}</Text>
+          <Text style={styles.topTitle}>{t('mic.takePhoto')}</Text>
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={() => setFlash((f) => (f === 'off' ? 'on' : 'off'))}
@@ -114,25 +162,13 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
           </TouchableOpacity>
         </View>
 
-        {/* Document guide frame */}
-        <View style={styles.guideFrame}>
-          {/* Corners */}
-          <View style={[styles.corner, styles.topLeft]} />
-          <View style={[styles.corner, styles.topRight]} />
-          <View style={[styles.corner, styles.bottomLeft]} />
-          <View style={[styles.corner, styles.bottomRight]} />
-        </View>
+        {/* Live viewfinder (fills remaining space) */}
+        <View style={styles.viewfinder} />
 
-        {/* Hint text */}
-        <View style={styles.hintContainer}>
-          <Text style={styles.hintText}>{t('diary.scannerHint')}</Text>
-        </View>
-
-        {/* Capture button + gallery upload */}
+        {/* Bottom control row: gallery | shutter | spacer */}
         <View style={styles.captureArea}>
-          {/* Gallery upload button */}
           <TouchableOpacity
-            style={[styles.galleryBtn, isCapturing && styles.captureBtnDisabled]}
+            style={[styles.galleryBtn, isCapturing && styles.disabled]}
             onPress={handlePickFromGallery}
             disabled={isCapturing}
             activeOpacity={0.8}
@@ -140,9 +176,8 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
             <ImageIcon size={rs(22)} color="#fff" strokeWidth={1.8} />
           </TouchableOpacity>
 
-          {/* Camera shutter */}
           <TouchableOpacity
-            style={[styles.captureBtn, isCapturing && styles.captureBtnDisabled]}
+            style={[styles.captureBtn, isCapturing && styles.disabled]}
             onPress={handleCapture}
             disabled={isCapturing}
             activeOpacity={0.8}
@@ -153,7 +188,7 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
             }
           </TouchableOpacity>
 
-          {/* Spacer to keep shutter centered */}
+          {/* Invisible spacer — keeps shutter visually centred */}
           <View style={styles.galleryBtn} />
         </View>
       </CameraView>
@@ -162,10 +197,6 @@ export default function DocumentScanner({ onCapture, onClose }: DocumentScannerP
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────
-
-const CORNER_SIZE = rs(28);
-const CORNER_THICK = 3;
-const CORNER_COLOR = colors.success;
 
 const styles = StyleSheet.create({
   root: {
@@ -240,62 +271,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Guide frame with 4 corners
-  guideFrame: {
+  // Live viewfinder area
+  viewfinder: {
     flex: 1,
-    marginHorizontal: rs(32),
-    marginVertical: rs(20),
-    position: 'relative',
-  },
-  corner: {
-    position: 'absolute',
-    width: CORNER_SIZE,
-    height: CORNER_SIZE,
-    borderColor: CORNER_COLOR,
-  },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderTopWidth: CORNER_THICK,
-    borderLeftWidth: CORNER_THICK,
-    borderTopLeftRadius: rs(4),
-  },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderTopWidth: CORNER_THICK,
-    borderRightWidth: CORNER_THICK,
-    borderTopRightRadius: rs(4),
-  },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: CORNER_THICK,
-    borderLeftWidth: CORNER_THICK,
-    borderBottomLeftRadius: rs(4),
-  },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: CORNER_THICK,
-    borderRightWidth: CORNER_THICK,
-    borderBottomRightRadius: rs(4),
   },
 
-  // Hint
-  hintContainer: {
-    alignItems: 'center',
-    paddingVertical: rs(12),
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  hintText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: fs(13),
-    fontWeight: '500',
-    letterSpacing: 0.3,
-  },
-
-  // Capture
+  // Bottom controls: gallery | shutter | spacer
   captureArea: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -323,7 +304,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  captureBtnDisabled: {
+  disabled: {
     opacity: 0.5,
   },
   captureInner: {

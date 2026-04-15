@@ -243,7 +243,6 @@ export default function RootLayout() {
     // Manter em sincronia com qualquer mudança de sessão (login, logout, refresh de token)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        console.log('[_layout] onAuthStateChange:', _event, '| session:', !!session);
         useAuthStore.setState({
           user: session?.user
             ? { id: session.user.id, email: session.user.email, ...session.user.user_metadata } as never

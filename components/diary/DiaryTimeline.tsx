@@ -11,7 +11,7 @@ import {
   RefreshControl, StyleSheet,
 } from 'react-native';
 import {
-  BookOpen, Pencil, Sparkles,
+  BookOpen, Pencil,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -63,7 +63,6 @@ interface DiaryTimelineProps {
   petSpecies?: string;
   petAvatarUrl?: string | null;
   petCreatedAt?: string;
-  petPersonality?: string | null;
   onRefresh: () => void;
   onNewEntry: () => void;
   onEditEntry: (id: string) => void;
@@ -81,7 +80,6 @@ export default function DiaryTimeline({
   petSpecies,
   petAvatarUrl,
   petCreatedAt,
-  petPersonality,
   onRefresh,
   onNewEntry,
   onEditEntry,
@@ -218,21 +216,9 @@ export default function DiaryTimeline({
 
   const renderHeader = useCallback(() => (
     <View>
-      {/* Extra content (e.g. pet hero section) */}
       {headerExtra}
-
-      {/* AI Personality */}
-      <View style={styles.personalityCard}>
-        <View style={styles.personalityIcon}>
-          <Sparkles size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-        </View>
-        <View style={styles.personalityContent}>
-          <Text style={styles.personalityLabel}>{t('diary.aiPersonality')}</Text>
-          <Text style={styles.personalityText}>{petPersonality ?? t('diary.defaultPersonality')}</Text>
-        </View>
-      </View>
     </View>
-  ), [petPersonality, t, headerExtra]);
+  ), [headerExtra]);
 
   // ── Footer ──
 
@@ -310,13 +296,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   listContent: { paddingBottom: rs(100) },
 
-
-  // Personality
-  personalityCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.accent + '08', borderWidth: 1, borderColor: colors.accent + '15', borderRadius: rs(18), marginHorizontal: rs(16), marginTop: rs(16), padding: rs(14), gap: rs(12) },
-  personalityIcon: { width: rs(36), height: rs(36), borderRadius: rs(10), backgroundColor: colors.accent + '15', alignItems: 'center', justifyContent: 'center' },
-  personalityContent: { flex: 1 },
-  personalityLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.accent, letterSpacing: 1.5, marginBottom: rs(4) },
-  personalityText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec, lineHeight: fs(18) },
 
   // Timeline
   entryRow: { flexDirection: 'row', marginLeft: rs(28), marginRight: rs(16), marginTop: rs(16) },

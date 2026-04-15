@@ -31,7 +31,7 @@ export default function RegisterScreen() {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = t('auth.errorRequired');
+    if (!name.trim() || name.trim().length < 2) e.name = t('auth.errorNameRequired');
     if (!email.includes('@')) e.email = t('auth.errorInvalidEmail');
     if (password.length < 8) e.password = t('auth.errorPasswordMin');
     else if (!/[A-Z]/.test(password)) e.password = t('auth.errorPasswordUpper');
