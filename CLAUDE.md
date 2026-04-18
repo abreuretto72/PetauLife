@@ -1731,35 +1731,76 @@ Todo relatório PDF do app DEVE usar o template padrão via `previewPdf()` ou `s
 
 ### Regras obrigatórias para TODO relatório PDF:
 
-1. **SEMPRE usar `previewPdf()`** — abre o print preview nativo do sistema
-   - O tutor pode imprimir, salvar como PDF, ou compartilhar
-   - NUNCA gerar PDF silenciosamente sem mostrar ao tutor
-2. Para compartilhar como arquivo: usar `sharePdf(fileName)`
+1. **NUNCA chamar `previewPdf()` ou `sharePdf()` diretamente de uma tela de conteúdo**
+2. **SEMPRE navegar para uma tela dedicada de PDF Preview** — padrão obrigatório para TODOS os PDFs do app
 3. Logo no cabeçalho é OBRIGATÓRIO
 4. Rodapé "Multiverso Digital © 2026" é OBRIGATÓRIO
 5. Data e hora da geração no cabeçalho é OBRIGATÓRIO
 6. Título e subtítulo via i18n (NUNCA hardcoded)
 7. O botão de exportar PDF deve usar ícone `Download` (laranja, clicável)
 
-### Relatórios disponíveis (implementar progressivamente):
+### ⛔ PADRÃO OBRIGATÓRIO: Tela de PDF Preview
 
-| Relatório | Tela | Dados |
-|-----------|------|-------|
-| Diário completo | diary.tsx | Todas as entradas filtradas (texto + narração + humor + tags + fotos) |
-| Prontuário de saúde | health.tsx | Vacinas, alergias, exames, medicações, consultas, cirurgias |
-| Análise de foto IA | photo-analysis.tsx | Resultado da análise (raça, humor, saúde, ambiente) |
-| Carteirinha do pet | id-card.tsx | Dados do pet, microchip, QR code |
-| Perfil do pet | index.tsx | Todos os dados cadastrais do pet |
+> **Todo PDF do app DEVE usar uma tela dedicada de preview com botões de impressão e compartilhamento.**
+> NUNCA abrir o diálogo nativo diretamente de um botão na tela de conteúdo.
 
-### API (`lib/pdf.ts`):
+**Padrão de tela PDF Preview (`*-pdf.tsx`):**
+
+```
+┌─────────────────────────────────────────┐
+│  ←  Título do Relatório                 │
+├─────────────────────────────────────────┤
+│                                         │
+│         ┌─────────────────┐             │
+│         │   [ícone PDF]   │             │
+│         └─────────────────┘             │
+│         "Relatório pronto!"             │
+│         "Pronto para imprimir..."       │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ [↓] Imprimir ou salvar PDF      │    │  ← previewPdf() → diálogo nativo
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ [↗] Compartilhar arquivo        │    │  ← sharePdf() → share sheet nativo
+│  └─────────────────────────────────┘    │
+│                                         │
+│    Gerado por IA · auExpert · ...       │
+└─────────────────────────────────────────┘
+```
+
+**Implementações existentes (referência):**
+| Tela | Arquivo |
+|------|---------|
+| Prontuário | `app/(app)/pet/[id]/prontuario-pdf.tsx` |
+| Cardápio | `app/(app)/pet/[id]/nutrition/cardapio-pdf.tsx` |
+
+**Como criar nova tela PDF Preview:**
+1. Criar `[feature]-pdf.tsx` no diretório da feature
+2. Receber dados via route params (JSON serializado)
+3. Mostrar ícone representativo da feature (Lucide, cor temática)
+4. Dois botões de ação: `previewPdf()` e `sharePdf()`
+5. Disclaimer em i18n com "Gerado por IA · auExpert · ..."
+6. O botão na tela de origem usa ícone `Download` e navega para a tela PDF
+
+**API (`lib/pdf.ts`) — usar APENAS dentro de telas `*-pdf.tsx`:**
 
 ```typescript
-// Preview (print dialog nativo)
-await previewPdf({ title, subtitle?, bodyHtml, language? });
+// Abre print dialog nativo (imprimir / salvar PDF)
+await previewPdf({ title, subtitle?, bodyHtml });
 
-// Compartilhar como arquivo
-await sharePdf({ title, subtitle?, bodyHtml, language? }, 'diario_mana.pdf');
+// Gera arquivo e abre share sheet nativo (WhatsApp, email, etc.)
+await sharePdf({ title, subtitle?, bodyHtml }, 'arquivo.pdf');
 ```
+
+### Relatórios disponíveis (implementar progressivamente):
+
+| Relatório | Tela Preview | Dados |
+|-----------|------|-------|
+| Cardápio semanal | `nutrition/cardapio-pdf.tsx` | ✅ Implementado |
+| Prontuário de saúde | `prontuario-pdf.tsx` | ✅ Implementado |
+| Diário completo | `diary-pdf.tsx` (pendente) | Entradas filtradas + narração + fotos |
+| Análise de foto IA | `photo-analysis-pdf.tsx` (pendente) | Resultado da análise |
+| Carteirinha do pet | `id-card-pdf.tsx` (pendente) | Dados do pet, microchip, QR code |
 
 ---
 

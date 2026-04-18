@@ -372,13 +372,14 @@ export async function createMedication(medication: Record<string, unknown>) {
 // CONSULTATIONS
 // ══════════════════════════════════════
 
-export async function fetchConsultations(petId: string) {
+export async function fetchConsultations(petId: string, limit = 16) {
   const { data, error } = await supabase
     .from('consultations')
     .select('*, registered_by_user:users!user_id(full_name)')
     .eq('pet_id', petId)
     .eq('is_active', true)
-    .order('date', { ascending: false });
+    .order('date', { ascending: false })
+    .limit(limit);
   if (error) throw error;
   return data ?? [];
 }

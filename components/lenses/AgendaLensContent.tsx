@@ -33,6 +33,7 @@ import {
   type AgendaCategory,
   type AgendaItem,
 } from '../../hooks/useLens';
+import { sexContext, type PetSex } from '../../utils/petGender';
 
 // ── Category config (Lucide icons, no emojis) ─────────────────────────────────
 
@@ -136,18 +137,19 @@ function StatusBadge({ status }: { status: string | null | undefined }) {
 // ── Month header ──────────────────────────────────────────────────────────────
 
 function MonthHeader({
-  year, month, petName, onPrev, onNext,
+  year, month, petName, petSex, onPrev, onNext,
 }: {
   year: number;
   month: number;
   petName: string;
+  petSex?: PetSex;
   onPrev: () => void;
   onNext: () => void;
 }) {
   const { t } = useTranslation();
   return (
     <View style={styles.monthHeader}>
-      <Text style={styles.monthPetName}>{t('agenda.title', { name: petName.toUpperCase() })}</Text>
+      <Text style={styles.monthPetName}>{t('agenda.title', { name: petName.toUpperCase(), context: sexContext(petSex) })}</Text>
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={onPrev} style={styles.navBtn} activeOpacity={0.7}>
           <ChevronLeft size={rs(18)} color={colors.accent} strokeWidth={2} />
@@ -462,11 +464,12 @@ function ItemDetailModal({
 // ── Day panel ─────────────────────────────────────────────────────────────────
 
 function DayPanel({
-  petId, selected, petName, onClose,
+  petId, selected, petName, petSex, onClose,
 }: {
   petId: string;
   selected: string | null;
   petName: string;
+  petSex?: PetSex;
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -504,7 +507,7 @@ function DayPanel({
     return (
       <View style={styles.emptyDay}>
         <Calendar size={rs(28)} color={colors.textGhost} strokeWidth={1.4} />
-        <Text style={styles.emptyDayText}>{t('agenda.selectDayHint', { name: petName })}</Text>
+        <Text style={styles.emptyDayText}>{t('agenda.selectDayHint', { name: petName, context: sexContext(petSex) })}</Text>
       </View>
     );
   }
@@ -587,9 +590,10 @@ function Legend() {
 interface AgendaLensContentProps {
   petId: string;
   petName: string;
+  petSex?: PetSex;
 }
 
-export function AgendaLensContent({ petId, petName }: AgendaLensContentProps) {
+export function AgendaLensContent({ petId, petName, petSex }: AgendaLensContentProps) {
   const today = new Date();
   const [year, setYear]   = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -617,6 +621,7 @@ export function AgendaLensContent({ petId, petName }: AgendaLensContentProps) {
           year={year}
           month={month}
           petName={petName}
+          petSex={petSex}
           onPrev={goToPrev}
           onNext={goToNext}
         />
@@ -637,7 +642,7 @@ export function AgendaLensContent({ petId, petName }: AgendaLensContentProps) {
       <Legend />
 
       {/* Day detail */}
-      <DayPanel petId={petId} selected={selected} petName={petName} onClose={() => setSelected(null)} />
+      <DayPanel petId={petId} selected={selected} petName={petName} petSex={petSex} onClose={() => setSelected(null)} />
     </View>
   );
 }

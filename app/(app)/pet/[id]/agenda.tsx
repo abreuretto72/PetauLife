@@ -10,6 +10,7 @@ import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
+import { sexContext } from '../../../../utils/petGender';
 import { Skeleton } from '../../../../components/Skeleton';
 import { AgendaLensContent } from '../../../../components/lenses/AgendaLensContent';
 
@@ -58,13 +59,13 @@ export default function AgendaScreen() {
       {/* Header bar */}
       <View style={styles.headerBar}>
         <Text style={styles.title}>
-          {t('agenda.screenTitle', { name: pet?.name ?? '' })}
+          {t('agenda.screenTitle', { name: pet?.name ?? '', context: sexContext(pet?.sex) })}
         </Text>
         <Text style={styles.subtitle}>{t('agenda.screenSubtitle')}</Text>
       </View>
 
       {id && pet && (
-        <AgendaLensContent petId={id} petName={pet.name} />
+        <AgendaLensContent petId={id} petName={pet.name} petSex={pet.sex} />
       )}
 
       <View style={{ height: spacing.xxl }} />

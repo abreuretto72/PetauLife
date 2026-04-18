@@ -31,6 +31,7 @@ import {
   X,
   TrendingUp,
   Receipt,
+  ClipboardList,
 } from 'lucide-react-native';
 import MetricsCharts from '../../../../components/lenses/MetricsCharts';
 import ExpensesLens from '../../../../components/lenses/ExpensesLens';
@@ -45,7 +46,7 @@ import { Skeleton } from '../../../../components/Skeleton';
 import AddVaccineModal, { type VaccineData } from '../../../../components/AddVaccineModal';
 import AddExamModal, { type ExamData } from '../../../../components/AddExamModal';
 import AddMedicationModal, { type MedicationData } from '../../../../components/AddMedicationModal';
-import AddConsultationModal, { type ConsultationData } from '../../../../components/AddConsultationModal';
+import { BookOpen } from 'lucide-react-native';
 import AddSurgeryModal, { type SurgeryData } from '../../../../components/AddSurgeryModal';
 import AddMetricsModal, { type MetricData } from '../../../../components/AddMetricsModal';
 import AddExpensesModal, { type ExpenseData } from '../../../../components/AddExpensesModal';
@@ -195,6 +196,7 @@ export default function HealthScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
   const { t } = useTranslation();
   const router = useRouter();
+  console.log('[HealthScreen] RENDER | id:', id?.slice(-8), '| tab param:', tab);
   const validTabs: TabId[] = ['general', 'vaccines', 'exams', 'medications', 'consultations', 'surgeries', 'metrics', 'expenses'];
   const initialTab: TabId = (tab && validTabs.includes(tab as TabId)) ? (tab as TabId) : 'general';
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
@@ -205,7 +207,7 @@ export default function HealthScreen() {
   const { allergies, isLoading: allergiesLoading, refetch: refetchAllergies } = useAllergies(id!);
   const { exams, refetch: refetchExams, addExam, isAdding: isAddingExam } = useExams(id!);
   const { medications, refetch: refetchMeds, addMedication, isAdding: isAddingMed } = useMedications(id!);
-  const { consultations, refetch: refetchCons, addConsultation, isAdding: isAddingCons } = useConsultations(id!);
+  const { consultations, hasMore: consultationsHasMore, refetch: refetchCons } = useConsultations(id!);
   const { surgeries, refetch: refetchSurg, addSurgery, isAdding: isAddingSurg } = useSurgeries(id!);
   const { addMetric, isAdding: isAddingMetric } = useMetrics(id!);
   const { addExpense, isAdding: isAddingExpense } = useExpensesMutations(id!);
@@ -214,7 +216,6 @@ export default function HealthScreen() {
   const [showAddVaccine, setShowAddVaccine] = useState(false);
   const [showAddExam, setShowAddExam] = useState(false);
   const [showAddMed, setShowAddMed] = useState(false);
-  const [showAddCons, setShowAddCons] = useState(false);
   const [showAddSurg, setShowAddSurg] = useState(false);
   const [showAddMetric, setShowAddMetric] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -406,14 +407,6 @@ export default function HealthScreen() {
       toast(t('toast.petCreated', { name: data.name }), 'success');
     } catch (err) { toast(getErrorMessage(err), 'error'); }
   }, [addMedication, id, user?.id, toast, t]);
-
-  const handleAddConsultation = useCallback(async (data: ConsultationData) => {
-    try {
-      await addConsultation({ ...data, pet_id: id, user_id: user?.id });
-      setShowAddCons(false);
-      toast(t('toast.petCreated', { name: data.veterinarian }), 'success');
-    } catch (err) { toast(getErrorMessage(err), 'error'); }
-  }, [addConsultation, id, user?.id, toast, t]);
 
   const handleAddSurgery = useCallback(async (data: SurgeryData) => {
     try {
@@ -634,63 +627,90 @@ export default function HealthScreen() {
 
   const renderConsultations = useCallback(() => {
     const TYPE_COLORS: Record<string, string> = {
-      routine: colors.petrol, emergency: colors.danger, specialist: colors.purple,
-      surgery: colors.warning, follow_up: colors.sky,
+      routine: colors.petrol, check_up: colors.petrol,
+      emergency: colors.danger,
+      specialist: colors.purple, specialty: colors.purple,
+      surgery: colors.warning,
+      follow_up: colors.sky,
     };
     return (
       <>
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddCons(true)} activeOpacity={0.7}>
-          <Stethoscope size={rs(18)} color="#fff" strokeWidth={2} />
-          <Text style={styles.addButtonText}>{t('health.addConsultation')}</Text>
-        </TouchableOpacity>
+        {/* Hint: entry is via diary only */}
+        <View style={styles.diaryHintRow}>
+          <BookOpen size={rs(13)} color={colors.textDim} strokeWidth={1.8} />
+          <Text style={styles.diaryHintText}>{t('health.consultationsViaDiaryHint')}</Text>
+        </View>
+
         {consultations.length === 0 ? (
           <EmptyState message={t('health.emptyConsultations')} hint={t('health.emptyHint')} />
         ) : (
-          consultations.map((c: Record<string, unknown>, i: number) => {
-            const typeColor = TYPE_COLORS[String(c.type ?? 'routine')] ?? colors.petrol;
-            return (
-              <ExpandableCard
-                key={String(c.id ?? i)}
-                header={
-                  <View style={styles.vaccineHeaderRow}>
-                    <Stethoscope size={rs(16)} color={typeColor} strokeWidth={1.8} />
-                    <View style={styles.vaccineHeaderInfo}>
-                      <Text style={styles.vaccineHeaderName}>{String(c.veterinarian ?? '')}</Text>
-                      <Text style={styles.vaccineHeaderDate}>
-                        {formatDate(String(c.date ?? ''))}
-                        {c.time ? ` · ${String(c.time).substring(0, 5)}` : ''}
-                        {c.clinic ? ` · ${String(c.clinic)}` : ''}
-                      </Text>
+          <>
+            {consultations.map((c: Record<string, unknown>, i: number) => {
+              const typeKey = String(c.type ?? 'routine');
+              const typeColor = TYPE_COLORS[typeKey] ?? colors.petrol;
+              const byUser = c.registered_by_user as { full_name?: string } | null;
+              const registeredBy = byUser?.full_name
+                ? (c.user_id === user?.id ? t('health.registeredByYou') : String(byUser.full_name))
+                : t('health.registeredByUnknown');
+              return (
+                <ExpandableCard
+                  key={String(c.id ?? i)}
+                  header={
+                    <View style={styles.consHeaderWrap}>
+                      {/* colored left indicator */}
+                      <View style={[styles.consTypeDot, { backgroundColor: typeColor }]} />
+                      <View style={styles.consHeaderInfo}>
+                        {/* Date + time — prominent */}
+                        <Text style={styles.consDate}>
+                          {formatDate(String(c.date ?? ''))}
+                          {c.time ? ` · ${String(c.time).substring(0, 5)}` : ''}
+                        </Text>
+                        {/* Vet + clinic */}
+                        <Text style={styles.consVet}>
+                          {String(c.veterinarian ?? '')}
+                          {c.clinic ? ` · ${String(c.clinic)}` : ''}
+                        </Text>
+                        {/* Summary preview — key addition */}
+                        {!!c.summary && (
+                          <Text style={styles.consSummaryPreview} numberOfLines={1}>
+                            {String(c.summary)}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: typeColor + '15' }]}>
+                        <Text style={[styles.statusBadgeText, { color: typeColor }]}>
+                          {t(`health.consultType.${typeKey}`, { defaultValue: typeKey })}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: typeColor + '15' }]}>
-                      <Text style={[styles.statusBadgeText, { color: typeColor }]}>{String(c.type ?? '')}</Text>
-                    </View>
+                  }
+                >
+                  <View style={styles.vaccineDetails}>
+                    {!!c.summary && <InfoRow label={t('health.summary')} value={String(c.summary)} isFirst />}
+                    {!!c.diagnosis && c.diagnosis !== c.summary && (
+                      <InfoRow label={t('health.diagnosis')} value={String(c.diagnosis)} />
+                    )}
+                    {!!c.prescriptions && <InfoRow label={t('health.prescriptions')} value={String(c.prescriptions)} />}
+                    {!!c.exam_results && <InfoRow label={t('health.examResults')} value={String(c.exam_results)} />}
+                    {!!c.follow_up_at && <InfoRow label={t('health.followUp')} value={formatDate(String(c.follow_up_at))} />}
+                    {!!c.notes && <InfoRow label={t('health.notes')} value={String(c.notes)} />}
+                    <InfoRow label={t('health.addedBy')} value={registeredBy} />
                   </View>
-                }
-              >
-                <View style={styles.vaccineDetails}>
-                  {!!c.summary && <InfoRow label={t('health.summary')} value={String(c.summary)} isFirst />}
-                  {!!c.diagnosis && c.diagnosis !== c.summary && (
-                    <InfoRow label={t('health.diagnosis')} value={String(c.diagnosis)} />
-                  )}
-                  {!!c.prescriptions && <InfoRow label={t('health.prescriptions')} value={String(c.prescriptions)} />}
-                  {!!c.follow_up_at && <InfoRow label={t('health.followUp')} value={formatDate(String(c.follow_up_at))} />}
-                  {!!c.notes && <InfoRow label={t('health.notes')} value={String(c.notes)} />}
-                  {(() => {
-                    const byUser = c.registered_by_user as { full_name?: string } | null;
-                    const name = byUser?.full_name
-                      ? (c.user_id === user?.id ? t('health.registeredByYou') : String(byUser.full_name))
-                      : t('health.registeredByUnknown');
-                    return <InfoRow label={t('health.addedBy')} value={name} />;
-                  })()}
-                </View>
-              </ExpandableCard>
-            );
-          })
+                </ExpandableCard>
+              );
+            })}
+
+            {/* "Showing last 15" indicator */}
+            {consultationsHasMore && (
+              <View style={styles.consMoreRow}>
+                <Text style={styles.consMoreText}>{t('health.consultationsShowingLatest')}</Text>
+              </View>
+            )}
+          </>
         )}
       </>
     );
-  }, [consultations, t]);
+  }, [consultations, consultationsHasMore, user?.id, t]);
 
   const renderSurgeries = useCallback(() => {
     const STATUS_COLORS: Record<string, string> = {
@@ -806,7 +826,13 @@ export default function HealthScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {pet?.name ?? '...'}
           </Text>
-          <View style={styles.headerBtn} />
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => router.push(`/pet/${id}/prontuario` as never)}
+            activeOpacity={0.7}
+          >
+            <ClipboardList size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+          </TouchableOpacity>
         </View>
         <View style={styles.skeletonTabs}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -850,7 +876,13 @@ export default function HealthScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {pet?.name ?? '...'}
         </Text>
-        <View style={styles.headerBtn} />
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => router.push(`/pet/${id}/prontuario` as never)}
+          activeOpacity={0.7}
+        >
+          <ClipboardList size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
 
       {/* Sub-tabs */}
@@ -919,14 +951,6 @@ export default function HealthScreen() {
         petId={id!}
         userId={user?.id ?? ''}
         isSubmitting={isAddingMed}
-      />
-      <AddConsultationModal
-        visible={showAddCons}
-        onClose={() => setShowAddCons(false)}
-        onSubmit={handleAddConsultation}
-        petId={id!}
-        userId={user?.id ?? ''}
-        isSubmitting={isAddingCons}
       />
       <AddSurgeryModal
         visible={showAddSurg}
@@ -1103,6 +1127,65 @@ const styles = StyleSheet.create({
     fontSize: fs(14),
     color: '#fff',
   },
+  // ── Consultation card ──
+  diaryHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(6),
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(4),
+    marginBottom: rs(8),
+  },
+  diaryHintText: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(11),
+    color: colors.textDim,
+    flex: 1,
+  },
+  consHeaderWrap: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: rs(10),
+  },
+  consTypeDot: {
+    width: rs(4),
+    borderRadius: rs(2),
+    alignSelf: 'stretch',
+    minHeight: rs(32),
+    marginTop: rs(2),
+  },
+  consHeaderInfo: {
+    flex: 1,
+    gap: rs(2),
+  },
+  consDate: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(13),
+    color: colors.text,
+  },
+  consVet: {
+    fontFamily: 'Sora_500Medium',
+    fontSize: fs(12),
+    color: colors.textSec,
+  },
+  consSummaryPreview: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(11),
+    color: colors.textDim,
+    fontStyle: 'italic',
+    marginTop: rs(2),
+  },
+  consMoreRow: {
+    alignItems: 'center',
+    paddingVertical: rs(12),
+  },
+  consMoreText: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(11),
+    color: colors.textDim,
+    fontStyle: 'italic',
+  },
+
   simpleCard: {
     backgroundColor: colors.card,
     borderWidth: 1,

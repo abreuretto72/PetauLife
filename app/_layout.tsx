@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, AppState } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -34,11 +34,28 @@ function SyncQueueActivator() {
 const PENDING_INVITE_KEY = 'auexpert_pending_invite';
 
 function extractInviteToken(url: string): string | null {
-  // Formato novo: invite.auexpert.multiversodigital.com.br/TOKEN
-  const subdomainMatch = url.match(/invite\.auexpert\.multiversodigital\.com\.br\/([a-zA-Z0-9]+)/);
-  // Formato legado: .../invite/TOKEN
-  const legacyMatch = url.match(/invite\/([a-zA-Z0-9]+)/);
-  return subdomainMatch?.[1] ?? legacyMatch?.[1] ?? null;
+  // Formato atual: supabase/functions/v1/invite-web?token=TOKEN
+  try {
+    const parsed = new URL(url);
+    const qToken = parsed.searchParams.get('token');
+    if (qToken) return qToken;
+  } catch { /* not a valid URL or custom scheme — fall through */ }
+  // Deep link recebido de volta do web page: auexpert://invite/TOKEN
+  const pathMatch = url.match(/\/invite\/([a-zA-Z0-9]+)/);
+  return pathMatch?.[1] ?? null;
+}
+
+function extractInviteParams(url: string): { from?: string; pet?: string; role?: string } {
+  try {
+    const parsed = new URL(url);
+    return {
+      from: parsed.searchParams.get('from') ?? undefined,
+      pet:  parsed.searchParams.get('pet')  ?? undefined,
+      role: parsed.searchParams.get('role') ?? undefined,
+    };
+  } catch {
+    return {};
+  }
 }
 
 // Handles /invite/TOKEN deep links — must be inside QueryClientProvider + ToastProvider
@@ -53,8 +70,12 @@ function InviteLinkHandler() {
 
   const [pendingInvite, setPendingInvite] = useState<InviteInfo | null>(null);
 
-  // Busca os detalhes do convite pelo token e exibe o modal
-  const showInviteModal = async (token: string) => {
+  // Busca os detalhes do convite pelo token e exibe o modal.
+  // urlParams é fallback quando o SELECT falha (e.g. race condition ou RLS residual).
+  const showInviteModal = async (
+    token: string,
+    urlParams?: { from?: string; pet?: string; role?: string },
+  ) => {
     const { data: invite } = await supabase
       .from('pet_members')
       .select('invite_token, role, invited_by, pets(name)')
@@ -62,12 +83,16 @@ function InviteLinkHandler() {
       .is('accepted_at', null)
       .maybeSingle();
 
-    if (!invite) return; // token inválido ou já aceito
+    // If DB select fails, fall back to URL params so the modal still appears
+    const petName =
+      (invite?.pets as { name: string } | null)?.name ??
+      urlParams?.pet ??
+      '—';
+    const role = (invite?.role ?? urlParams?.role ?? 'co_parent') as InviteMemberRole;
 
-    const petName = (invite.pets as { name: string } | null)?.name ?? '—';
-    let inviterName = 'Tutor';
+    let inviterName = urlParams?.from ?? 'Tutor';
 
-    if (invite.invited_by) {
+    if (invite?.invited_by) {
       const { data: inviter } = await supabase
         .from('users')
         .select('full_name, email')
@@ -76,15 +101,11 @@ function InviteLinkHandler() {
       inviterName =
         (inviter as { full_name: string | null; email: string } | null)?.full_name ??
         (inviter as { full_name: string | null; email: string } | null)?.email?.split('@')[0] ??
-        'Tutor';
+        inviterName;
     }
 
-    setPendingInvite({
-      token,
-      petName,
-      inviterName,
-      role: (invite.role as InviteMemberRole) ?? 'co_parent',
-    });
+    // Still show modal even if DB row wasn't readable — doAcceptInvite uses the token directly
+    setPendingInvite({ token, petName, inviterName, role });
   };
 
   const doAcceptInvite = async (token: string, uid: string) => {
@@ -129,34 +150,61 @@ function InviteLinkHandler() {
     toast(t('invite.declined'), 'info');
   };
 
-  // Detectar convite pendente após login:
-  // 1. token salvo localmente (deep link aberto antes de logar)
-  // 2. convite no banco pelo email (TestFlight / instalação direta)
+  // Após login: auto-aceitar convites pendentes pelo email (sem modal).
+  // Também dispara ao trazer o app para o primeiro plano.
   useEffect(() => {
     if (!isAuthenticated || !userId || !userEmail) return;
 
-    (async () => {
-      const pendingToken = await AsyncStorage.getItem(PENDING_INVITE_KEY).catch(() => null);
-
-      if (pendingToken) {
-        await showInviteModal(pendingToken);
-        return;
+    const check = async () => {
+      // Deep link token salvo antes do login → ainda mostra modal (fluxo legado)
+      const pendingRaw = await AsyncStorage.getItem(PENDING_INVITE_KEY).catch(() => null);
+      if (pendingRaw) {
+        try {
+          const parsed = JSON.parse(pendingRaw) as { token: string; from?: string; pet?: string; role?: string };
+          const { token, ...params } = parsed;
+          if (token) { await showInviteModal(token, params); return; }
+        } catch {
+          await showInviteModal(pendingRaw); return;
+        }
       }
 
-      const { data: invite } = await supabase
+      // Auto-aceitar todos os convites pendentes pelo e-mail do usuário
+      const { data: invites } = await supabase
         .from('pet_members')
-        .select('invite_token')
+        .select('id, pets(name)')
         .eq('email', userEmail)
         .eq('is_active', true)
         .is('accepted_at', null)
-        .is('user_id', null)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
+        .is('user_id', null);
 
-      if (invite?.invite_token) {
-        await showInviteModal(invite.invite_token);
+      let accepted = 0;
+      for (const invite of (invites ?? [])) {
+        const { error } = await supabase
+          .from('pet_members')
+          .update({
+            user_id:      userId,
+            accepted_at:  new Date().toISOString(),
+            invite_token: null,
+          })
+          .eq('id', invite.id)
+          .is('accepted_at', null);
+
+        if (!error) {
+          const petName = (invite.pets as { name: string } | null)?.name ?? 'Pet';
+          toast(t('members.autoAccepted', { petName }), 'success');
+          accepted++;
+        }
       }
-    })();
+
+      if (accepted > 0) qc.invalidateQueries({ queryKey: ['pets'] });
+    };
+
+    check();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => sub.remove();
   }, [isAuthenticated, userId, userEmail]);
 
   // Deep link recebido enquanto o app está aberto ou ao abrir
@@ -165,16 +213,19 @@ function InviteLinkHandler() {
       const token = extractInviteToken(url);
       if (!token) return;
 
+      const params = extractInviteParams(url);
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        await AsyncStorage.setItem(PENDING_INVITE_KEY, token);
+        // Persist token + params so we can restore after login
+        const stored = JSON.stringify({ token, ...params });
+        await AsyncStorage.setItem(PENDING_INVITE_KEY, stored);
         toast(t('members.inviteLoginRequired'), 'info');
         router.push('/(auth)/login');
         return;
       }
 
-      await showInviteModal(token);
+      await showInviteModal(token, params);
     };
 
     Linking.getInitialURL().then((url) => { if (url) handleUrl(url); });

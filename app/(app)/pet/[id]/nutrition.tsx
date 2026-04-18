@@ -1,668 +1,508 @@
-import React, { useCallback, useState } from 'react';
+/**
+ * nutrition.tsx — Tela 1: Visão geral de nutrição do pet
+ *
+ * Mostra: modalidade, ração atual, peso, fase de vida, alertas, avaliação IA.
+ * Rota: /pet/[id]/nutrition
+ */
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  Apple,
-  Sparkles,
-  Clock,
-  Check,
-  ShieldCheck,
+  ChevronLeft,
+  Leaf,
+  Weight,
   AlertTriangle,
-  XCircle,
-  UtensilsCrossed,
-  CookingPot,
-  Cookie,
+  Utensils,
+  Plus,
+  ChevronRight,
+  Sparkles,
+  BookOpen,
+  TrendingUp,
+  ShieldAlert,
+  CalendarDays,
+  Settings2,
+  Venus,
+  Mars,
 } from 'lucide-react-native';
-
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
-import { radii, spacing } from '../../../../constants/spacing';
-import { usePet } from '../../../../hooks/usePets';
-import { Skeleton } from '../../../../components/Skeleton';
-import { NutritionLensContent } from '../../../../components/lenses/NutritionLensContent';
+import { useNutricao } from '../../../../hooks/useNutricao';
+import { usePets } from '../../../../hooks/usePets';
+import { sexContext } from '../../../../utils/petGender';
 
-// ──────────────────────────────────────────
-// Types
-// ──────────────────────────────────────────
-type TabId = 'today' | 'foods' | 'recipes' | 'records';
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-interface TabDef {
-  readonly id: TabId;
-  readonly labelKey: string;
+function lifeStageLabel(t: (k: string) => string, stage: string): string {
+  const map: Record<string, string> = {
+    puppy: t('nutrition.lifeStagePuppy'),
+    kitten: t('nutrition.lifeStageKitten'),
+    adult: t('nutrition.lifeStageAdult'),
+    senior: t('nutrition.lifeStageSenior'),
+  };
+  return map[stage] ?? stage;
 }
 
-interface MacroData {
-  readonly labelKey: string;
-  readonly value: number;
-  readonly max: number;
-  readonly unit: string;
-  readonly color: string;
+function modalidadeLabel(t: (k: string) => string, mod: string): string {
+  const map: Record<string, string> = {
+    so_racao: t('nutrition.modalidadeLabelSoRacao'),
+    racao_natural: t('nutrition.modalidadeLabelRacaoNatural'),
+    so_natural: t('nutrition.modalidadeLabelSoNatural'),
+  };
+  return map[mod] ?? mod;
 }
 
-interface MealEntry {
-  readonly time: string;
-  readonly nameKey: string;
-  readonly itemsKey: string;
-  readonly kcal: number;
-  readonly done: boolean;
-  readonly dotColor: string;
+function categoryLabel(t: (k: string) => string, cat: string | null): string {
+  if (!cat) return '';
+  const map: Record<string, string> = {
+    dry_food: t('nutrition.categoryDryFood'),
+    wet_food: t('nutrition.categoryWetFood'),
+    raw: t('nutrition.categoryRaw'),
+    homemade: t('nutrition.categoryHomemade'),
+    treat: t('nutrition.categoryTreat'),
+    supplement: t('nutrition.categorySupplement'),
+    prescription: t('nutrition.categoryPrescription'),
+  };
+  return map[cat] ?? cat;
 }
 
-interface FoodItem {
-  readonly nameKey: string;
-  readonly noteKey: string;
-  readonly dotColor: string;
+function ageMonthsFromPet(pet: { birth_date?: string | null; estimated_age_months?: number | null }): number {
+  if (pet.birth_date) {
+    const birth = new Date(pet.birth_date);
+    const now = new Date();
+    return Math.max(0, (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth()));
+  }
+  return pet.estimated_age_months ?? 0;
 }
 
-interface FoodSection {
-  readonly titleKey: string;
-  readonly borderColor: string;
-  readonly items: readonly FoodItem[];
+function calcLifeStageClient(
+  species: string,
+  ageMonths: number,
+  size: string | null,
+): { life_stage: string; age_label: string } {
+  let life_stage = 'adult';
+  if (species === 'dog') {
+    const puppyEnd = size === 'large' ? 18 : size === 'medium' ? 15 : 12;
+    const seniorStart = size === 'large' ? 60 : size === 'medium' ? 84 : 96;
+    if (ageMonths < puppyEnd) life_stage = 'puppy';
+    else if (ageMonths >= seniorStart) life_stage = 'senior';
+  } else {
+    // cat
+    if (ageMonths < 12) life_stage = 'kitten';
+    else if (ageMonths >= 120) life_stage = 'senior';
+  }
+  let age_label = '';
+  if (ageMonths < 12) {
+    age_label = `${ageMonths}m`;
+  } else {
+    const years = Math.floor(ageMonths / 12);
+    const months = ageMonths % 12;
+    age_label = months > 0 ? `${years}a ${months}m` : `${years}a`;
+  }
+  return { life_stage, age_label };
 }
 
-interface RecipeCard {
-  readonly nameKey: string;
-  readonly kcal: number;
-  readonly color: string;
-  readonly icon: React.ElementType;
-}
+// ── Component ─────────────────────────────────────────────────────────────────
 
-// ──────────────────────────────────────────
-// Constants
-// ──────────────────────────────────────────
-const TABS: readonly TabDef[] = [
-  { id: 'records', labelKey: 'nutrition.tabRecords' },
-  { id: 'today', labelKey: 'nutrition.tabToday' },
-  { id: 'foods', labelKey: 'nutrition.tabFoods' },
-  { id: 'recipes', labelKey: 'nutrition.tabRecipes' },
-];
+export default function NutricaoScreen() {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const { id: petId } = useLocalSearchParams<{ id: string }>();
+  const { pets } = usePets();
+  const pet = pets.find((p) => p.id === petId);
 
-const MACROS: readonly MacroData[] = [
-  { labelKey: 'nutrition.macroProtein', value: 45, max: 55, unit: 'g', color: colors.danger },
-  { labelKey: 'nutrition.macroFat', value: 22, max: 30, unit: 'g', color: colors.gold },
-  { labelKey: 'nutrition.macroFiber', value: 8, max: 12, unit: 'g', color: colors.lime },
-  { labelKey: 'nutrition.macroCarbs', value: 15, max: 25, unit: 'g', color: colors.petrol },
-];
+  console.log('[NutricaoScreen] render — petId:', petId, 'isAuth:', !!pet);
+  const { nutricao, isLoadingNutricao, refetchNutricao } = useNutricao(petId ?? '');
 
-const MEALS: readonly MealEntry[] = [
-  { time: '08:00', nameKey: 'nutrition.mealBreakfast', itemsKey: 'nutrition.mealBreakfastItems', kcal: 280, done: true, dotColor: colors.lime },
-  { time: '13:00', nameKey: 'nutrition.mealSnack', itemsKey: 'nutrition.mealSnackItems', kcal: 45, done: true, dotColor: colors.gold },
-  { time: '18:00', nameKey: 'nutrition.mealDinner', itemsKey: 'nutrition.mealDinnerItems', kcal: 300, done: false, dotColor: colors.border },
-  { time: '20:30', nameKey: 'nutrition.mealSupper', itemsKey: 'nutrition.mealSupperItems', kcal: 155, done: false, dotColor: colors.border },
-];
+  const onRefresh = useCallback(() => {
+    refetchNutricao();
+  }, [refetchNutricao]);
 
-const FOOD_SECTIONS: readonly FoodSection[] = [
-  {
-    titleKey: 'nutrition.foodsSafe',
-    borderColor: colors.lime,
-    items: [
-      { nameKey: 'nutrition.foodChicken', noteKey: 'nutrition.foodChickenNote', dotColor: colors.lime },
-      { nameKey: 'nutrition.foodCarrot', noteKey: 'nutrition.foodCarrotNote', dotColor: colors.lime },
-      { nameKey: 'nutrition.foodRice', noteKey: 'nutrition.foodRiceNote', dotColor: colors.lime },
-    ],
-  },
-  {
-    titleKey: 'nutrition.foodsCaution',
-    borderColor: colors.warning,
-    items: [
-      { nameKey: 'nutrition.foodCheese', noteKey: 'nutrition.foodCheeseNote', dotColor: colors.warning },
-      { nameKey: 'nutrition.foodEgg', noteKey: 'nutrition.foodEggNote', dotColor: colors.warning },
-    ],
-  },
-  {
-    titleKey: 'nutrition.foodsToxic',
-    borderColor: colors.danger,
-    items: [
-      { nameKey: 'nutrition.foodChocolate', noteKey: 'nutrition.foodChocolateNote', dotColor: colors.danger },
-      { nameKey: 'nutrition.foodGrapes', noteKey: 'nutrition.foodGrapesNote', dotColor: colors.danger },
-    ],
-  },
-];
+  const nav = (sub: string) => router.push(`/pet/${petId}/nutrition/${sub}` as never);
 
-const RECIPES: readonly RecipeCard[] = [
-  { nameKey: 'nutrition.recipeNatural', kcal: 320, color: colors.lime, icon: UtensilsCrossed },
-  { nameKey: 'nutrition.recipeSnack', kcal: 45, color: colors.gold, icon: Cookie },
-  { nameKey: 'nutrition.recipeSoup', kcal: 180, color: colors.petrol, icon: CookingPot },
-];
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (isLoadingNutricao) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ChevronLeft size={rs(22)} color={colors.accent} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('nutrition.title')}</Text>
+          <View style={styles.backBtn} />
+        </View>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.accent} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-// ──────────────────────────────────────────
-// Progress Bar
-// ──────────────────────────────────────────
-function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
-  const pct = Math.min((value / max) * 100, 100);
+  const petName = pet?.name ?? '';
+
+  // Client-side life stage: calculated from birth_date/estimated_age_months directly
+  // so we're not affected by the Edge Function defaulting to 24 months when birth_date is null.
+  const clientStage = pet
+    ? calcLifeStageClient(pet.species, ageMonthsFromPet(pet), pet.size ?? null)
+    : null;
+  const displayLifeStage = clientStage?.life_stage ?? nutricao?.life_stage ?? 'adult';
+  const displayAgeLabel = clientStage?.age_label ?? nutricao?.age_label ?? '';
+
+  const alertColor = (severity: string) => {
+    if (severity === 'error') return colors.danger;
+    if (severity === 'warning') return colors.warning;
+    return colors.petrol;
+  };
+
   return (
-    <View style={styles.progressTrack}>
-      <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: color }]} />
+    <SafeAreaView style={styles.safeArea}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ChevronLeft size={rs(22)} color={colors.accent} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('nutrition.title')}</Text>
+        <TouchableOpacity onPress={() => nav('modalidade')} style={styles.backBtn}>
+          <Settings2 size={rs(20)} color={colors.accent} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingNutricao}
+            onRefresh={onRefresh}
+            tintColor={colors.accent}
+          />
+        }
+      >
+        {/* Subtitle + sex pill */}
+        <View style={styles.subtitleRow}>
+          <Text style={styles.subtitle}>
+            {t('nutrition.subtitle', { name: petName, context: sexContext(pet?.sex) })}
+          </Text>
+          {pet?.sex && (
+            <View style={styles.infoPill}>
+              {pet.sex === 'female'
+                ? <Venus size={rs(14)} color={colors.rose} />
+                : <Mars size={rs(14)} color={colors.sky} />
+              }
+              <Text style={[styles.infoPillText, { color: pet.sex === 'female' ? colors.rose : colors.sky }]}>
+                {pet.sex === 'female' ? t('nutrition.sexFemale') : t('nutrition.sexMale')}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Modalidade + life stage + weight pills */}
+        <View style={styles.infoRow}>
+          <View style={styles.infoPill}>
+            <Leaf size={rs(14)} color={colors.lime} />
+            <Text style={[styles.infoPillText, { color: colors.lime }]}>
+              {modalidadeLabel(t, nutricao?.modalidade ?? 'so_racao')}
+            </Text>
+          </View>
+          <View style={styles.infoPill}>
+            <TrendingUp size={rs(14)} color={colors.petrol} />
+            <Text style={[styles.infoPillText, { color: colors.petrol }]}>
+              {lifeStageLabel(t, displayLifeStage)}
+              {displayAgeLabel ? `  ·  ${displayAgeLabel}` : ''}
+            </Text>
+          </View>
+          <View style={styles.infoPill}>
+            <Weight size={rs(14)} color={colors.petrol} />
+            <Text style={[styles.infoPillText, { color: colors.petrol }]}>
+              {nutricao?.weight_kg != null
+                ? t('nutrition.weightKg', { weight: nutricao.weight_kg })
+                : t('nutrition.weightUnknown')}
+            </Text>
+          </View>
+        </View>
+
+        {/* Alerts */}
+        {(nutricao?.alerts ?? []).length > 0 && (
+          <View style={styles.alertsCard}>
+            {nutricao!.alerts.map((alert, i) => (
+              <View key={i} style={styles.alertRow}>
+                <AlertTriangle size={rs(16)} color={alertColor(alert.severity)} />
+                <Text style={[styles.alertText, { color: alertColor(alert.severity) }]}>
+                  {t(alert.message_key, { name: petName })}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Current food */}
+        <View style={styles.sectionHeaderRow}>
+          <Utensils size={rs(13)} color={colors.lime} />
+          <Text style={styles.sectionLabel}>{t('nutrition.sectionCurrentFood')}</Text>
+        </View>
+
+        {nutricao?.current_food ? (
+          <TouchableOpacity style={styles.foodCard} onPress={() => nav('racao')} activeOpacity={0.8}>
+            <View style={styles.foodCardMain}>
+              <Text style={styles.foodName} numberOfLines={1}>
+                {nutricao.current_food.product_name ?? '—'}
+              </Text>
+              {nutricao.current_food.brand && (
+                <Text style={styles.foodBrand}>{nutricao.current_food.brand}</Text>
+              )}
+              <View style={styles.foodStatsRow}>
+                {nutricao.current_food.portion_grams != null && (
+                  <StatChip label={t('nutrition.racaoPortionValue', { g: nutricao.current_food.portion_grams })} />
+                )}
+                {nutricao.current_food.daily_portions != null && (
+                  <StatChip label={t('nutrition.racaoDailyPortions', { n: nutricao.current_food.daily_portions })} />
+                )}
+                {nutricao.current_food.calories_kcal != null && (
+                  <StatChip label={t('nutrition.racaoCalories', { kcal: nutricao.current_food.calories_kcal })} />
+                )}
+                {nutricao.current_food.category && (
+                  <StatChip label={categoryLabel(t, nutricao.current_food.category)} />
+                )}
+              </View>
+            </View>
+            <ChevronRight size={rs(18)} color={colors.textDim} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.emptyCard} onPress={() => nav('trocar')} activeOpacity={0.8}>
+            <Plus size={rs(20)} color={colors.accent} />
+            <Text style={styles.emptyText}>{t('nutrition.addFirstFood')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Restrictions summary */}
+        {(nutricao?.restrictions ?? []).length > 0 && (
+          <>
+            <View style={styles.sectionHeaderRow}>
+              <ShieldAlert size={rs(13)} color={colors.warning} />
+              <Text style={styles.sectionLabel}>{t('nutrition.sectionRestrictions')}</Text>
+            </View>
+            <TouchableOpacity style={styles.restrictionsCard} onPress={() => nav('restricoes')} activeOpacity={0.8}>
+              {nutricao!.restrictions.slice(0, 3).map((r) => (
+                <View key={r.id} style={styles.restrictionRow}>
+                  <View style={styles.restrictionDot} />
+                  <Text style={styles.restrictionText} numberOfLines={1}>
+                    {r.product_name ?? r.notes ?? '—'}
+                  </Text>
+                </View>
+              ))}
+              {nutricao!.restrictions.length > 3 && (
+                <Text style={styles.restrictionMore}>
+                  +{nutricao!.restrictions.length - 3}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Action grid */}
+        <View style={styles.actionGrid}>
+          <ActionBtn icon={<ShieldAlert size={rs(22)} color={colors.accent} />} label={t('nutrition.btnRestrictions')} onPress={() => nav('restricoes')} />
+          <ActionBtn icon={<BookOpen size={rs(22)} color={colors.accent} />} label={t('nutrition.btnHistory')} onPress={() => nav('historico')} />
+          <ActionBtn icon={<Sparkles size={rs(22)} color={colors.accent} />} label={t('nutrition.btnAITips')} onPress={() => nav('dicas')} />
+          <ActionBtn icon={<Settings2 size={rs(22)} color={colors.accent} />} label={t('nutrition.btnModalidade')} onPress={() => nav('modalidade')} />
+          <ActionBtn icon={<CalendarDays size={rs(22)} color={colors.accent} />} label={t('nutrition.btnWeeklyMenu')} onPress={() => nav('cardapio')} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StatChip({ label }: { label: string }) {
+  return (
+    <View style={chipStyles.chip}>
+      <Text style={chipStyles.text}>{label}</Text>
     </View>
   );
 }
 
-// ──────────────────────────────────────────
-// Main Component
-// ──────────────────────────────────────────
-export default function NutritionScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useTranslation();
-  const { data: pet, isLoading, refetch } = usePet(id);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabId>('records');
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
-
-  const currentKcal = 624;
-  const goalKcal = 780;
-
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.content}>
-          <Skeleton width="100%" height={rs(80)} radius={radii.card} />
-          <View style={{ height: spacing.md }} />
-          <Skeleton width="100%" height={rs(200)} radius={radii.card} />
-          <View style={{ height: spacing.md }} />
-          <Skeleton width="100%" height={rs(160)} radius={radii.card} />
-        </View>
-      </View>
-    );
-  }
-
+function ActionBtn({ icon, label, onPress }: { icon: React.ReactNode; label: string; onPress: () => void }) {
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor={colors.accent}
-          colors={[colors.accent]}
-        />
-      }
-    >
-      {/* ── Breed Info Bar ── */}
-      <View style={styles.breedBar}>
-        <View style={styles.breedLeft}>
-          <View style={[styles.breedIconWrap, { backgroundColor: colors.limeSoft }]}>
-            <Apple size={rs(20)} color={colors.lime} strokeWidth={1.8} />
-          </View>
-          <View style={styles.breedTextWrap}>
-            <Text style={styles.breedName}>
-              {pet?.breed ?? t('health.unknown')} {' \u00B7 '} {pet?.weight_kg ? `${pet.weight_kg} kg` : ''}
-            </Text>
-            <Text style={styles.breedGoal}>
-              {t('nutrition.goalLabel', { kcal: goalKcal })}
-            </Text>
-          </View>
-        </View>
-        <View style={[styles.badge, { backgroundColor: colors.limeSoft }]}>
-          <Text style={[styles.badgeText, { color: colors.lime }]}>{t('nutrition.idealWeight')}</Text>
-        </View>
-      </View>
-
-      {/* ── Tab Navigation ── */}
-      <View style={styles.tabRow}>
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <TouchableOpacity
-              key={tab.id}
-              style={[styles.tab, isActive && styles.tabActive]}
-              onPress={() => setActiveTab(tab.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                {t(tab.labelKey)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* ── Tab Content ── */}
-      {activeTab === 'records' && id && (
-        <NutritionLensContent petId={id} />
-      )}
-
-      {activeTab === 'today' && (
-        <>
-          {/* Daily Calories Card */}
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>{t('nutrition.dailyCalories')}</Text>
-            <View style={styles.kcalRow}>
-              <Text style={styles.kcalCurrent}>{currentKcal}</Text>
-              <Text style={styles.kcalDivider}>/</Text>
-              <Text style={styles.kcalGoal}>{goalKcal}</Text>
-              <Text style={styles.kcalUnit}>kcal</Text>
-            </View>
-            <ProgressBar value={currentKcal} max={goalKcal} color={colors.lime} />
-            <View style={styles.macroGrid}>
-              {MACROS.map((m) => (
-                <View key={m.labelKey} style={styles.macroItem}>
-                  <View style={styles.macroHeader}>
-                    <Text style={styles.macroLabel}>{t(m.labelKey)}</Text>
-                    <Text style={[styles.macroValue, { color: m.color }]}>
-                      {m.value}{m.unit}
-                    </Text>
-                  </View>
-                  <ProgressBar value={m.value} max={m.max} color={m.color} />
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Meals Timeline */}
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>{t('nutrition.mealsTimeline')}</Text>
-            {MEALS.map((meal, idx) => (
-              <View key={idx} style={styles.mealRow}>
-                <View style={styles.mealTimelineCol}>
-                  <View style={[styles.mealDot, { backgroundColor: meal.dotColor }]}>
-                    {meal.done && <Check size={rs(10)} color={colors.bg} strokeWidth={2.5} />}
-                  </View>
-                  {idx < MEALS.length - 1 && <View style={styles.mealLine} />}
-                </View>
-                <View style={styles.mealInfo}>
-                  <View style={styles.mealHeader}>
-                    <Text style={styles.mealTime}>{meal.time}</Text>
-                    <Text style={styles.mealName}>{t(meal.nameKey)}</Text>
-                  </View>
-                  <Text style={styles.mealItems}>{t(meal.itemsKey)}</Text>
-                  <Text style={styles.mealKcal}>{meal.kcal} kcal</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </>
-      )}
-
-      {activeTab === 'foods' && (
-        <>
-          {FOOD_SECTIONS.map((section) => (
-            <View key={section.titleKey} style={[styles.card, { borderLeftWidth: rs(3), borderLeftColor: section.borderColor }]}>
-              <Text style={[styles.sectionLabel, { color: section.borderColor }]}>
-                {t(section.titleKey)}
-              </Text>
-              {section.items.map((item) => (
-                <View key={item.nameKey} style={styles.foodRow}>
-                  <View style={[styles.foodDot, { backgroundColor: item.dotColor }]} />
-                  <View style={styles.foodTextWrap}>
-                    <Text style={styles.foodName}>{t(item.nameKey)}</Text>
-                    <Text style={styles.foodNote}>{t(item.noteKey)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ))}
-        </>
-      )}
-
-      {activeTab === 'recipes' && (
-        <>
-          {RECIPES.map((recipe) => {
-            const IconComp = recipe.icon;
-            return (
-              <View key={recipe.nameKey} style={styles.card}>
-                <View style={styles.recipeRow}>
-                  <View style={[styles.recipeIconWrap, { backgroundColor: `${recipe.color}18` }]}>
-                    <IconComp size={rs(22)} color={recipe.color} strokeWidth={1.8} />
-                  </View>
-                  <View style={styles.recipeTextWrap}>
-                    <Text style={styles.recipeName}>{t(recipe.nameKey)}</Text>
-                    <View style={styles.recipeBadges}>
-                      <View style={[styles.badge, { backgroundColor: `${recipe.color}18` }]}>
-                        <Text style={[styles.badgeText, { color: recipe.color }]}>
-                          {recipe.kcal} kcal
-                        </Text>
-                      </View>
-                      <View style={[styles.badge, { backgroundColor: colors.successSoft }]}>
-                        <ShieldCheck size={rs(12)} color={colors.success} strokeWidth={2} />
-                        <Text style={[styles.badgeText, { color: colors.success, marginLeft: rs(4) }]}>
-                          {t('nutrition.vetApproved')}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            );
-          })}
-        </>
-      )}
-
-      {/* ── AI Note ── */}
-      <View style={[styles.card, styles.aiCard]}>
-        <View style={styles.aiHeader}>
-          <Sparkles size={rs(18)} color={colors.lime} strokeWidth={1.8} />
-          <Text style={styles.aiLabel}>{t('nutrition.aiNoteLabel')}</Text>
-        </View>
-        <Text style={styles.aiText}>
-          {t('nutrition.aiNote', { name: pet?.name ?? '' })}
-        </Text>
-      </View>
-
-      <View style={{ height: spacing.xxl }} />
-    </ScrollView>
+    <TouchableOpacity style={actionStyles.btn} onPress={onPress} activeOpacity={0.7}>
+      <View style={actionStyles.iconWrap}>{icon}</View>
+      <Text style={actionStyles.label} numberOfLines={2}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
-// ──────────────────────────────────────────
-// Styles
-// ──────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-
-  // Breed Info Bar
-  breedBar: {
+  safeArea: { flex: 1, backgroundColor: colors.bg },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(12),
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backBtn: { width: rs(36), height: rs(36), alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: fs(17), fontWeight: '700', color: colors.text },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: rs(16), paddingBottom: rs(40) },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: rs(14),
+    marginBottom: rs(10),
+    gap: rs(8),
+  },
+  subtitle: { fontSize: fs(13), color: colors.textSec, flex: 1 },
+  infoRow: { flexDirection: 'row', gap: rs(8), marginBottom: rs(12), flexWrap: 'wrap' },
+  infoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(5),
     backgroundColor: colors.card,
-    borderRadius: radii.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  breedLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  breedIconWrap: {
-    width: rs(40),
-    height: rs(40),
-    borderRadius: radii.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  breedTextWrap: {
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  breedName: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(14),
-    color: colors.text,
-  },
-  breedGoal: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(11),
-    color: colors.textDim,
-    marginTop: rs(2),
-  },
-
-  // Badge
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: rs(4),
-    borderRadius: radii.sm,
-  },
-  badgeText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(10),
-  },
-
-  // Tabs
-  tabRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: rs(10),
-    borderRadius: radii.lg,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-  },
-  tabActive: {
-    backgroundColor: colors.limeSoft,
+    borderRadius: rs(20),
+    paddingHorizontal: rs(10),
+    paddingVertical: rs(5),
     borderWidth: 1,
-    borderColor: colors.lime,
+    borderColor: colors.border,
   },
-  tabText: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(12),
-    color: colors.textDim,
-  },
-  tabTextActive: {
-    color: colors.lime,
-  },
-
-  // Card
-  card: {
+  infoPillText: { fontSize: fs(12), fontWeight: '600' },
+  alertsCard: {
     backgroundColor: colors.card,
-    borderRadius: radii.card,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: rs(12),
+    padding: rs(12),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: rs(8),
   },
-  sectionLabel: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(11),
-    color: colors.textSec,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-  },
-
-  // Kcal
-  kcalRow: {
+  alertRow: { flexDirection: 'row', alignItems: 'flex-start', gap: rs(8) },
+  alertText: { flex: 1, fontSize: fs(13) },
+  sectionHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: spacing.sm,
-  },
-  kcalCurrent: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(32),
-    color: colors.lime,
-  },
-  kcalDivider: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(20),
-    color: colors.textGhost,
-    marginHorizontal: rs(4),
-  },
-  kcalGoal: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(20),
-    color: colors.textDim,
-  },
-  kcalUnit: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(12),
-    color: colors.textDim,
-    marginLeft: rs(6),
-  },
-
-  // Progress
-  progressTrack: {
-    height: rs(4),
-    backgroundColor: colors.border,
-    borderRadius: rs(2),
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: rs(2),
-  },
-
-  // Macros
-  macroGrid: {
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  macroItem: {
-    gap: rs(4),
-  },
-  macroHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: rs(6),
+    marginBottom: rs(8),
+    marginTop: rs(8),
   },
-  macroLabel: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(12),
-    color: colors.textSec,
-  },
-  macroValue: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(12),
-  },
-
-  // Meals
-  mealRow: {
+  sectionLabel: { fontSize: fs(11), fontWeight: '700', color: colors.textDim, letterSpacing: 1.2 },
+  foodCard: {
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(14),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderColor: colors.border,
     flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  mealTimelineCol: {
     alignItems: 'center',
-    width: rs(24),
-    marginRight: spacing.sm,
+    gap: rs(10),
   },
-  mealDot: {
-    width: rs(18),
-    height: rs(18),
-    borderRadius: rs(9),
+  foodCardMain: { flex: 1 },
+  foodName: { fontSize: fs(15), fontWeight: '700', color: colors.text, marginBottom: rs(2) },
+  foodBrand: { fontSize: fs(12), color: colors.textSec, marginBottom: rs(6) },
+  foodStatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(6) },
+  emptyCard: {
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(20),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.accent,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: rs(8),
   },
-  mealLine: {
-    width: 1.5,
-    flex: 1,
-    backgroundColor: colors.border,
-    marginTop: rs(4),
+  emptyText: { fontSize: fs(14), color: colors.accent, fontWeight: '600' },
+  evalCard: {
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(14),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  mealInfo: {
-    flex: 1,
-    paddingBottom: spacing.sm,
+  doubleRow: { flexDirection: 'row', gap: rs(10), marginBottom: rs(14) },
+  halfCard: {
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(14),
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  mealHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  halfCardHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(5), marginBottom: rs(6) },
+  halfCardTitle: { fontSize: fs(11), fontWeight: '700', color: colors.textDim, letterSpacing: 0.5 },
+  halfCardValue: { fontSize: fs(18), fontWeight: '800', color: colors.text },
+  halfCardValueDim: { fontSize: fs(12), color: colors.textDim, fontStyle: 'italic' },
+  evalGenerating: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginTop: rs(2) },
+  evalGeneratingText: { fontSize: fs(11), color: colors.textDim, fontStyle: 'italic', flex: 1 },
+  evalScoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: rs(2) },
+  evalScore: { fontSize: fs(22), fontWeight: '800', color: colors.purple },
+  evalScoreMax: { fontSize: fs(11), color: colors.textDim },
+  evalSummary: { fontSize: fs(11), color: colors.textSec, marginTop: rs(4), lineHeight: fs(15) },
+  evalCons: { fontSize: fs(10), color: colors.warning, marginTop: rs(4), fontWeight: '600' },
+  restrictionsCard: {
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(14),
+    marginBottom: rs(14),
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  mealTime: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(12),
-    color: colors.textDim,
-  },
-  mealName: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(13),
-    color: colors.text,
-  },
-  mealItems: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(11),
-    color: colors.textSec,
-    marginTop: rs(2),
-  },
-  mealKcal: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(11),
-    color: colors.lime,
-    marginTop: rs(2),
-  },
+  restrictionRow: { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: rs(4) },
+  restrictionDot: { width: rs(6), height: rs(6), borderRadius: rs(3), backgroundColor: colors.warning },
+  restrictionText: { flex: 1, fontSize: fs(13), color: colors.text },
+  restrictionMore: { fontSize: fs(12), color: colors.textDim, marginTop: rs(4) },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(10), marginTop: rs(10) },
+});
 
-  // Foods
-  foodRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: rs(6),
+const chipStyles = StyleSheet.create({
+  chip: {
+    backgroundColor: colors.bgCard,
+    borderRadius: rs(6),
+    paddingHorizontal: rs(8),
+    paddingVertical: rs(3),
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  foodDot: {
-    width: rs(8),
-    height: rs(8),
-    borderRadius: rs(4),
-    marginTop: rs(5),
-    marginRight: spacing.sm,
-  },
-  foodTextWrap: {
-    flex: 1,
-  },
-  foodName: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(13),
-    color: colors.text,
-  },
-  foodNote: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(11),
-    color: colors.textSec,
-    marginTop: rs(1),
-  },
+  text: { fontSize: fs(11), color: colors.textSec },
+});
 
-  // Recipes
-  recipeRow: {
-    flexDirection: 'row',
+const actionStyles = StyleSheet.create({
+  btn: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    backgroundColor: colors.card,
+    borderRadius: rs(14),
+    padding: rs(14),
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: rs(8),
+    minWidth: rs(90),
   },
-  recipeIconWrap: {
+  iconWrap: {
     width: rs(44),
     height: rs(44),
-    borderRadius: radii.lg,
+    borderRadius: rs(22),
+    backgroundColor: colors.accentGlow,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recipeTextWrap: {
-    flex: 1,
-    marginLeft: spacing.sm,
-  },
-  recipeName: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(14),
-    color: colors.text,
-    marginBottom: rs(4),
-  },
-  recipeBadges: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-
-  // AI Note
-  aiCard: {
-    backgroundColor: `${colors.lime}08`,
-    borderWidth: 1,
-    borderColor: `${colors.lime}20`,
-  },
-  aiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  aiLabel: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(11),
-    color: colors.lime,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  aiText: {
-    fontFamily: 'Caveat_400Regular',
-    fontSize: fs(15),
-    color: colors.textSec,
-    lineHeight: fs(15) * 1.9,
-    fontStyle: 'italic',
-  },
+  label: { fontSize: fs(11), fontWeight: '600', color: colors.textSec, textAlign: 'center' },
 });

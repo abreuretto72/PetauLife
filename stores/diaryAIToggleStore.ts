@@ -21,7 +21,7 @@ interface DiaryAIToggleState {
 export const useDiaryAIToggleStore = create<DiaryAIToggleState>()(
   persist(
     (set) => ({
-      enabled: false,
+      enabled: true,
       setEnabled: (enabled) => set({ enabled }),
     }),
     {

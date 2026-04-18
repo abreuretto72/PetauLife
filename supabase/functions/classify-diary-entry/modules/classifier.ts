@@ -323,7 +323,7 @@ urgency_level: 'low' | 'medium' | 'high'
 REGRA: sangue nas fezes/urina = 'high'; vômito repetido = 'high'; convulsão = 'high'
 
 ## 8. PESO (type = 'weight')
-Detectar: "pesou", "pesa", "peso", "kg", "quilos", "balança", "pesagem"
+Detectar: "pesou", "pesa", "peso", "pesando", "kg", "quilos", "balança", "pesagem"
 extracted_data: { value: número_decimal, unit: 'kg' }
 "3,2 kg" → 3.2 | "três quilos" → 3.0 | "32 kg" → 32.0
 

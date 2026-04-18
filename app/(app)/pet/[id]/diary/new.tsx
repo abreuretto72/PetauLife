@@ -1298,6 +1298,7 @@ export default function NewDiaryEntryScreen() {
         <AudioPreviewStep
           durationSeconds={capturedAudioDuration}
           petName={petName}
+          petSex={pet?.sex}
           context={captureCaption}
           onContextChange={setCaptureCaption}
           isListening={isListening}
@@ -2050,7 +2051,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1, color: colors.text,
-    fontSize: fs(15), fontFamily: 'Sora_400Regular',
+    fontSize: fs(15),
     lineHeight: fs(22), textAlignVertical: 'top',
   },
   inlineMic: {
@@ -2140,7 +2141,6 @@ const styles = StyleSheet.create({
   transcriptionInput: {
     color: colors.text,
     fontSize: fs(15),
-    fontFamily: 'Sora_400Regular',
     lineHeight: fs(22),
     textAlignVertical: 'top',
     minHeight: rs(80),

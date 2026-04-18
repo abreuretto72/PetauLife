@@ -96,6 +96,7 @@ export default function DiaryScreen() {
         isLoading={isLoading}
         petId={id!}
         petName={petName}
+        petSex={pet?.sex}
         petSpecies={pet?.species}
         petAvatarUrl={pet?.avatar_url}
         petCreatedAt={pet?.created_at}

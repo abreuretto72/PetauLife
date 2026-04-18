@@ -1503,7 +1503,7 @@ const styles = StyleSheet.create({
   narrationSection: { backgroundColor: colors.accent + '08', borderWidth: 1, borderColor: colors.accent + '12', borderRadius: rs(12), padding: rs(12) },
   narrationHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginBottom: rs(8) },
   narrationTitle: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.accent, flex: 1 },
-  narrationText: { fontFamily: 'Caveat_400Regular', fontSize: fs(15), color: colors.textSec, lineHeight: rs(27), fontStyle: 'italic' },
+  narrationText: { fontSize: fs(15), color: colors.textSec, lineHeight: rs(27), fontStyle: 'italic' },
   narrationWrapper: { marginTop: rs(10) },
   moduleList: { gap: rs(6), padding: rs(4) },
   tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(6), marginTop: rs(10) },

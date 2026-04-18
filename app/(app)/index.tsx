@@ -207,6 +207,7 @@ export default function HubScreen() {
           name: data.name,
           species: data.species,
           sex: data.sex,
+          neutered: data.neutered ?? false,
           birth_date: data.birth_date,
           breed: data.breed ?? null,
           estimated_age_months: data.estimated_age_months ?? null,

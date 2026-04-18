@@ -20,3 +20,23 @@ verify_jwt = false
 # search-rag: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
 [functions.search-rag]
 verify_jwt = false
+
+# generate-prontuario: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.generate-prontuario]
+verify_jwt = false
+
+# get-nutricao: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.get-nutricao]
+verify_jwt = false
+
+# generate-cardapio: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.generate-cardapio]
+verify_jwt = false
+
+# evaluate-nutrition: same ES256/HS256 mismatch — auth enforced manually via getUser()
+[functions.evaluate-nutrition]
+verify_jwt = false
+
+# invite-web: public landing page — no JWT needed, token in query param acts as capability
+[functions.invite-web]
+verify_jwt = false

@@ -21,6 +21,27 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { scheduleAgendaReminders } from '../lib/notifications';
 import type { DiaryEntry } from '../types/database';
 import i18n from '../i18n';
+import {
+  AI_FLAGS_ALL_ON,
+  countFailedRoutines,
+  countAttemptedRoutines,
+} from './_diary/types';
+import type {
+  AIAnalysisFlags,
+  TextClassificationOutcome,
+  PhotoAnalysesOutcome,
+  VideoClassificationOutcome,
+  AudioClassificationOutcome,
+  OCRClassificationOutcome,
+  MediaAnalysisBundle,
+} from './_diary/types';
+import {
+  runTextClassification,
+  runPhotoAnalyses,
+  runVideoClassification,
+  runAudioClassification,
+  runOCRClassification,
+} from './_diary/mediaRoutines';
 
 // ── createFutureEvent — creates a scheduled_event for a future appointment ──
 
@@ -71,6 +92,7 @@ async function saveToModule(
   userId: string,
   diaryEntryId: string,
   classification: ClassifyDiaryResponse,
+  qc?: ReturnType<typeof useQueryClient>,
 ): Promise<void> {
   const classifications = classification.classifications ?? [];
   console.log('[MOD] saveToModule | classifications:', classifications.length);
@@ -396,14 +418,19 @@ async function saveToModule(
         }
 
         case 'weight': {
-          const weightVal = extracted.value ?? extracted.weight;
-          if (weightVal != null) {
+          const rawWeight = extracted.value ?? extracted.weight;
+          // Normalize PT-BR decimal notation: "3,5" → 3.5
+          const weightVal = typeof rawWeight === 'string'
+            ? parseFloat((rawWeight as string).replace(',', '.'))
+            : rawWeight != null ? Number(rawWeight) : null;
+          if (weightVal != null && !isNaN(weightVal)) {
+            const numericWeight = weightVal;
             const { data, error: wErr } = await supabase.from('clinical_metrics').insert({
               pet_id:        petId,
               user_id:       userId,
               diary_entry_id:diaryEntryId,
               metric_type:   'weight',
-              value:         Number(weightVal),
+              value:         numericWeight,
               unit:          (extracted.unit as string) ?? 'kg',
               status:        'normal',
               source:        'ai',
@@ -411,6 +438,19 @@ async function saveToModule(
             }).select('id').single();
             console.log('[MOD] métrica salva: weight', data?.id?.slice(-8), '| erro:', wErr?.message);
             if (data?.id) linkedField.linked_weight_metric_id = data.id;
+            // Sync current weight to pets table to keep cached value up to date
+            if (!wErr) {
+              await supabase
+                .from('pets')
+                .update({ weight_kg: numericWeight })
+                .eq('id', petId)
+                .eq('is_active', true);
+              qc?.invalidateQueries({ queryKey: ['pets'] });
+              qc?.invalidateQueries({ queryKey: ['pet', petId] });
+              qc?.invalidateQueries({ queryKey: ['pets', petId, 'clinical_metrics'] });
+              qc?.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'metrics'] });
+              qc?.invalidateQueries({ queryKey: ['nutricao', petId] });
+            }
           }
           break;
         }
@@ -751,6 +791,31 @@ async function saveToModule(
     }
   }
 
+  // Safety net: sync weight from root-level clinical_metrics when AI puts it there
+  // instead of (or in addition to) classifications[type=weight]
+  const rootMetrics = classification.clinical_metrics ?? [];
+  const rootWeight = rootMetrics.find((m) => m.type === 'weight');
+  if (rootWeight?.value != null) {
+    const numericWeight = typeof rootWeight.value === 'string'
+      ? parseFloat((rootWeight.value as string).replace(',', '.'))
+      : Number(rootWeight.value);
+    if (!isNaN(numericWeight)) {
+      const { error: rwErr } = await supabase
+        .from('pets')
+        .update({ weight_kg: numericWeight })
+        .eq('id', petId)
+        .eq('is_active', true);
+      console.log('[MOD] peso sync (root clinical_metrics):', numericWeight, '| erro:', rwErr?.message);
+      if (!rwErr) {
+        qc?.invalidateQueries({ queryKey: ['pets'] });
+        qc?.invalidateQueries({ queryKey: ['pet', petId] });
+        qc?.invalidateQueries({ queryKey: ['pets', petId, 'clinical_metrics'] });
+        qc?.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'metrics'] });
+        qc?.invalidateQueries({ queryKey: ['nutricao', petId] });
+      }
+    }
+  }
+
   // Update diary_entry with linked_*_id fields for any modules that were created
   console.log('[MOD] linkedField:', JSON.stringify(linkedField));
   if (Object.keys(linkedField).length > 0) {
@@ -867,7 +932,7 @@ export interface SubmitEntryParams {
   docBase64?: string;         // inline base64 of a scanned document (uploaded + OCR'd separately from photos)
   skipAI?: boolean;           // when true, skip AI classification/narration — just save text + upload media
   /** Per-routine AI analysis flags. When absent, defaults to all-enabled (backward compat). */
-  aiFlags?: import('./_diary/types').AIAnalysisFlags;
+  aiFlags?: AIAnalysisFlags;
 }
 
 export interface PDFImportParams {
@@ -901,7 +966,7 @@ async function _backgroundClassifyAndSave(opts: {
   docBase64?: string;     // inline base64 of a scanned document (upload + OCR in parallel with main classify)
   skipAI?: boolean;       // skip AI pipeline — upload media + save entry with manual defaults
   /** Per-routine AI analysis flags. When absent, defaults to all-enabled (backward compat). */
-  aiFlags?: import('./_diary/types').AIAnalysisFlags;
+  aiFlags?: AIAnalysisFlags;
   /** Toast function from useToast() — passed from the hook so background fn can show notifications. */
   toast?: (text: string, type?: string) => void;
 }): Promise<void> {
@@ -1291,16 +1356,7 @@ async function _backgroundClassifyAndSave(opts: {
     // opts.aiFlags → explicit per-routine control (from AI toggle in the UI)
     // absent → all enabled (backward compat for PDF import, retry, offline sync)
     // opts.skipAI handled separately above (fast-path before try block)
-    const { AI_FLAGS_ALL_ON } = await import('./_diary/types');
     const aiFlags = opts.aiFlags ?? AI_FLAGS_ALL_ON;
-
-    const {
-      runTextClassification,
-      runPhotoAnalyses,
-      runVideoClassification,
-      runAudioClassification,
-      runOCRClassification,
-    } = await import('./_diary/mediaRoutines');
 
     const _classifyStart = Date.now();
     console.log('[ORCH] aiFlags:', JSON.stringify(aiFlags));
@@ -1348,7 +1404,7 @@ async function _backgroundClassifyAndSave(opts: {
             language: i18n.language,
             authHeader,
           })
-        : Promise.resolve<import('./_diary/types').TextClassificationOutcome>(
+        : Promise.resolve<TextClassificationOutcome>(
             { status: 'skipped', reason: aiFlags.narrateText ? 'no_input' : 'toggle_off' }
           ),
 
@@ -1363,7 +1419,7 @@ async function _backgroundClassifyAndSave(opts: {
             language: i18n.language,
             authHeader,
           })
-        : Promise.resolve<import('./_diary/types').PhotoAnalysesOutcome>(
+        : Promise.resolve<PhotoAnalysesOutcome>(
             { status: 'skipped', reason: aiFlags.analyzePhotos ? 'no_input' : 'toggle_off' }
           ),
 
@@ -1377,7 +1433,7 @@ async function _backgroundClassifyAndSave(opts: {
             language: i18n.language,
             authHeader,
           })
-        : Promise.resolve<import('./_diary/types').VideoClassificationOutcome>(
+        : Promise.resolve<VideoClassificationOutcome>(
             { status: 'skipped', reason: aiFlags.analyzeVideo ? 'no_input' : 'toggle_off' }
           ),
 
@@ -1391,7 +1447,7 @@ async function _backgroundClassifyAndSave(opts: {
             language: i18n.language,
             authHeader,
           })
-        : Promise.resolve<import('./_diary/types').AudioClassificationOutcome>(
+        : Promise.resolve<AudioClassificationOutcome>(
             { status: 'skipped', reason: aiFlags.analyzeAudio ? 'no_input' : 'toggle_off' }
           ),
 
@@ -1405,7 +1461,7 @@ async function _backgroundClassifyAndSave(opts: {
             language: i18n.language,
             authHeader,
           })
-        : Promise.resolve<import('./_diary/types').OCRClassificationOutcome>(
+        : Promise.resolve<OCRClassificationOutcome>(
             { status: 'skipped', reason: aiFlags.analyzeOCR ? 'no_input' : 'toggle_off' }
           ),
     ]);
@@ -1507,8 +1563,7 @@ async function _backgroundClassifyAndSave(opts: {
     // If some routines were attempted but failed, let the tutor know that
     // the entry was saved but some analyses didn't complete. One toast only.
     {
-      const { countFailedRoutines, countAttemptedRoutines } = await import('./_diary/types');
-      const bundle: import('./_diary/types').MediaAnalysisBundle = {
+      const bundle: MediaAnalysisBundle = {
         textClassification: textOutcome,
         photoAnalyses:      photoOutcome,
         videoClassification: videoOutcome,
@@ -1690,7 +1745,7 @@ async function _backgroundClassifyAndSave(opts: {
       ? { ...classification, classifications: ocrClsArr }
       : classification;
     postSavePromises.push(
-      saveToModule(petId, userId, entryId, classificationForModules).catch((err) => {
+      saveToModule(petId, userId, entryId, classificationForModules, qc).catch((err) => {
         console.warn('[LENTES] saveToModule falhou (non-critical):', err);
       }),
     );
@@ -2101,7 +2156,7 @@ export function useDiaryEntry(petId: string) {
           primary_type: cls.type,
           classifications: [cls],
         };
-        saveToModule(petId, user!.id, childId, mockClassification).catch(() => {});
+        saveToModule(petId, user!.id, childId, mockClassification, qc).catch(() => {});
       }
 
       return { parentEntryId, childIds };
@@ -2260,7 +2315,7 @@ export function useDiaryEntry(petId: string) {
       updatePetRAG(petId, user!.id, entryId, classification.classifications ?? []).catch(() => {});
 
       // Save to health module if IA classified a health type (non-blocking, best-effort)
-      saveToModule(petId, user!.id, entryId, classification).catch((err) =>
+      saveToModule(petId, user!.id, entryId, classification, qc).catch((err) =>
         console.warn('[useDiaryEntry] saveToModule failed (non-critical):', err),
       );
 

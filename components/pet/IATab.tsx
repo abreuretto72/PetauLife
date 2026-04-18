@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: colors.card, borderRadius: rs(radii.xl),
     borderWidth: 1.5, borderColor: colors.border,
     paddingHorizontal: rs(14), paddingVertical: rs(10),
-    color: colors.text, fontFamily: 'Sora_400Regular', fontSize: fs(13),
+    color: colors.text, fontSize: fs(13),
     maxHeight: rs(100),
   },
   sendBtn: {

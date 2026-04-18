@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   transcriptInput: {
     color: colors.text, fontSize: fs(15),
-    fontFamily: 'Sora_400Regular', lineHeight: fs(22),
+    lineHeight: fs(22),
     minHeight: rs(60),
     textAlignVertical: 'top',
     padding: 0,

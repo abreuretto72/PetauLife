@@ -258,7 +258,6 @@ const styles = StyleSheet.create({
     color: colors.textDim,
   },
   narrationText: {
-    fontFamily: 'Sora',
     fontWeight: '400',
     fontSize: fs(14),
     fontStyle: 'italic',
@@ -297,7 +296,6 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   editInput: {
-    fontFamily: 'Sora',
     fontWeight: '400',
     fontSize: fs(14),
     fontStyle: 'italic',

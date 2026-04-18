@@ -115,7 +115,7 @@ export function usePetMembers(petId: string) {
 
     const expires_at = expires_days
       ? new Date(Date.now() + expires_days * 24 * 60 * 60 * 1000).toISOString()
-      : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(); // 48h padrão
+      : null; // null = sem expiração
 
     const [petResult, sessionResult] = await Promise.all([
       supabase.from('pets').select('name').eq('id', petId).single(),
@@ -142,11 +142,34 @@ export function usePetMembers(petId: string) {
     });
     if (error) throw error;
 
-    const qs = new URLSearchParams({ from: inviterName, pet: petName, role });
-    const inviteLink = `https://invite.auexpert.multiversodigital.com.br/${token}?${qs}`;
+    // Try immediate delegation: if the invitee already has an account, link now
+    let immediatelyGranted = false;
+    if (email?.trim()) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingUser?.id) {
+        const { error: grantErr } = await supabase
+          .from('pet_members')
+          .update({
+            user_id:      existingUser.id,
+            accepted_at:  new Date().toISOString(),
+            invite_token: null,
+          })
+          .eq('pet_id', petId)
+          .eq('email', email.trim())
+          .is('accepted_at', null)
+          .eq('is_active', true);
+
+        if (!grantErr) immediatelyGranted = true;
+      }
+    }
 
     qc.invalidateQueries({ queryKey: ['pets', petId, 'members'] });
-    return inviteLink;
+    return immediatelyGranted ? 'granted' : 'pending';
   };
 
   const removeMember = async (memberId: string): Promise<void> => {

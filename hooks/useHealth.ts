@@ -146,10 +146,12 @@ export function useMedications(petId: string) {
 // CONSULTATIONS
 // ══════════════════════════════════════
 
+const CONSULTATIONS_FETCH_LIMIT = 16; // fetch 16 to detect if there are more than 15
+
 export function useConsultations(petId: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const qc = useQueryClient();
-  const query = useQuery({ queryKey: ['pets', petId, 'consultations'], queryFn: () => api.fetchConsultations(petId), enabled: isAuthenticated && !!petId });
+  const query = useQuery({ queryKey: ['pets', petId, 'consultations'], queryFn: () => api.fetchConsultations(petId, CONSULTATIONS_FETCH_LIMIT), enabled: isAuthenticated && !!petId });
   const addMutation = useMutation({
     mutationFn: async (cons: Record<string, unknown>) => {
       if (!onlineManager.isOnline()) {
@@ -166,7 +168,10 @@ export function useConsultations(petId: string) {
       }
     },
   });
-  return { consultations: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addConsultation: addMutation.mutateAsync, isAdding: addMutation.isPending };
+  const raw = (query.data ?? []) as Record<string, unknown>[];
+  const hasMore = raw.length >= CONSULTATIONS_FETCH_LIMIT;
+  const consultations = hasMore ? raw.slice(0, 15) : raw;
+  return { consultations, hasMore, isLoading: query.isLoading, refetch: query.refetch, addConsultation: addMutation.mutateAsync, isAdding: addMutation.isPending };
 }
 
 // ══════════════════════════════════════
@@ -305,10 +310,24 @@ export function useMetrics(petId: string) {
         .select('id')
         .single();
       if (error) throw error;
+      // Sync current weight to pets table to keep cached value up to date
+      if (data.metric_type === 'weight') {
+        await supabase
+          .from('pets')
+          .update({ weight_kg: data.value })
+          .eq('id', data.pet_id)
+          .eq('is_active', true);
+      }
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['pets', petId, 'clinical_metrics'] });
+      qc.invalidateQueries({ queryKey: ['pets'] });
+      qc.invalidateQueries({ queryKey: ['pet', petId] });
+      if (variables.metric_type === 'weight') {
+        qc.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'metrics'] });
+        qc.invalidateQueries({ queryKey: ['nutricao', petId] });
+      }
     },
   });
 

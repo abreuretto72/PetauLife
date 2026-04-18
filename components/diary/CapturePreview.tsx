@@ -13,6 +13,7 @@ import { Mic, Check, Ear, Video, FileText } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
+import { sexContext, type PetSex } from '../../utils/petGender';
 
 // ══════════════════════════════════════
 // TYPES
@@ -211,6 +212,7 @@ export function VideoPreviewStep({
 export interface AudioPreviewStepProps {
   durationSeconds: number;
   petName: string;
+  petSex?: PetSex;
   context: string;
   onContextChange: (v: string) => void;
   isListening: boolean;
@@ -219,12 +221,12 @@ export interface AudioPreviewStepProps {
 }
 
 export function AudioPreviewStep({
-  durationSeconds, petName, context, onContextChange, isListening, onMicToggle, onConfirm,
+  durationSeconds, petName, petSex, context, onContextChange, isListening, onMicToggle, onConfirm,
 }: AudioPreviewStepProps) {
   const { t } = useTranslation();
   return (
     <View style={s.container}>
-      <Text style={s.stepTitle}>{t('diary.audioPreviewTitle', { name: petName })}</Text>
+      <Text style={s.stepTitle}>{t('diary.audioPreviewTitle', { name: petName, context: sexContext(petSex) })}</Text>
       <View style={s.mediaPlaceholder}>
         <Ear size={rs(40)} color={colors.rose} strokeWidth={1.5} />
         <Text style={s.durationText}>{formatDuration(durationSeconds)}</Text>
@@ -421,7 +423,6 @@ const s = StyleSheet.create({
   },
   captionInput: {
     flex: 1,
-    fontFamily: 'Sora_400Regular',
     fontSize: fs(14),
     color: colors.text,
     lineHeight: fs(20),

@@ -14,7 +14,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
 } from 'react-native';
 import {
-  ShieldCheck, UtensilsCrossed, Receipt, Heart,
+  ClipboardList, UtensilsCrossed, Receipt, Heart,
   Trophy, Smile, Plane,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -138,7 +138,10 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
       : t('lenses.badgeNoData')
     : null;
 
-  const nav = (route: string) => router.push(`/pet/${petId}/${route}` as never);
+  const nav = (route: string) => {
+    console.log('[LentesTab] nav called | route:', route, '| petId:', petId?.slice(-8), '| full:', `/pet/${petId}/${route}`);
+    router.push(`/pet/${petId}/${route}` as never);
+  };
 
   return (
     <ScrollView
@@ -151,9 +154,9 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
       <View style={styles.grid}>
         {/* Row 1: Prontuário · Nutrição */}
         <LensCard
-          icon={ShieldCheck} color={colors.success}
-          label={t('lenses.health')} badge={healthBadge} badgeColor={healthBadgeColor}
-          onPress={() => nav('health')}
+          icon={ClipboardList} color={colors.accent}
+          label={t('lenses.prontuario')} badge={healthBadge} badgeColor={healthBadgeColor}
+          onPress={() => { console.warn('>>> PRONTUARIO CARD PRESSED petId:', petId?.slice(-8)); nav('prontuario'); }}
         />
         <LensCard
           icon={UtensilsCrossed} color={colors.lime}

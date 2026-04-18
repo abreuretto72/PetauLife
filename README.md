@@ -471,3 +471,8 @@ iPhone: qualquer modelo a partir do iPhone 6s com iOS 15.1 ou superior.
 ## Licenca
 
 Privado - Todos os direitos reservados.
+
+
+Para gerar IOS:
+eas build --platform ios --profile production
+eas submit --platform ios --latest --profile production

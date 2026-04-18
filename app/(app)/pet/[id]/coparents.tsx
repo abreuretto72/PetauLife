@@ -142,21 +142,22 @@ function MemberCard({
 // ── InviteSheet ────────────────────────────────────────────────────────────────
 
 function InviteSheet({
-  visible, onClose, onInvite, availableRoles, t,
+  visible, onClose, onInvite, availableRoles, petName, t,
 }: {
   visible: boolean;
   onClose: () => void;
   onInvite: (params: InviteParams) => Promise<string>;
   availableRoles: MemberRole[];
+  petName: string;
   t: (k: string, opts?: Record<string, string | number>) => string;
 }) {
-  const [email, setEmail]                   = useState('');
-  const [nickname, setNickname]             = useState('');
-  const [role, setRole]                     = useState<MemberRole>(availableRoles[0] ?? 'caregiver');
-  const [canSeeFinances, setCanSeeFinances] = useState(false);
-  const [loading, setLoading]               = useState(false);
-  const [inviteLink, setInviteLink]         = useState<string | null>(null);
-  const [expiryDays, setExpiryDays]         = useState(7);
+  const [email, setEmail]                     = useState('');
+  const [nickname, setNickname]               = useState('');
+  const [role, setRole]                       = useState<MemberRole>(availableRoles[0] ?? 'caregiver');
+  const [canSeeFinances, setCanSeeFinances]   = useState(false);
+  const [loading, setLoading]                 = useState(false);
+  const [inviteStatus, setInviteStatus]       = useState<'granted' | 'pending' | null>(null);
+  const [expiryDays, setExpiryDays]           = useState(7);
 
   const emailRequired = role === 'co_parent' || role === 'owner';
   const canGenerate   = !loading && (!emailRequired || email.trim().length > 0);
@@ -164,7 +165,7 @@ function InviteSheet({
   const reset = () => {
     setEmail(''); setNickname('');
     setRole(availableRoles[0] ?? 'caregiver');
-    setCanSeeFinances(false); setInviteLink(null); setExpiryDays(7);
+    setCanSeeFinances(false); setInviteStatus(null); setExpiryDays(7);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -179,14 +180,14 @@ function InviteSheet({
     const days = DEFAULT_INVITE_DAYS[role] ?? 7;
     setLoading(true);
     try {
-      const link = await onInvite({
+      const status = await onInvite({
         email:            email.trim() || undefined,
         role,
         nickname:         nickname.trim() || undefined,
         can_see_finances: canSeeFinances,
         expires_days:     days > 0 ? days : undefined,  // 0 = no expiry
       });
-      setInviteLink(link);
+      setInviteStatus(status === 'granted' ? 'granted' : 'pending');
       setExpiryDays(days);
     } finally {
       setLoading(false);
@@ -194,9 +195,9 @@ function InviteSheet({
   };
 
   const handleShare = async () => {
-    if (!inviteLink) return;
+    if (!inviteStatus) return;
     await Share.share({
-      message: t('members.inviteMessage', { link: inviteLink }),
+      message: t('members.inviteMessage', { pet: petName, email: email.trim() }),
       title:   t('members.inviteTitle'),
     });
   };
@@ -215,7 +216,7 @@ function InviteSheet({
             </TouchableOpacity>
           </View>
 
-          {!inviteLink ? (
+          {!inviteStatus ? (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: rs(spacing.xl) }}>
 
               {/* Role selector */}
@@ -326,24 +327,21 @@ function InviteSheet({
             </ScrollView>
           ) : (
             <View style={s.linkSection}>
-              <Check size={rs(32)} color={colors.success} strokeWidth={2} />
+              <UserCheck size={rs(40)} color={colors.success} strokeWidth={1.8} />
               <Text style={s.linkTitle}>{t('members.linkReady')}</Text>
-              <View style={s.linkBox}>
-                <Text style={s.linkText} numberOfLines={2}>{inviteLink}</Text>
+              <View style={[s.statusBox, inviteStatus === 'granted' ? s.statusBoxGranted : s.statusBoxPending]}>
+                <Text style={[s.statusText2, inviteStatus === 'granted' ? { color: colors.success } : { color: colors.petrol }]}>
+                  {inviteStatus === 'granted'
+                    ? t('members.accessGrantedNow', { email: email.trim(), pet: petName })
+                    : t('members.accessPending',    { email: email.trim(), pet: petName })}
+                </Text>
               </View>
-              {expiryDays > 0 ? (
-                <View style={s.linkValidity}>
-                  <Text style={s.validityText}>{t('members.linkExpiresIn', { days: expiryDays })}</Text>
-                </View>
-              ) : (
-                <View style={[s.linkValidity, { backgroundColor: colors.accentSoft }]}>
-                  <Text style={[s.validityText, { color: colors.accent }]}>{t('members.ownerNoExpiry')}</Text>
-                </View>
+              {email.trim() && (
+                <TouchableOpacity style={s.primaryBtn} onPress={handleShare}>
+                  <Share2 size={rs(16)} color="#fff" strokeWidth={1.8} />
+                  <Text style={s.primaryBtnText}>{t('members.shareInvite')}</Text>
+                </TouchableOpacity>
               )}
-              <TouchableOpacity style={s.primaryBtn} onPress={handleShare}>
-                <Share2 size={rs(16)} color="#fff" strokeWidth={1.8} />
-                <Text style={s.primaryBtnText}>{t('members.shareInvite')}</Text>
-              </TouchableOpacity>
               <TouchableOpacity style={s.closeLink} onPress={handleClose}>
                 <Text style={s.closeLinkText}>{t('common.close')}</Text>
               </TouchableOpacity>
@@ -526,6 +524,7 @@ export default function CoparentsScreen() {
         onClose={() => setInviteVisible(false)}
         onInvite={handleInvite}
         availableRoles={availableRoles}
+        petName={pet?.name ?? ''}
         t={t}
       />
     </>
@@ -647,7 +646,7 @@ const s = StyleSheet.create({
   fieldInput: {
     backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border,
     borderRadius: rs(radii.lg), padding: rs(14),
-    fontFamily: 'Sora_400Regular', fontSize: fs(14), color: colors.text,
+    fontSize: fs(14), color: colors.text,
   },
   fieldInputError: { borderColor: colors.danger },
   emailRequiredNote: {
@@ -715,17 +714,17 @@ const s = StyleSheet.create({
   primaryBtnText: { fontFamily: 'Sora_700Bold', fontSize: fs(16), color: '#fff' },
   btnDisabled: { opacity: 0.45 },
 
-  // Link section
+  // Link/status section
   linkSection: { alignItems: 'center', gap: rs(12), paddingTop: rs(8) },
   linkTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(16), color: colors.text },
-  linkBox: {
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
-    borderRadius: rs(radii.lg), padding: rs(12), width: '100%',
+  statusBox: {
+    borderWidth: 1, borderRadius: rs(radii.lg),
+    paddingHorizontal: rs(16), paddingVertical: rs(12), width: '100%',
   },
-  linkText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: fs(12), color: colors.textSec },
-  linkValidity: {
-    backgroundColor: colors.successSoft, borderRadius: rs(radii.sm),
-    paddingHorizontal: rs(14), paddingVertical: rs(6),
+  statusBoxGranted: { backgroundColor: colors.successSoft, borderColor: colors.success + '30' },
+  statusBoxPending:  { backgroundColor: colors.petrolSoft,  borderColor: colors.petrol  + '30' },
+  statusText2: {
+    fontFamily: 'Sora_500Medium', fontSize: fs(13), textAlign: 'center', lineHeight: fs(20),
   },
   closeLink: { marginTop: rs(4) },
   closeLinkText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(14), color: colors.textDim },

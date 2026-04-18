@@ -35,6 +35,7 @@ import type {
 } from './timelineTypes';
 import type { DiaryEntry } from '../../types/database';
 import type { ScheduledEvent } from '../../lib/api';
+import { sexContext, type PetSex } from '../../utils/petGender';
 
 // ── Skeleton ──
 
@@ -60,6 +61,7 @@ interface DiaryTimelineProps {
   isLoading: boolean;
   petId: string;
   petName: string;
+  petSex?: PetSex;
   petSpecies?: string;
   petAvatarUrl?: string | null;
   petCreatedAt?: string;
@@ -77,6 +79,7 @@ export default function DiaryTimeline({
   isLoading,
   petId,
   petName,
+  petSex,
   petSpecies,
   petAvatarUrl,
   petCreatedAt,
@@ -227,7 +230,7 @@ export default function DiaryTimeline({
     return (
       <View style={styles.footerContainer}>
         <PawIcon size={rs(20)} color={colors.accent} />
-        <Text style={styles.footerText}>{t('diary.storyContinues', { name: petName })}</Text>
+        <Text style={styles.footerText}>{t('diary.storyContinues', { name: petName, context: sexContext(petSex) })}</Text>
       </View>
     );
   }, [timelineEvents.length, petName, t]);
@@ -240,7 +243,7 @@ export default function DiaryTimeline({
       <View style={styles.emptyContainer}>
         <BookOpen size={rs(48)} color={colors.textGhost} strokeWidth={1.4} />
         <Text style={styles.emptyTitle}>{t('diary.emptyTitle')}</Text>
-        <Text style={styles.emptySub}>{t('diary.emptySub', { name: petName })}</Text>
+        <Text style={styles.emptySub}>{t('diary.emptySub', { name: petName, context: sexContext(petSex) })}</Text>
       </View>
     );
   }, [isLoading, petName, t]);

@@ -435,7 +435,7 @@ const S = StyleSheet.create({
 
   label: { fontFamily: 'Sora_700Bold', fontSize: fs(11), color: colors.textDim, letterSpacing: 1, marginBottom: rs(6), marginTop: rs(16) },
   inputWrap: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: rs(14), overflow: 'hidden' },
-  input: { fontFamily: 'Sora_400Regular', fontSize: fs(15), color: colors.text, paddingHorizontal: rs(16), paddingVertical: rs(14) },
+  input: { fontSize: fs(15), color: colors.text, paddingHorizontal: rs(16), paddingVertical: rs(14) },
   microchipWrap: { flexDirection: 'row', alignItems: 'center' },
   microchipInput: { flex: 1 },
   microchipQrBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(4), backgroundColor: colors.accentGlow, borderLeftWidth: 1, borderLeftColor: colors.accent + '25', paddingHorizontal: rs(12), paddingVertical: rs(14) },
