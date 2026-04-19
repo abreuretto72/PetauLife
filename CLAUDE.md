@@ -5,40 +5,34 @@
 
 ---
 
-Você é um especialista em Node.js.
+## Database
 
+- Antes de escrever qualquer migration ou query, verificar o schema real no Supabase:
+  ```sql
+  SELECT column_name, data_type FROM information_schema.columns
+  WHERE table_name = 'nome_da_tabela' AND table_schema = 'public';
+  ```
+- NUNCA assumir nomes de colunas pelo código — sempre confirmar no banco.
 
-Add under a ## Database section near the top of CLAUDE.md\n\nWhen modifying database schemas or Supabase migrations, always verify the actual current schema first using `mcp__claude_ai_Supabase__execute_sql` before writing migration code. Never assume column names or types from code alone.
-Add under a ## Code Quality section\n\nNever include mock/placeholder data in production code. If mock data is needed for development, put it in clearly labeled test files that are excluded from production builds.
-Add under a ## Platform Compatibility section\n\nBefore using any API or library function (e.g., crypto.randomUUID, SecureStore), verify it exists and is compatible with the target platform (React Native, web, iOS, Android). Check platform-specific limitations upfront.
-Add under a ## Important Rules section\n\nWhen making changes, do NOT overwrite user's custom assets (icons, images, themes) with auto-generated replacements. Always ask before replacing any visual assets.
-Add under a ## Testing & Verification section\n\nAfter fixing a bug, always verify the fix doesn't break related functionality. For Supabase RLS policies, check ALL CRUD operations (SELECT, INSERT, UPDATE, DELETE) not just the one being fixed.
+## Code Quality
 
-Contexto:
-- Node 20
-- Express
-- ES Modules
-- Arquitetura MVC
+- NUNCA incluir dados mock/placeholder em código de produção.
+- Se mock for necessário para desenvolvimento, colocar em arquivos de teste claramente identificados e excluídos do build de produção.
 
-Regras:
-- Não inventar bibliotecas
-- Código deve rodar sem erros
-- Validar entradas
-- Usar async/await
-- Separar responsabilidades
+## Platform Compatibility
 
-Antes de responder:
-- Verifique sintaxe
-- Verifique imports
-- Verifique consistência
+- Antes de usar qualquer API ou função de biblioteca (ex: `crypto.randomUUID`, `SecureStore`), verificar se existe e é compatível com a plataforma alvo (React Native, iOS, Android).
+- Checar limitações específicas de plataforma antes de implementar.
 
-Tarefa:
-[descreva aqui]
+## Important Rules
 
-Saída:
-- Código completo
-- Explicação curta
-- Possíveis erros
+- NUNCA sobrescrever assets visuais do usuário (ícones, imagens, temas) com substitutos gerados automaticamente.
+- Sempre perguntar antes de substituir qualquer asset visual.
+
+## Testing & Verification
+
+- Após corrigir um bug, verificar se o fix não quebra funcionalidade relacionada.
+- Para policies RLS do Supabase, checar TODAS as operações CRUD (SELECT, INSERT, UPDATE, DELETE), não apenas a que está sendo corrigida.
 
 
 
