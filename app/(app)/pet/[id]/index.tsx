@@ -327,6 +327,15 @@ export default function PetScreen() {
               <FileText size={rs(20)} color="#FFFFFF" strokeWidth={1.8} />
             </TouchableOpacity>
           )}
+          {activeTab === 'ia' && (
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: '/(app)/pet/[id]/ia-pdf', params: { id } } as never)}
+              style={s.headerBtn}
+              activeOpacity={0.7}
+            >
+              <FileText size={rs(20)} color="#FFFFFF" strokeWidth={1.8} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

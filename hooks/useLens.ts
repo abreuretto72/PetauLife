@@ -547,7 +547,7 @@ export const CAT_COLORS: Record<AgendaCategory, string> = {
   agendado:   '#185FA5',
 };
 
-// Returns: { 'YYYY-MM-DD': AgendaCategory[] } — max 4 dots per day
+// Returns: { 'YYYY-MM-DD': AgendaCategory[] } — max 4 dots per day (only scheduled_events)
 export async function fetchMonthDots(
   petId: string,
   year: number,
@@ -556,31 +556,15 @@ export async function fetchMonthDots(
   const start = new Date(year, month, 1).toISOString();
   const end   = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
-  const [diaryRes, eventsRes] = await Promise.all([
-    supabase
-      .from('diary_entries')
-      .select('entry_date, primary_type')
-      .eq('pet_id', petId)
-      .gte('entry_date', start.slice(0, 10))
-      .lte('entry_date', end.slice(0, 10))
-      .eq('is_active', true),
-    supabase
-      .from('scheduled_events')
-      .select('scheduled_for, event_type, status')
-      .eq('pet_id', petId)
-      .gte('scheduled_for', start)
-      .lte('scheduled_for', end)
-      .eq('is_active', true),
-  ]);
+  const eventsRes = await supabase
+    .from('scheduled_events')
+    .select('scheduled_for, event_type, status')
+    .eq('pet_id', petId)
+    .gte('scheduled_for', start)
+    .lte('scheduled_for', end)
+    .eq('is_active', true);
 
   const map: Record<string, Set<AgendaCategory>> = {};
-
-  (diaryRes.data ?? []).forEach((e: { entry_date: string; primary_type: string }) => {
-    const key = e.entry_date.slice(0, 10);
-    if (!map[key]) map[key] = new Set();
-    const cat = PRIMARY_TO_CAT[e.primary_type] ?? 'momento';
-    map[key].add(cat);
-  });
 
   (eventsRes.data ?? []).forEach((e: { scheduled_for: string; event_type: string; status: string }) => {
     const key = e.scheduled_for.slice(0, 10);

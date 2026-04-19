@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-11
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Model Separation + Video Thumbnails + JWT ES256 Fix
+**Last Updated:** 2026-04-19
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário PDF + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships
 
 ---
 
@@ -278,6 +278,132 @@ Response: { narration: "Eca! Que dia legal..." }  // 1ª pessoa do pet
 
 ---
 
+### Nutrição (`hooks/useNutricao.ts` + Edge Functions + PDF)
+
+**Status:** NEW (2026-04-18) — Completo com 14 telas + PDF export
+
+**Queries:**
+- `useNutricao(petId)` — dados agregados nutrição (fast, no AI)
+  - Modalidade atual (ração / natural / mix)
+  - Rações ativas + histórico
+  - Alimentos naturais + histórico
+  - Restrições + alérgenos
+  - Suplementos
+- `useCardapio(petId)` — cardápio semanal IA-gerado (cache 3 dias)
+
+**Mutations:**
+- `setModalidade(petId, modalidade)` — ativa nova modalidade de alimentação
+- `registerFoodChange(petId, foodType, foodData)` — registra mudança de ração/natural
+- `addRestriction(petId, productName, notes)` — adiciona alérgeno/restrição
+- `addSupplement(petId, supplementData)` — adiciona suplemento
+- `evaluateNutrition(petId)` — IA avalia qualidade, calcula score, retorna recomendações
+
+**Edge Functions:**
+- `get-nutricao` — aggregates from 4 tables (racao, racao_natural, restricoes, suplementos)
+- `generate-cardapio` — Claude gera cardápio semanal via IA based on pet profile
+- `evaluate-nutrition` — analyzes current nutrition vs ideal, retorna { score, pros, cons, recommendation }
+
+**Telas (14):**
+```
+app/(app)/pet/[id]/nutrition.tsx           — Hub com 6 abas
+  ├─ nutrition/racao.tsx                   — Ração comercial atual
+  ├─ nutrition/so-racao.tsx                — Só ração (no natural)
+  ├─ nutrition/racao-natural.tsx           — Alimentos naturais
+  ├─ nutrition/so-natural.tsx              — Só natural (no racao)
+  ├─ nutrition/cardapio.tsx                — Cardápio semanal IA
+  ├─ nutrition/cardapio-detail.tsx         — Detalhes receita dia
+  ├─ nutrition/cardapio-history.tsx        — Histórico cardápios
+  ├─ nutrition/cardapio-pdf.tsx            — PDF export
+  ├─ nutrition/restricoes.tsx              — Alergias + restrições
+  ├─ nutrition/dicas.tsx                   — IA dicas personalizadas
+  ├─ nutrition/historico.tsx               — Timeline mudanças alimentares
+  ├─ nutrition/modalidade.tsx              — Seletor modalidade
+  ├─ nutrition/trocar.tsx                  — Wizard trocar ração
+  └─ nutrition/receita.tsx                 — Editor receita natural
+```
+
+**i18n keys:**
+- `nutrition.*` — labels, placeholders, hints, IA evaluation messages
+- `toast.modalidadeChanged`, `toast.racaoUpdated`, `toast.cardapioGenerated`
+
+**Database tables (NEW):**
+- `nutricao_racao` — marca, modelo, proteína%, gordura%, calorias/kg, preço_kg
+- `nutricao_racao_natural` — componentes naturais (carne, cereal, legume, frutas, etc.)
+- `nutricao_restricoes` — alérgenos + sensibilidades
+- `nutricao_suplementos` — vitaminas, ômega, probióticos, etc.
+- `nutricao_avaliacoes_cache` — cache avaliação IA (TTL 7 dias)
+- `cardapio_semanal` — refeições IA 7 dias (TTL 3 dias)
+
+---
+
+### Prontuário (`hooks/useProntuario.ts` + PDF + QR Code)
+
+**Status:** NEW (2026-04-18) — Completo com dados agregados + PDF export + QR code
+
+**Queries:**
+- `useProntuario(petId)` — dados agregados saúde (vacinas + exames + cirurgias + medicações + consultas)
+
+**Mutations:**
+- Não há mutations (dados agregados de outras tabelas)
+
+**Telas (3):**
+```
+app/(app)/pet/[id]/prontuario.tsx          — Visualizador prontuário
+app/(app)/pet/[id]/prontuario-pdf.tsx      — PDF export
+app/(app)/pet/[id]/prontuario-qr.tsx       — QR code compartilhável
+```
+
+**PDF Export (`lib/prontuarioPdf.ts`):**
+- Header com foto do pet, nome, microchip, data de emissão
+- Seções: Vacinas, Exames, Cirurgias, Medicações, Alergias, Histórico Consultas
+- Footer com rodapé "Multiverso Digital © 2026 — auExpert"
+- Usa `expo-print` para preview + compartilhamento
+
+**i18n keys:**
+- `prontuario.*` — labels, seções, disclaimers
+- `toast.prontuarioCopied`, `toast.qrCodeGenerated`
+
+---
+
+### Health Modals — Input-First UX (2026-04-18 update)
+
+**Status:** REFACTORED — Step 0 (Input) antes de 3-step wizard
+
+**Modais afetados:**
+- `AddVaccineModal.tsx`
+- `AddExamModal.tsx`
+- `AddConsultationModal.tsx` (com time field HH:MM)
+- `AddMedicationModal.tsx`
+
+**Novo padrão de 3 passos:**
+```
+STEP 0 (Input) — Seletor rápido + sugestão IA
+├─ Chips pré-preenchidas com histórico (ex: vacinas anteriores)
+├─ Campo texto com autocomplete
+├─ Validação real-time
+
+STEP 1 (Detalhes) — Campos específicos por tipo
+├─ Data (datepicker)
+├─ Dosagem / Dose
+├─ Observações
+
+STEP 2 (Revisão + Salvar)
+├─ Resumo dados
+├─ Botão salvar
+```
+
+**Componentes de Input:**
+- `Input.tsx` — STT + ícone mic sempre laranja
+- `MedicationAutocomplete` — dropdown com histórico medicações
+- `VaccineAutocomplete` — dropdown com vacinas padrão por raça
+
+**i18n keys:**
+- `modals.addVaccine`, `modals.addExam`, `modals.addConsultation`, `modals.addMedication`
+- `consultTime` — novo field "Hora da consulta (HH:MM)"
+- `addedBy` — "Adicionado por {name}"
+
+---
+
 ## Estado (Zustand Stores)
 
 ### `authStore` — Autenticação + Sessão
@@ -440,7 +566,9 @@ const queryClient = new QueryClient({
 
 ---
 
-## PDF Export (`lib/pdf.ts`)
+## PDF Export System
+
+**Master template:** `lib/pdf.ts`
 
 **Template obrigatório:**
 ```
@@ -455,24 +583,77 @@ const queryClient = new QueryClient({
 └─────────────────────────────────────────────────┘
 ```
 
-**Relatórios implementados:**
-- Diário completo (todas as entradas + narração)
-- Prontuário de saúde (vacinas, alergias, exames)
-- Análise de foto IA
-- Perfil do pet
-- Carteirinha (QR code)
+**Relatórios implementados (2026-04-19):**
+
+| Relatório | Arquivo | Tela | Tamanho | Status |
+|-----------|---------|------|---------|--------|
+| Diário | `lib/diaryPdf.ts` | `diary.tsx` | 146 lines | ✅ NEW |
+| IA Chat | `lib/iaChatPdf.ts` | `ia-pdf.tsx` | 80 lines | ✅ NEW |
+| Prontuário | `lib/prontuarioPdf.ts` | `prontuario-pdf.tsx` | — | ✅ Existing |
+| Cardápio | `lib/nutritioPdf.ts` | `nutrition/cardapio-pdf.tsx` | — | ✅ Existing |
+| Perfil do pet | — | (inline em diary.tsx) | — | ❌ Pending |
+| Carteirinha (QR) | — | (inline em id/index.tsx) | — | ❌ Pending |
+
+**Padrão de tela PDF Preview (2026-04-19):**
+
+Todas as telas `*-pdf.tsx` seguem o mesmo padrão:
+```
+┌─────────────────────────────────────────┐
+│  ←  Título do Relatório                 │
+├─────────────────────────────────────────┤
+│                                         │
+│         ┌─────────────────┐             │
+│         │   [ícone PDF]   │             │
+│         └─────────────────┘             │
+│         "Relatório pronto!"             │
+│         "Pronto para imprimir..."       │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ [↓] Imprimir ou salvar PDF      │    │  ← previewPdf()
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ [↗] Compartilhar arquivo        │    │  ← sharePdf()
+│  └─────────────────────────────────┘    │
+│                                         │
+│    Gerado por IA · auExpert · ...       │
+└─────────────────────────────────────────┘
+```
 
 **Uso:**
 ```typescript
 import { previewPdf } from '../lib/pdf';
 
 await previewPdf({
-  title: 'Diário de Mana',
+  title: t('diary.pdfTitle'),
   subtitle: 'Jan 2026',
   bodyHtml: '<h1>Conteúdo</h1>',
   language: i18n.language,
 });
 ```
+
+**Header buttons (conditional):**
+- Diário: Always show FileText button (exports full diary)
+- IA Chat: Show FileText button when `activeTab === 'ia'` (exports chat history)
+- Other tabs: No PDF button
+
+**Implementation Details:**
+
+**Diary PDF (`lib/diaryPdf.ts` — 146 lines):**
+- Builds HTML with all diary entries
+- Includes pet name, creation date, narration
+- Formats entries chronologically
+- Exports via `app/(app)/pet/[id]/diary.tsx` → header button
+
+**IA Chat PDF (`lib/iaChatPdf.ts` — 80 lines):**
+- Builds HTML with message history
+- Q&A format with timestamps
+- Pet context and conversation summary
+- Exports via `app/(app)/pet/[id]/ia-pdf.tsx` → dedicated screen
+
+**Diary Timeline Header (`components/diary/DiaryTimeline.tsx`):**
+- Added PDF icon to header
+- Only visible when viewing diary tab
+- Navigates to diary view (implicit PDF export)
 
 ---
 
@@ -1326,6 +1507,217 @@ This ensures users can only select formats that Claude API actually supports, pr
   "@react-native-community/netinfo": "^11.0.0"
 }
 ```
+
+## IA Tab — Insights + Chat (2026-04-19 refactor)
+
+**Status:** NEW — Complete redesign of "Assistente" tab to "Minha IA" with unified AI chat interface
+
+**Tab Location:** `app/(app)/pet/[id]/index.tsx` → `activeTab === 'ia'` → `<IATab />`
+
+**Components:**
+- `components/pet/IATab.tsx` — Main component with dual views
+- Chat interface (primary): message history + input field with STT
+- Previous content: insights summary, filterable insight cards (hidden behind chat)
+
+**Chat Features:**
+- Input field with mandatory STT (mic icon always visible + orange)
+- Send button (Paper Plane icon)
+- Full message history with timestamps
+- Background session integration (fire-and-forget processing)
+
+**Flow:**
+```
+User taps IATab → Chat interface loads
+  ↓
+User taps mic → STT captures speech
+  ↓
+Text appears in input field (editable)
+  ↓
+User taps Send → message saved to chat history
+  ↓
+usePetAssistant() hooks AI processing in background
+  ↓
+Response appears in chat when ready
+```
+
+**STT Configuration (2026-04-19 fix):**
+- Removed `continuous: true` (caused mic to stay on after first phrase)
+- Removed `iosCategory` with `categoryOptions: []`
+- Removed `androidIntentOptions`
+- Uses minimal config: `{ lang, interimResults: true, maxAlternatives: 1 }`
+- Pattern matches `voice.tsx` which works reliably
+
+**Removed Features:**
+- Static suggestion chips (SUGGESTIONS_KEYS, handleSuggestion)
+- AVAudioSessionCategory import
+- SpeechCategory variable
+
+**i18n keys:**
+- `ia.chatTitle` — "Minha IA"
+- `ia.inputPlaceholder` — "Pergunte algo..."
+- `ia.sending` — "Enviando..."
+- `ia.noMessages` — "Comece uma conversa com a IA do seu pet"
+
+**PDF Export:**
+- New button in header (when `activeTab === 'ia'`): FileText icon (orange)
+- Navigates to: `/(app)/pet/[id]/ia-pdf`
+- Exports full chat history as PDF with pet name, date, footer
+
+**Related Screens:**
+- `app/(app)/pet/[id]/ia-pdf.tsx` — NEW: PDF preview screen
+- `lib/iaChatPdf.ts` — NEW: PDF generation logic
+
+---
+
+## AI Chat PDF Export (2026-04-19 NEW)
+
+**Screens:**
+- `app/(app)/pet/[id]/ia-pdf.tsx` — PDF preview screen (184 lines)
+- `lib/iaChatPdf.ts` — PDF generation (80 lines)
+
+**Template:**
+```
+┌─────────────────────────────────────────────────┐
+│ [Logo auExpert]  Conversa com a IA de Mana Data/Hora│
+│                  Histórico de perguntas e respostas   │
+├─────────────────────────────────────────────────┤
+│                    CHAT HTML                    │
+│   Q: "Como melhorar a saúde do Mana?"         │
+│   A: "Baseado no histórico, recomendo..."     │
+├─────────────────────────────────────────────────┤
+│  Multiverso Digital © 2026 — auExpert          │
+└─────────────────────────────────────────────────┘
+```
+
+**i18n keys:**
+- `ia.pdfTitle` — "Conversa com a IA"
+- `ia.pdfSubtitle` — "Histórico de perguntas e respostas"
+- `ia.exportChat` — "Exportar conversa"
+
+---
+
+## Partnerships System (2026-04-19 NEW)
+
+**Status:** Placeholder screen for future partner integrations
+
+**Screen:** `app/(app)/partnerships.tsx`
+- Simple welcome screen
+- Prepare for partner network (vets, pet shops, groomers, walkers, hotels, trainers, ONGs)
+- Button in bottom nav (Handshake icon) removed from PetCard, now link in hub
+
+**PetCard Changes:**
+- Removed entire XP/gamification system (Proof of Love, badges)
+- Replaced with simple Partnership link
+- First stat box now AI Chat shortcut (navigates to `/pet/{id}?initialTab=ia`)
+- Stat boxes redesigned with solid accent backgrounds + white icons
+
+**i18n keys:**
+- `partnerships.title` — "Parcerias"
+- `partnerships.subtitle` — "Conecte com profissionais e ONGs"
+- `partnerships.comingSoon` — "Em breve..."
+
+**TutorCard Changes:**
+- Removed entire XP/gamification system
+- Replaced with Partnership icon
+- Navigates to `/partnerships`
+
+---
+
+## Atualizações Recentes (2026-04-19)
+
+### AI Chat Redesign (2026-04-19)
+**Renaming:** "Assistente" tab → "Minha IA" (better brand alignment)
+**Interface:** Full conversation view with STT input
+**Changes:**
+- Chat history shows all messages with timestamps
+- Input field with mandatory microphone (orange icon)
+- Send button (Paper Plane) triggers AI response
+- Fixed STT hang by removing `continuous: true`
+- Uses minimal speech config matching working patterns in `voice.tsx`
+
+**Removed:**
+- Static suggestion chips
+- iOS audio session category overrides
+- Android intent options
+
+**PDF Export:**
+- New header button when `activeTab === 'ia'`
+- Exports chat history as PDF
+- Uses standard template with chat transcript
+
+### Partnerships System Placeholder (2026-04-19)
+**New Screen:** `app/(app)/partnerships.tsx`
+**Purpose:** Prepare for future partner network
+**Integration:**
+- TutorCard Handshake button navigates here
+- PetCard removed XP/gamification
+- Button in bottom nav (future expansion)
+
+**Removed from UI:**
+- Proof of Love score
+- XP badges
+- Gamification cards
+- Level progression
+
+---
+
+### iOS Font Fixes
+**Problema:** TextInput com `fontFamily` excessivo causava crashes em iOS
+**Solução:** Removidos `fontFamily` hardcoded de:
+- `components/ui/Input.tsx` — TextInput limpo (deixa sistema escolher)
+- `components/diary/CapturePreview.tsx`
+- `components/pet/IATab.tsx`
+- `components/diary/voice.tsx`
+- `components/diary/DiaryModuleCard.tsx`
+- `app/(app)/pet/[id]/diary/[entryId]/edit.tsx`
+- `components/diary/TimelineCards.tsx` — narração sem Caveat hardcoded
+- `components/diary/DiaryNarration.tsx` — sem fontFamily
+- `components/diary/NarrationBubble.tsx` — sem fontFamily
+
+**Padrão correto:** Usar `fontFamily` apenas via `StyleSheet` quando absolutamente necessário
+**Lição:** iOS pode ser finicky com fonts; deixar sistema gerenciar é mais seguro.
+
+### STT Improvements
+**Mudança em Input.tsx line 92:**
+```typescript
+// ANTES
+SpeechModule.start({
+  lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+  interimResults: false,  // ❌ Não mostrava transcription em tempo real
+  maxAlternatives: 1,
+});
+
+// DEPOIS
+SpeechModule.start({
+  lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+  interimResults: true,   // ✅ Agora mostra texto sendo digitado
+  maxAlternatives: 1,
+});
+```
+**Impacto:** Usuário vê transcription parcial enquanto fala, melhor feedback
+
+### Invite System & Co-Tutores (2026-04-03 implementation)
+
+**Nova tabela:** `pet_invites` — convites para co-tutores
+```sql
+CREATE TABLE pet_invites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
+  invited_email TEXT NOT NULL,
+  invited_by_id UUID REFERENCES users(id),
+  status 'pending' | 'accepted' | 'rejected' DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  accepted_at TIMESTAMPTZ
+);
+```
+
+**Edge Function:** `invite-web`
+- Gera deep link: `auexpert://invite?token={jwt}&pet_id={id}&email={email}`
+- Envia email com link
+- Ao abrir: redireciona para tela de aceitar
+- Auto-accept no login se email matcheia
+
+**RLS:** Permitir tutor criar invite para seu pet; auto-aceitar em auth callback
 
 ---
 

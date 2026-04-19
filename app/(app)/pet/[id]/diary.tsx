@@ -3,12 +3,12 @@
  *
  * This screen is now a thin orchestrator that composes:
  * - DiaryTimeline (FlatList + filters + cards)
- * - PdfExportModal (PDF export with filters)
+ * PDF export navigates to diary-pdf.tsx (dedicated screen)
  *
  * Previously 1898 lines — now ~100 lines.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -17,16 +17,14 @@ import { useDiary } from '../../../../hooks/useDiary';
 import { useDiaryEntry } from '../../../../hooks/useDiaryEntry';
 import { usePet } from '../../../../hooks/usePets';
 import { useToast } from '../../../../components/Toast';
-import { moods } from '../../../../constants/moods';
 import DiaryTimeline from '../../../../components/diary/DiaryTimeline';
 import { OfflineBanner } from '../../../../components/ui/OfflineBanner';
-import PdfExportModal from '../../../../components/diary/PdfExportModal';
 import { diaryEntryToEvent, scheduledEventToTimelineEvent } from '../../../../components/diary/timelineTypes';
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const { data: pet } = usePet(id!);
   const { entries, isLoading, refetch, scheduledEvents } = useDiary(id!);
@@ -34,10 +32,6 @@ export default function DiaryScreen() {
   const { toast } = useToast();
 
   const petName = pet?.name ?? '...';
-  const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
-
-  // ── PDF modal ──
-  const [pdfModalVisible, setPdfModalVisible] = useState(false);
 
   const timelineEvents = useMemo(() => {
     const events = [
@@ -47,16 +41,6 @@ export default function DiaryScreen() {
     events.sort((a, b) => b.sortDate - a.sortDate);
     return events;
   }, [entries, scheduledEvents]);
-
-  const getMoodData = useCallback(
-    (moodId: string | null | undefined) => {
-      if (!moodId) return null;
-      const mood = moods.find((m) => m.id === moodId);
-      if (!mood) return null;
-      return { label: isEnglish ? mood.label_en : mood.label, color: mood.color };
-    },
-    [isEnglish],
-  );
 
   const handleNewEntry = useCallback(() => {
     router.push(`/pet/${id}/diary/new`);
@@ -82,8 +66,8 @@ export default function DiaryScreen() {
       toast(t('diary.emptyTitle'), 'warning');
       return;
     }
-    setPdfModalVisible(true);
-  }, [timelineEvents.length, toast, t]);
+    router.push(`/pet/${id}/diary-pdf`);
+  }, [timelineEvents.length, toast, t, router, id]);
 
   // ── Render ──
 
@@ -104,15 +88,9 @@ export default function DiaryScreen() {
         onNewEntry={handleNewEntry}
         onEditEntry={handleEditEntry}
         onRetryEntry={handleRetryEntry}
+        onOpenPdf={handleOpenPdf}
       />
 
-      <PdfExportModal
-        visible={pdfModalVisible}
-        onClose={() => setPdfModalVisible(false)}
-        events={timelineEvents}
-        petName={petName}
-        getMoodData={getMoodData}
-      />
     </View>
   );
 }

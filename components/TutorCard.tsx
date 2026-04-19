@@ -10,6 +10,7 @@ import {
   MapPin,
   Calendar,
   Trophy,
+  Handshake,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../constants/colors';
@@ -26,10 +27,12 @@ interface TutorCardProps {
   petsCount: number;
   diaryCount: number;
   photoCount: number;
+  coTutorsCount?: number;
   level: number;
   xp: number;
   xpNext: number;
   onPress: () => void;
+  onPressPartnership?: () => void;
 }
 
 const TutorCard: React.FC<TutorCardProps> = ({
@@ -41,10 +44,12 @@ const TutorCard: React.FC<TutorCardProps> = ({
   petsCount,
   diaryCount,
   photoCount,
+  coTutorsCount = 0,
   level,
   xp,
   xpNext,
   onPress,
+  onPressPartnership,
 }) => {
   const { t } = useTranslation();
   const xpPct = xpNext > 0 ? Math.min((xp / xpNext) * 100, 100) : 0;
@@ -89,29 +94,11 @@ const TutorCard: React.FC<TutorCardProps> = ({
           ) : null}
         </View>
 
-        {/* Mini stats */}
-        <View style={styles.statsRow}>
-          <Heart size={rs(12)} color={colors.accent} strokeWidth={1.8} />
-          <Text style={styles.statValue}>{petsCount}</Text>
-          <Text style={styles.statLabel}>{t('tutor.statPets').toLowerCase()}</Text>
-          <View style={styles.statGap} />
-          <BookOpen size={rs(12)} color={colors.accent} strokeWidth={1.8} />
-          <Text style={styles.statValue}>{diaryCount}</Text>
-          <Text style={styles.statLabel}>{t('tutor.statDiary').toLowerCase()}</Text>
-          <View style={styles.statGap} />
-          <ScanEye size={rs(12)} color={colors.purple} strokeWidth={1.8} />
-          <Text style={styles.statValue}>{photoCount}</Text>
-          <Text style={styles.statLabel}>{t('tutor.statAnalysis').toLowerCase()}</Text>
-        </View>
-
-        {/* XP bar */}
+        {/* Partnership icon */}
         <View style={styles.xpRow}>
-          <Trophy size={rs(14)} color={colors.gold} strokeWidth={1.8} />
-          <Text style={styles.xpLevel}>Nv.{level}</Text>
-          <View style={styles.xpTrack}>
-            <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
-          </View>
-          <Text style={styles.xpText}>{xp}/{xpNext}</Text>
+          <TouchableOpacity onPress={onPressPartnership} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
+            <Handshake size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>

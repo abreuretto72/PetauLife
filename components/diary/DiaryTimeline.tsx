@@ -11,7 +11,7 @@ import {
   RefreshControl, StyleSheet,
 } from 'react-native';
 import {
-  BookOpen, Pencil,
+  BookOpen, Download, Pencil,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
@@ -69,6 +69,7 @@ interface DiaryTimelineProps {
   onNewEntry: () => void;
   onEditEntry: (id: string) => void;
   onRetryEntry?: (id: string) => void;
+  onOpenPdf?: () => void;
   /** Render additional content below the header (e.g. LensGrid) */
   headerExtra?: React.ReactNode;
 }
@@ -87,6 +88,7 @@ export default function DiaryTimeline({
   onNewEntry,
   onEditEntry,
   onRetryEntry,
+  onOpenPdf,
   headerExtra,
 }: DiaryTimelineProps) {
   const { t, i18n } = useTranslation();
@@ -220,8 +222,14 @@ export default function DiaryTimeline({
   const renderHeader = useCallback(() => (
     <View>
       {headerExtra}
+      {onOpenPdf && (
+        <TouchableOpacity style={styles.pdfBtn} onPress={onOpenPdf} activeOpacity={0.7}>
+          <Download size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+          <Text style={styles.pdfBtnText}>{t('diary.pdfExport')}</Text>
+        </TouchableOpacity>
+      )}
     </View>
-  ), [headerExtra]);
+  ), [headerExtra, onOpenPdf, t]);
 
   // ── Footer ──
 
@@ -314,6 +322,10 @@ const styles = StyleSheet.create({
   // Footer
   footerContainer: { alignItems: 'center', paddingVertical: rs(24), gap: rs(10) },
   footerText: { fontFamily: 'Caveat_400Regular', fontSize: fs(15), color: colors.textDim, fontStyle: 'italic' },
+
+  // PDF export button (header)
+  pdfBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(6), alignSelf: 'flex-end', marginRight: rs(16), marginTop: rs(8), marginBottom: rs(4), backgroundColor: colors.accentGlow, borderRadius: rs(10), paddingHorizontal: rs(10), paddingVertical: rs(6), borderWidth: 1, borderColor: colors.accent + '30' },
+  pdfBtnText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.accent },
 
   // FABs
   fab: { position: 'absolute', bottom: rs(24), right: rs(20), width: rs(56), height: rs(56), borderRadius: rs(18), backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: colors.accent, shadowOffset: { width: 0, height: rs(8) }, shadowOpacity: 0.35, shadowRadius: rs(16) },

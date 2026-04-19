@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
   try {
     const authResult = await validateAuth(req, CORS);
     if (authResult instanceof Response) return authResult;
-    const { user } = authResult;
+    const { userId } = authResult;
 
     if (!ANTHROPIC_API_KEY) {
       return new Response(
@@ -166,7 +166,7 @@ IMPORTANT RULES:
     // 6. Persist conversation (non-blocking)
     supabase.from('pet_conversations').insert({
       pet_id,
-      user_id:           user.id,
+      user_id:           userId,
       user_message:      message,
       assistant_message: reply,
       tokens_used:       (aiResponse.usage?.input_tokens ?? 0) + (aiResponse.usage?.output_tokens ?? 0),

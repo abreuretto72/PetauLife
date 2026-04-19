@@ -343,10 +343,12 @@ export default function HubScreen() {
           petsCount={pets.length}
           diaryCount={diaryCount}
           photoCount={photoCount}
+          coTutorsCount={0}
           level={tutorProfile?.level ?? 1}
           xp={tutorProfile?.xp ?? 0}
           xpNext={1000}
           onPress={() => router.push('/(app)/profile' as never)}
+          onPressPartnership={() => router.push('/(app)/partnerships' as never)}
         />
 
         {/* Vaccine alert */}
@@ -428,7 +430,7 @@ export default function HubScreen() {
         pet={item}
         onPress={() => handlePetPress(item.id)}
         onEdit={() => handleEditPet(item.id)}
-        onPressVaccine={() => router.push(`/pet/${item.id}/health` as never)}
+        onPressIA={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'ia' } } as never)}
         onPressDiary={() => handlePressDiary(item.id)}
         onPressAgenda={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'agenda' } } as never)}
         onPressMembers={() => router.push(`/pet/${item.id}/coparents` as never)}
