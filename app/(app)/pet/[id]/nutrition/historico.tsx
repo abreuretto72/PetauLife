@@ -1,7 +1,7 @@
 /**
  * nutrition/historico.tsx — Tela 4: Histórico de rações
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,12 +10,15 @@ import { ChevronLeft, Clock, ChevronRight, FileText } from 'lucide-react-native'
 import { rs, fs } from '../../../../../hooks/useResponsive';
 import { colors } from '../../../../../constants/colors';
 import { useNutricao } from '../../../../../hooks/useNutricao';
+import PdfActionModal from '../../../../../components/pdf/PdfActionModal';
+import { previewNutritionPdf, shareNutritionPdf } from '../../../../../lib/nutritionPdf';
 
 export default function HistoricoScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { id: petId } = useLocalSearchParams<{ id: string }>();
   const { nutricao } = useNutricao(petId ?? '');
+  const [pdfModal, setPdfModal] = useState(false);
 
   const history = nutricao?.food_history ?? [];
 
@@ -34,7 +37,7 @@ export default function HistoricoScreen() {
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('nutrition.historicoTitle')}</Text>
         <TouchableOpacity
-          onPress={() => router.push(`/pet/${petId}/nutrition-pdf` as never)}
+          onPress={() => setPdfModal(true)}
           style={s.backBtn}
           accessibilityLabel={t('nutritionPdf.icon')}
         >
@@ -106,6 +109,14 @@ export default function HistoricoScreen() {
           <ChevronRight size={rs(18)} color="#fff" />
         </TouchableOpacity>
       </ScrollView>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('nutritionPdf.title', { name: '' })}
+        onPreview={() => previewNutritionPdf({ petId: petId ?? '', petName: '' })}
+        onShare={() => shareNutritionPdf({ petId: petId ?? '', petName: '' })}
+      />
     </SafeAreaView>
   );
 }

@@ -125,6 +125,60 @@ Cada um desses arquivos tem efeito em cascata. Se precisar de comportamento novo
 
 ---
 
+## Padrão obrigatório de exportação PDF
+
+**Toda geração de PDF no app DEVE usar `PdfActionModal`** (`components/pdf/PdfActionModal.tsx`).
+NUNCA gerar PDF diretamente sem antes mostrar este modal.
+
+### Como funciona
+
+```
+Tutor toca botão PDF
+       ↓
+PdfActionModal abre (bottom sheet)
+  ├── Título do relatório
+  ├── Subtítulo opcional (ex: "12 entradas")
+  ├── [Download] Imprimir ou salvar PDF  → chama onPreview()
+  └── [Share2]   Compartilhar arquivo   → chama onShare()
+       ↓
+PDF é gerado apenas quando o tutor escolhe uma das opções
+```
+
+### Uso
+
+```tsx
+import PdfActionModal from '../../../components/pdf/PdfActionModal';
+
+// 1. Estado
+const [pdfModal, setPdfModal] = useState(false);
+
+// 2. Botão que abre
+<TouchableOpacity onPress={() => setPdfModal(true)}>
+  <FileText size={rs(20)} color={colors.accent} />
+</TouchableOpacity>
+
+// 3. Modal (no final do JSX, antes do </SafeAreaView>)
+<PdfActionModal
+  visible={pdfModal}
+  onClose={() => setPdfModal(false)}
+  title={t('xxx.pdfTitle', { name: pet.name })}
+  subtitle={t('xxx.pdfSubtitle', { count: entries.length })}
+  onPreview={() => previewXxxPdf(data)}
+  onShare={() => shareXxxPdf(data, 'arquivo.pdf')}
+/>
+```
+
+### Regras
+
+- **NUNCA** chamar `router.push('/xxx-pdf')` — substituir por `setPdfModal(true)`
+- **NUNCA** gerar PDF automaticamente no mount — esperar escolha do tutor
+- Ícone do botão que abre o modal: `FileText` (laranja, `accent`)
+- As funções `onPreview`/`onShare` devem ser async e podem lançar exceção — o modal já trata o erro via toast
+- As chaves i18n do modal são sempre `pdfCommon.printOrSave`, `pdfCommon.shareFile` etc.
+- Cada tipo de PDF tem suas funções em `lib/xxxPdf.ts` (previewXxxPdf / shareXxxPdf)
+
+---
+
 ## Especialização (skills — carregadas sob demanda)
 
 Quando a tarefa envolver um desses temas, a skill correspondente entra no contexto automaticamente:

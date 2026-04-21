@@ -4,7 +4,7 @@
  * Mostra: modalidade, ração atual, peso, fase de vida, alertas, avaliação IA.
  * Rota: /pet/[id]/nutrition
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewNutritionPdf, shareNutritionPdf } from '../../../../lib/nutritionPdf';
 import {
   ChevronLeft,
   Leaf,
@@ -124,6 +126,7 @@ export default function NutricaoScreen() {
 
   console.log('[NutricaoScreen] render — petId:', petId, 'isAuth:', !!pet);
   const { nutricao, isLoadingNutricao, refetchNutricao } = useNutricao(petId ?? '');
+  const [pdfModal, setPdfModal] = useState(false);
 
   const onRefresh = useCallback(() => {
     refetchNutricao();
@@ -193,7 +196,7 @@ export default function NutricaoScreen() {
         <Text style={styles.headerTitle}>{t('nutrition.title')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            onPress={() => router.push(`/pet/${petId}/nutrition-pdf` as never)}
+            onPress={() => setPdfModal(true)}
             style={styles.actionBtn}
             accessibilityLabel={t('nutritionPdf.icon')}
           >
@@ -347,6 +350,14 @@ export default function NutricaoScreen() {
           <ActionBtn icon={<CalendarDays size={rs(22)} color={colors.accent} />} label={t('nutrition.btnWeeklyMenu')} onPress={() => nav('cardapio')} />
         </View>
       </ScrollView>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('nutritionPdf.title', { name: petName })}
+        onPreview={() => previewNutritionPdf({ petId: petId ?? '', petName })}
+        onShare={() => shareNutritionPdf({ petId: petId ?? '', petName })}
+      />
     </SafeAreaView>
   );
 }

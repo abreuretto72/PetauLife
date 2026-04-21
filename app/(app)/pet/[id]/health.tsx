@@ -43,6 +43,8 @@ import { useAuthStore } from '../../../../stores/authStore';
 import PetBottomNav, { type PetTab } from '../../../../components/layout/PetBottomNav';
 import { SectionErrorBoundary } from '../../../../components/SectionErrorBoundary';
 import { getErrorMessage } from '../../../../utils/errorMessages';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewHealthPdf, shareHealthPdf } from '../../../../lib/healthPdf';
 
 type TabId = 'general' | 'vaccines' | 'exams' | 'medications' | 'consultations' | 'surgeries' | 'metrics' | 'expenses';
 
@@ -94,6 +96,7 @@ export default function HealthScreen() {
   const [showAddMetric, setShowAddMetric] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showBloodTypeInfo, setShowBloodTypeInfo] = useState(false);
+  const [pdfModal, setPdfModal] = useState(false);
 
   const isLoading = petLoading || vaccinesLoading || allergiesLoading;
 
@@ -289,7 +292,7 @@ export default function HealthScreen() {
           <View style={{ flexDirection: 'row', gap: rs(8) }}>
             <TouchableOpacity
               style={styles.headerBtn}
-              onPress={() => router.push(`/pet/${id}/health-pdf` as never)}
+              onPress={() => setPdfModal(true)}
               activeOpacity={0.7}
               accessibilityLabel={t('pdfCommon.printOrSave')}
             >
@@ -349,7 +352,7 @@ export default function HealthScreen() {
         <View style={{ flexDirection: 'row', gap: rs(8) }}>
           <TouchableOpacity
             style={styles.headerBtn}
-            onPress={() => router.push(`/pet/${id}/health-pdf` as never)}
+            onPress={() => setPdfModal(true)}
             activeOpacity={0.7}
             accessibilityLabel={t('pdfCommon.printOrSave')}
           >
@@ -473,6 +476,15 @@ export default function HealthScreen() {
         visible={showBloodTypeInfo}
         onClose={() => setShowBloodTypeInfo(false)}
         isDog={isDog}
+      />
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('healthPdf.title', { name: pet?.name ?? '' })}
+        subtitle={t('healthPdf.subtitle')}
+        onPreview={() => previewHealthPdf({ petId: id!, petName: pet?.name ?? '' })}
+        onShare={() => shareHealthPdf({ petId: id!, petName: pet?.name ?? '' })}
       />
     </View>
   );

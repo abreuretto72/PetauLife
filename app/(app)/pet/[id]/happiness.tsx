@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileText } from 'lucide-react-native';
@@ -18,14 +18,16 @@ import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
 import { Skeleton } from '../../../../components/Skeleton';
 import { HappinessLensContent } from '../../../../components/lenses/HappinessLensContent';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewHappinessPdf, shareHappinessPdf } from '../../../../lib/happinessPdf';
 
 export default function HappinessScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: pet, isLoading } = usePet(id);
   const [refreshing, setRefreshing] = useState(false);
+  const [pdfModal, setPdfModal] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -71,7 +73,7 @@ export default function HappinessScreen() {
         </View>
         <TouchableOpacity
           style={styles.pdfBtn}
-          onPress={() => router.push(`/pet/${id}/happiness-pdf`)}
+          onPress={() => setPdfModal(true)}
           activeOpacity={0.7}
           accessibilityLabel={t('pdfCommon.printOrSave')}
         >
@@ -82,6 +84,14 @@ export default function HappinessScreen() {
       {id && <HappinessLensContent petId={id} />}
 
       <View style={{ height: spacing.xxl }} />
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('happinessPdf.title', { name: pet?.name ?? '' })}
+        onPreview={() => previewHappinessPdf({ petId: id ?? '', petName: pet?.name ?? '' })}
+        onShare={() => shareHappinessPdf({ petId: id ?? '', petName: pet?.name ?? '' })}
+      />
     </ScrollView>
   );
 }

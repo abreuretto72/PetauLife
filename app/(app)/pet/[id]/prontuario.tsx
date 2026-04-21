@@ -54,6 +54,8 @@ import {
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewProntuarioPdf, shareProntuarioPdf } from '../../../../lib/prontuarioPdf';
 import { usePet } from '../../../../hooks/usePets';
 import {
   useProntuario,
@@ -274,6 +276,7 @@ export default function ProntuarioScreen() {
 
   // Fase 4 — Tab navigation state (default: Geral)
   const [activeTab, setActiveTab] = useState<TabId>('geral');
+  const [pdfModal, setPdfModal] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     await refetch();
@@ -289,8 +292,8 @@ export default function ProntuarioScreen() {
   }, [regenerate, toast, t]);
 
   const handleOpenPdf = useCallback(() => {
-    router.push(`/pet/${id}/prontuario-pdf` as never);
-  }, [router, id]);
+    setPdfModal(true);
+  }, []);
 
   const handleQrCode = useCallback(() => {
     router.push(`/pet/${id}/prontuario-qr` as never);
@@ -367,6 +370,10 @@ export default function ProntuarioScreen() {
   const overdueVaccines = prontuario.vaccines.filter((v) => v.is_overdue);
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const sinaisIsEmpty = !prontuario.body_condition_scores?.length && !prontuario.body_systems_review?.length;
+  const racaIsEmpty = !prontuario.breed_predispositions?.length && !prontuario.drug_interactions?.length && !prontuario.exam_abnormal_flags?.length && !prontuario.exam_abnormal_count;
+  const emergenciaIsEmpty = (!prontuario.emergency_card || !hasEmergencyContent(prontuario.emergency_card)) && !prontuario.trusted_vets?.length;
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -1037,6 +1044,18 @@ export default function ProntuarioScreen() {
           </View>
         )}
 
+        {/* Sinais — empty state */}
+        {activeTab === 'sinais' && sinaisIsEmpty && (
+          <View style={s.tabEmptyWrap}>
+            <Activity size={rs(32)} color={colors.textDim} strokeWidth={1.4} />
+            <Text style={s.tabEmptyText}>{t('prontuario.tabEmpty.sinais')}</Text>
+            <TouchableOpacity style={s.tabEmptyBtn} onPress={handleRegenerate} activeOpacity={0.8}>
+              <RefreshCw size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+              <Text style={s.tabEmptyBtnText}>{t('prontuario.tabEmptyRegen')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Surgeries — Fase 1: nova seção */}
         {activeTab === 'saude' && prontuario.surgeries && prontuario.surgeries.length > 0 && (
           <View style={s.section}>
@@ -1217,6 +1236,30 @@ export default function ProntuarioScreen() {
           )
         ))}
 
+        {/* Raça — empty state */}
+        {activeTab === 'raca' && racaIsEmpty && (
+          <View style={s.tabEmptyWrap}>
+            <ShieldAlert size={rs(32)} color={colors.textDim} strokeWidth={1.4} />
+            <Text style={s.tabEmptyText}>{t('prontuario.tabEmpty.raca')}</Text>
+            <TouchableOpacity style={s.tabEmptyBtn} onPress={handleRegenerate} activeOpacity={0.8}>
+              <RefreshCw size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+              <Text style={s.tabEmptyBtnText}>{t('prontuario.tabEmptyRegen')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Emergência — empty state */}
+        {activeTab === 'emergencia' && emergenciaIsEmpty && (
+          <View style={s.tabEmptyWrap}>
+            <Phone size={rs(32)} color={colors.textDim} strokeWidth={1.4} />
+            <Text style={s.tabEmptyText}>{t('prontuario.tabEmpty.emergencia')}</Text>
+            <TouchableOpacity style={s.tabEmptyBtn} onPress={handleRegenerate} activeOpacity={0.8}>
+              <RefreshCw size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+              <Text style={s.tabEmptyBtnText}>{t('prontuario.tabEmptyRegen')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Generated at */}
         <Text style={s.generatedAt}>
           {t('prontuario.generatedAt')}: {formatDate(prontuario.generated_at)}
@@ -1245,6 +1288,15 @@ export default function ProntuarioScreen() {
           <Text style={s.manageLinkText}>{t('prontuario.manageRecords')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('prontuario.pdfTitle', { name: pet?.name ?? '' })}
+        subtitle={t('prontuario.pdfSubtitle')}
+        onPreview={() => previewProntuarioPdf(prontuario, pet?.name ?? '', pet?.avatar_url)}
+        onShare={() => shareProntuarioPdf(prontuario, pet?.name ?? '', pet?.avatar_url)}
+      />
     </SafeAreaView>
   );
 }
@@ -1630,4 +1682,9 @@ const s = StyleSheet.create({
 
   manageLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(6), marginTop: rs(20), marginBottom: rs(8) },
   manageLinkText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textDim },
+
+  tabEmptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: rs(40), paddingHorizontal: rs(32), gap: rs(12) },
+  tabEmptyText: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textDim, textAlign: 'center', lineHeight: fs(20) },
+  tabEmptyBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginTop: rs(4), paddingHorizontal: rs(16), paddingVertical: rs(8), borderRadius: rs(10), borderWidth: 1, borderColor: colors.accent + '40', backgroundColor: colors.accentSoft },
+  tabEmptyBtnText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.accent },
 });

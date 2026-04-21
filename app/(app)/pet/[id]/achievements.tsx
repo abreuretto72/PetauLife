@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileText } from 'lucide-react-native';
@@ -18,14 +18,16 @@ import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
 import { Skeleton } from '../../../../components/Skeleton';
 import { AchievementsLensContent } from '../../../../components/lenses/AchievementsLensContent';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewAchievementsPdf, shareAchievementsPdf } from '../../../../lib/achievementsPdf';
 
 export default function AchievementsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: pet, isLoading } = usePet(id);
   const [refreshing, setRefreshing] = useState(false);
+  const [pdfModal, setPdfModal] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -71,7 +73,7 @@ export default function AchievementsScreen() {
         </View>
         <TouchableOpacity
           style={styles.pdfBtn}
-          onPress={() => router.push(`/pet/${id}/achievements-pdf`)}
+          onPress={() => setPdfModal(true)}
           activeOpacity={0.7}
           accessibilityLabel={t('pdfCommon.printOrSave')}
         >
@@ -82,6 +84,15 @@ export default function AchievementsScreen() {
       {id && <AchievementsLensContent petId={id} />}
 
       <View style={{ height: spacing.xxl }} />
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('achievementsPdf.title', { name: pet?.name ?? '' })}
+        subtitle={t('achievementsPdf.subtitle', { level: '', xp: '' })}
+        onPreview={() => previewAchievementsPdf({ petId: id ?? '', petName: pet?.name ?? '' })}
+        onShare={() => shareAchievementsPdf({ petId: id ?? '', petName: pet?.name ?? '' })}
+      />
     </ScrollView>
   );
 }

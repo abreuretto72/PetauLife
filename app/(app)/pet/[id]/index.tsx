@@ -48,8 +48,11 @@ import PetBottomNav, { PetTab } from '../../../../components/layout/PetBottomNav
 import { usePetTabStore } from '../../../../stores/petTabStore';
 import LentesTab from '../../../../components/pet/LentesTab';
 import IATab from '../../../../components/pet/IATab';
+import { usePetAssistant } from '../../../../hooks/usePetAssistant';
+import { previewIaChatPdf, shareIaChatPdf } from '../../../../lib/iaChatPdf';
 import { AgendaLensContent } from '../../../../components/lenses/AgendaLensContent';
 import { SectionErrorBoundary } from '../../../../components/SectionErrorBoundary';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
 
 export default function PetScreen() {
   const { id, initialTab } = useLocalSearchParams<{ id: string; initialTab?: string }>();
@@ -80,12 +83,14 @@ export default function PetScreen() {
   const [pdfModalVisible, setPdfModalVisible] = useState(false);
   const [calendarVisible, setCalendarVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [iaPdfModal, setIaPdfModal] = useState(false);
 
   const { data: pet, isLoading, refetch } = usePet(id!);
   const { vaccines, overdueCount } = useVaccines(id!);
   const { allergies } = useAllergies(id!);
   const { moodLogs } = useMoodLogs(id!);
   const { entries: diaryEntries, isLoading: diaryLoading, refetch: diaryRefetch } = useDiary(id!);
+  const { messages: chatMessages, isLoading: chatLoading, error: chatError, sendMessage } = usePetAssistant(id ?? '');
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
 
   // Dates that have at least one diary entry (for calendar dots)
@@ -171,6 +176,14 @@ export default function PetScreen() {
     if (timelineEvents.length === 0) { toast(t('diary.emptyTitle'), 'warning'); return; }
     setPdfModalVisible(true);
   }, [timelineEvents.length, toast, t]);
+
+  const handleIaPrint = useCallback(async () => {
+    await previewIaChatPdf(chatMessages, pet?.name ?? '');
+  }, [chatMessages, pet?.name]);
+
+  const handleIaShare = useCallback(async () => {
+    await shareIaChatPdf(chatMessages, pet?.name ?? '');
+  }, [chatMessages, pet?.name]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -345,7 +358,7 @@ export default function PetScreen() {
           )}
           {activeTab === 'ia' && (
             <TouchableOpacity
-              onPress={() => router.push({ pathname: '/(app)/pet/[id]/ia-pdf', params: { id } } as never)}
+              onPress={() => setIaPdfModal(true)}
               style={s.headerBtn}
               activeOpacity={0.7}
             >
@@ -413,7 +426,14 @@ export default function PetScreen() {
 
           {/* ── Aba IA ─────────────────────────────────────────────── */}
           {activeTab === 'ia' && (
-            <IATab petId={id!} petName={pet?.name} />
+            <IATab
+              petId={id!}
+              petName={pet?.name}
+              chatMessages={chatMessages}
+              chatIsLoading={chatLoading}
+              chatError={chatError}
+              onSendMessage={sendMessage}
+            />
           )}
         </View>
       </SectionErrorBoundary>
@@ -436,6 +456,15 @@ export default function PetScreen() {
         markedDates={markedDates}
         selectedDate={selectedDate}
         onSelectDate={setSelectedDate}
+      />
+
+      <PdfActionModal
+        visible={iaPdfModal}
+        onClose={() => setIaPdfModal(false)}
+        title={t('ia.pdfTitle', { name: pet.name })}
+        subtitle={t('ia.pdfSubtitle', { count: chatMessages.length })}
+        onPreview={handleIaPrint}
+        onShare={handleIaShare}
       />
     </SafeAreaView>
   );

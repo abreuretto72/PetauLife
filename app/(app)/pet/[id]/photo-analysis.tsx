@@ -4,7 +4,7 @@ import {
   Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import {
   ChevronLeft, Camera, ScanEye, Clock, Scale, Ruler,
   Palette, SmilePlus, ShieldCheck, AlertTriangle, Sparkles,
@@ -22,6 +22,8 @@ import { useAuthStore } from '../../../../stores/authStore';
 import { useToast } from '../../../../components/Toast';
 import { SectionErrorBoundary } from '../../../../components/SectionErrorBoundary';
 import { getErrorMessage } from '../../../../utils/errorMessages';
+import PdfActionModal from '../../../../components/pdf/PdfActionModal';
+import { previewPhotoAnalysisPdf, sharePhotoAnalysisPdf } from '../../../../lib/photoAnalysisPdf';
 import { usePet } from '../../../../hooks/usePets';
 import { Skeleton } from '../../../../components/Skeleton';
 import type { PhotoAnalysisResponse } from '../../../../types/ai';
@@ -36,7 +38,6 @@ interface AnalysisRecord {
 
 export default function PhotoAnalysisScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const user = useAuthStore((s) => s.user);
@@ -45,6 +46,7 @@ export default function PhotoAnalysisScreen() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [pdfModal, setPdfModal] = useState(false);
 
   const loadAnalyses = useCallback(async () => {
     if (!id) return;
@@ -192,7 +194,7 @@ export default function PhotoAnalysisScreen() {
         {analyses.length > 0 && !analyzing && (
           <TouchableOpacity
             style={s.exportBtn}
-            onPress={() => router.push(`/pet/${id}/photo-analysis-pdf` as never)}
+            onPress={() => setPdfModal(true)}
             activeOpacity={0.7}
           >
             <FileText size={rs(18)} color={colors.accent} strokeWidth={1.8} />
@@ -342,6 +344,15 @@ export default function PhotoAnalysisScreen() {
         <View style={{ height: rs(40) }} />
       </ScrollView>
       </SectionErrorBoundary>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('photoAnalysis.pdfTitle', { name: pet?.name ?? '' })}
+        subtitle={t('photoAnalysis.pdfSubtitle')}
+        onPreview={() => previewPhotoAnalysisPdf(analyses, pet?.name ?? '')}
+        onShare={() => sharePhotoAnalysisPdf(analyses, pet?.name ?? '')}
+      />
     </View>
   );
 }

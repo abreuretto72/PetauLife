@@ -1,7 +1,7 @@
 /**
  * nutrition/dicas.tsx — Tela 6: Dicas da IA / avaliação nutricional
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,6 +11,8 @@ import { rs, fs } from '../../../../../hooks/useResponsive';
 import { colors } from '../../../../../constants/colors';
 import { useNutricao } from '../../../../../hooks/useNutricao';
 import { usePets } from '../../../../../hooks/usePets';
+import PdfActionModal from '../../../../../components/pdf/PdfActionModal';
+import { previewNutritionPdf, shareNutritionPdf } from '../../../../../lib/nutritionPdf';
 
 export default function DicasScreen() {
   const { t } = useTranslation();
@@ -21,13 +23,13 @@ export default function DicasScreen() {
   const { nutricao, isLoadingNutricao, evaluateNutrition, isEvaluating } = useNutricao(petId ?? '');
 
   const eval_ = nutricao?.ai_evaluation;
-
-  const goToPdf = () => router.push(`/pet/${petId}/nutrition-pdf` as never);
+  const [pdfModal, setPdfModal] = useState(false);
+  const petName = pet?.name ?? '';
 
   if (isLoadingNutricao) {
     return (
       <SafeAreaView style={s.safeArea}>
-        <Header onBack={() => router.back()} title={t('nutrition.dicasTitle')} onPdf={goToPdf} pdfLabel={t('nutritionPdf.icon')} />
+        <Header onBack={() => router.back()} title={t('nutrition.dicasTitle')} onPdf={() => setPdfModal(true)} pdfLabel={t('nutritionPdf.icon')} />
         <View style={s.centered}>
           <ActivityIndicator color={colors.accent} size="large" />
           <Text style={s.loadingText}>{t('nutrition.dicasLoading')}</Text>
@@ -38,7 +40,7 @@ export default function DicasScreen() {
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <Header onBack={() => router.back()} title={t('nutrition.dicasTitle')} onPdf={goToPdf} pdfLabel={t('nutritionPdf.icon')} />
+      <Header onBack={() => router.back()} title={t('nutrition.dicasTitle')} onPdf={() => setPdfModal(true)} pdfLabel={t('nutritionPdf.icon')} />
 
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         {/* Score hero */}
@@ -117,6 +119,14 @@ export default function DicasScreen() {
           <Text style={s.refreshBtnText}>{isEvaluating ? t('nutrition.dicasEvaluating') : t('nutrition.dicasRetry')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('nutritionPdf.title', { name: petName })}
+        onPreview={() => previewNutritionPdf({ petId: petId ?? '', petName })}
+        onShare={() => shareNutritionPdf({ petId: petId ?? '', petName })}
+      />
     </SafeAreaView>
   );
 }

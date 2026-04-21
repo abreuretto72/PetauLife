@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  Platform,
+  UIManager,
+  LayoutAnimation,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -36,6 +39,11 @@ import AddPetModal from '../../components/AddPetModal';
 import type { AddPetData } from '../../components/AddPetModal';
 import { useToast } from '../../components/Toast';
 import { usePets } from '../../hooks/usePets';
+import { usePetSearch } from '../../hooks/usePetSearch';
+import { usePreferencesStore } from '../../stores/usePreferencesStore';
+import { UI_THRESHOLDS } from '../../constants/uiThresholds';
+import PetListHeader from '../../components/pets/PetListHeader';
+import PetRowCompact from '../../components/pets/PetRowCompact';
 import { useBackfillRAG } from '../../hooks/useBackfillRAG';
 import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../stores/authStore';
@@ -61,10 +69,27 @@ export default function HubScreen() {
   const { pets, isLoading, refetch, addPet, isAdding } = usePets();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { query, setQuery, filtered, recent, isSearching } = usePetSearch(pets);
+  const { petListDensity, toggleDensity, hasSeenSearchHint, markSearchHintSeen } = usePreferencesStore();
 
   // Fire-and-forget RAG backfill for pre-existing pets (runs once per install
   // per pet; no UI effect — see hooks/useBackfillRAG.ts for rationale).
   useBackfillRAG(pets);
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      UIManager.setLayoutAnimationEnabledExperimental?.(true);
+    }
+  }, []);
+
+  const prevPetCountRef = useRef(pets.length);
+  useEffect(() => {
+    if (!hasSeenSearchHint && prevPetCountRef.current < UI_THRESHOLDS.SEARCH && pets.length >= UI_THRESHOLDS.SEARCH) {
+      toast(t('pets.searchHintBody'), 'info');
+      markSearchHintSeen();
+    }
+    prevPetCountRef.current = pets.length;
+  }, [pets.length, hasSeenSearchHint, markSearchHintSeen, toast, t]);
 
   // LOG TEMPORÁRIO — remover após diagnóstico
   console.log('[Hub] pets:', pets.length, '| isLoading:', isLoading, '| user:', user?.id ?? 'NULL');
@@ -159,6 +184,24 @@ export default function HubScreen() {
     agenda_count: null,
   }));
 
+  const filteredCards: PetCardData[] = filtered.map((p) => ({
+    id: p.id,
+    name: p.name,
+    species: p.species,
+    sex: p.sex,
+    breed: p.breed,
+    weight_kg: p.weight_kg,
+    health_score: p.health_score,
+    current_mood: null,
+    user_id: p.user_id,
+    estimated_age_months: p.estimated_age_months,
+    vaccine_status: 'up_to_date' as const,
+    last_activity: p.updated_at,
+    avatar_url: p.avatar_url,
+    last_diary_entry: p.updated_at ?? null,
+    agenda_count: null,
+  }));
+
   const hasOverdueVaccine = petCards.some(
     (p) => p.vaccine_status === 'overdue',
   );
@@ -178,6 +221,11 @@ export default function HubScreen() {
   const handleAddPet = useCallback(() => {
     setAddPetVisible(true);
   }, []);
+
+  const handleToggleDensity = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    toggleDensity();
+  }, [toggleDensity]);
 
   const handleAddPetSubmit = useCallback(
     async (data: AddPetData) => {
@@ -332,77 +380,60 @@ export default function HubScreen() {
         ? new Date(tutorProfile.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
         : '';
       return (
-      <>
-        {/* Rede Solidária */}
-        <RedeSolidariaCard
-          city={tutorProfile?.city ?? undefined}
-          aldeiaName={tutorProfile?.city ? t('rede.village') : undefined}
-          tutorCount={0}
-          sosCount={0}
-          newRequests={0}
-          onPress={() => toast(t('rede.comingSoon'), 'info')}
-        />
+        <PetListHeader
+          totalPets={pets.length}
+          density={petListDensity}
+          onToggleDensity={handleToggleDensity}
+          onAddPet={handleAddPet}
+          query={query}
+          onChangeQuery={setQuery}
+          recent={recent}
+          onSelectRecent={(name) => setQuery(name)}
+          isSearching={isSearching}
+        >
+          {/* Rede Solidária */}
+          <RedeSolidariaCard
+            city={tutorProfile?.city ?? undefined}
+            aldeiaName={tutorProfile?.city ? t('rede.village') : undefined}
+            tutorCount={0}
+            sosCount={0}
+            newRequests={0}
+            onPress={() => toast(t('rede.comingSoon'), 'info')}
+          />
 
-        {/* Tutor card */}
-        <TutorCard
-          name={userName}
-          email={userEmail}
-          avatarUrl={tutorProfile?.avatar_url}
-          city={tutorProfile?.city}
-          state={tutorProfile?.state}
-          memberSince={memberDate}
-          petsCount={pets.length}
-          diaryCount={diaryCount}
-          photoCount={photoCount}
-          coTutorsCount={0}
-          level={tutorProfile?.level ?? 1}
-          xp={tutorProfile?.xp ?? 0}
-          xpNext={1000}
-          onPress={() => router.push('/(app)/profile' as never)}
-          onPressPartnership={() => router.push('/(app)/partnerships' as never)}
-        />
+          {/* Tutor card */}
+          <TutorCard
+            name={userName}
+            email={userEmail}
+            avatarUrl={tutorProfile?.avatar_url}
+            city={tutorProfile?.city}
+            state={tutorProfile?.state}
+            memberSince={memberDate}
+            petsCount={pets.length}
+            diaryCount={diaryCount}
+            photoCount={photoCount}
+            coTutorsCount={0}
+            level={tutorProfile?.level ?? 1}
+            xp={tutorProfile?.xp ?? 0}
+            xpNext={1000}
+            onPress={() => router.push('/(app)/profile' as never)}
+            onPressPartnership={() => router.push('/(app)/partnerships' as never)}
+          />
 
-        {/* Vaccine alert */}
-        {hasOverdueVaccine && (
-          <TouchableOpacity style={styles.vaccineAlert} activeOpacity={0.7}>
-            <AlertTriangle
-              size={rs(18)}
-              color={colors.danger}
-              strokeWidth={2}
-            />
-            <Text style={styles.vaccineAlertText}>
-              {t(
-                'pets.vaccinesOverdue',
-                'Vacinas atrasadas! Verifique o prontuario.',
-              )}
-            </Text>
-            <ChevronRight
-              size={rs(16)}
-              color={colors.danger}
-              strokeWidth={1.8}
-            />
-          </TouchableOpacity>
-        )}
-
-        {/* Section header */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionLabel}>
-            {t('pets.myPets', 'MEUS PETS').toUpperCase()}
-          </Text>
-          <TouchableOpacity
-            style={styles.newPetBtn}
-            activeOpacity={0.7}
-            onPress={handleAddPet}
-          >
-            <Plus size={rs(16)} color="#fff" strokeWidth={2} />
-            <Text style={styles.newPetBtnText}>
-              {t('pets.addNew', 'Novo Pet')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    );},
-    [pets, userName, userEmail, hasOverdueVaccine, t, handleAddPet, router, tutorProfile],
+          {/* Vaccine alert */}
+          {hasOverdueVaccine && (
+            <TouchableOpacity style={styles.vaccineAlert} activeOpacity={0.7}>
+              <AlertTriangle size={rs(18)} color={colors.danger} strokeWidth={2} />
+              <Text style={styles.vaccineAlertText}>
+                {t('pets.vaccinesOverdue', 'Vacinas atrasadas! Verifique o prontuario.')}
+              </Text>
+              <ChevronRight size={rs(16)} color={colors.danger} strokeWidth={1.8} />
+            </TouchableOpacity>
+          )}
+        </PetListHeader>
+      );
+    },
+    [pets.length, petListDensity, handleToggleDensity, handleAddPet, query, setQuery, recent, isSearching, userName, userEmail, hasOverdueVaccine, t, toast, router, tutorProfile, diaryCount, photoCount],
   );
 
   // ── Footer da lista ──────────────────────────────
@@ -436,48 +467,75 @@ export default function HubScreen() {
   }, [router]);
 
   const renderPetCard = useCallback(
-    ({ item }: { item: PetCardData }) => (
-      <PetCard
-        pet={item}
-        onPress={() => handlePetPress(item.id)}
-        onEdit={() => handleEditPet(item.id)}
-        onPressIA={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'ia' } } as never)}
-        onPressDiary={() => handlePressDiary(item.id)}
-        onPressAgenda={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'agenda' } } as never)}
-        onPressMembers={() => router.push(`/pet/${item.id}/coparents` as never)}
-      />
-    ),
-    [handlePetPress, handleEditPet, handlePressDiary, router],
+    ({ item }: { item: PetCardData }) => {
+      if (petListDensity === 'compact') {
+        return <PetRowCompact pet={item} onPress={handlePetPress} />;
+      }
+      return (
+        <PetCard
+          pet={item}
+          onPress={() => handlePetPress(item.id)}
+          onEdit={() => handleEditPet(item.id)}
+          onPressIA={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'ia' } } as never)}
+          onPressDiary={() => handlePressDiary(item.id)}
+          onPressAgenda={() => router.push({ pathname: `/pet/${item.id}`, params: { initialTab: 'agenda' } } as never)}
+          onPressMembers={() => router.push(`/pet/${item.id}/coparents` as never)}
+        />
+      );
+    },
+    [petListDensity, handlePetPress, handleEditPet, handlePressDiary, router],
   );
 
   // ── Empty state ──────────────────────────────────
 
   const renderEmpty = useCallback(
-    () =>
-      !isLoading ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIconRow}>
-            <Dog size={rs(40)} color={colors.accent + '50'} strokeWidth={1.5} />
-            <Cat size={rs(40)} color={colors.purple + '50'} strokeWidth={1.5} />
-          </View>
-          <Text style={styles.emptyTitle}>{t('pets.noPets')}</Text>
-          <Text style={styles.emptyText}>{t('pets.noPetsHint')}</Text>
-          <TouchableOpacity
-            style={styles.emptyBtn}
-            activeOpacity={0.7}
-            onPress={handleAddPet}
-          >
-            <LinearGradient
-              colors={[colors.accent, colors.accentDark]}
-              style={styles.emptyBtnGradient}
+    () => {
+      if (isSearching) {
+        return (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>
+              {t('pets.noResults', { query })}
+            </Text>
+            <TouchableOpacity
+              style={[styles.emptyBtn, { marginTop: rs(16) }]}
+              onPress={() => setQuery('')}
+              activeOpacity={0.7}
             >
-              <Plus size={rs(20)} color="#fff" strokeWidth={2} />
-              <Text style={styles.emptyBtnText}>{t('pets.registerFirstPet')}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      ) : null,
-    [isLoading, handleAddPet],
+              <Text style={[styles.emptyBtnText, { color: colors.accent }]}>
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+      if (!isLoading) {
+        return (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconRow}>
+              <Dog size={rs(40)} color={colors.accent + '50'} strokeWidth={1.5} />
+              <Cat size={rs(40)} color={colors.purple + '50'} strokeWidth={1.5} />
+            </View>
+            <Text style={styles.emptyTitle}>{t('pets.noPets')}</Text>
+            <Text style={styles.emptyText}>{t('pets.noPetsHint')}</Text>
+            <TouchableOpacity
+              style={styles.emptyBtn}
+              activeOpacity={0.7}
+              onPress={handleAddPet}
+            >
+              <LinearGradient
+                colors={[colors.accent, colors.accentDark]}
+                style={styles.emptyBtnGradient}
+              >
+                <Plus size={rs(20)} color="#fff" strokeWidth={2} />
+                <Text style={styles.emptyBtnText}>{t('pets.registerFirstPet')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+      return null;
+    },
+    [isSearching, query, setQuery, isLoading, handleAddPet, t],
   );
 
   // ── Loading skeleton ─────────────────────────────
@@ -542,15 +600,15 @@ export default function HubScreen() {
 
         {/* Pet list */}
         <FlatList
-          data={petCards}
+          data={filteredCards}
           keyExtractor={(item) => item.id}
           renderItem={renderPetCard}
           ListHeaderComponent={renderHeader}
-          ListFooterComponent={petCards.length > 0 ? renderFooter : undefined}
+          ListFooterComponent={filteredCards.length > 0 ? renderFooter : undefined}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={[
             styles.scrollContent,
-            petCards.length === 0 && styles.scrollContentEmpty,
+            filteredCards.length === 0 && styles.scrollContentEmpty,
           ]}
           showsVerticalScrollIndicator={false}
           refreshControl={

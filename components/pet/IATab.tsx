@@ -14,8 +14,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
   StyleSheet, RefreshControl, Animated,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { MessageCircle, Send, Sparkles, ChevronRight, Download, Mic, Square } from 'lucide-react-native';
+import { MessageCircle, Send, Sparkles, ChevronRight, Mic, Square } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { getLocales } from 'expo-localization';
 import { colors } from '../../constants/colors';
@@ -23,7 +22,7 @@ import { rs, fs } from '../../hooks/useResponsive';
 import { spacing, radii } from '../../constants/spacing';
 import { Skeleton } from '../Skeleton';
 import { useInsights, PetInsight, InsightUrgency } from '../../hooks/useInsights';
-import { usePetAssistant, ChatMessage } from '../../hooks/usePetAssistant';
+import type { ChatMessage } from '../../hooks/usePetAssistant';
 import { indexPetHealthData } from '../../lib/rag';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -238,12 +237,16 @@ function EmptyInsights({ filter }: { filter: InsightCategory | 'all' }) {
 
 // ── ChatView ──────────────────────────────────────────────────────────────────
 
+interface ChatViewProps {
+  petName: string;
+  messages: ChatMessage[];
+  isLoading: boolean;
+  error: string | null;
+  sendMessage: (text: string) => Promise<void>;
+}
 
-function ChatView({ petId, petName }: { petId: string; petName: string }) {
+function ChatView({ petName, messages, isLoading, error, sendMessage }: ChatViewProps) {
   const { t } = useTranslation();
-  const router = useRouter();
-  const { messages, isLoading, error, sendMessage, clearConversation } =
-    usePetAssistant(petId);
   const [inputText, setInputText]       = useState('');
   const [inputHeight, setInputHeight]   = useState(rs(44));
   const [isListening, setIsListening]   = useState(false);
@@ -395,24 +398,6 @@ function ChatView({ petId, petName }: { petId: string; petName: string }) {
             <Text style={styles.chatSubtitle}>{t('ia.subtitle', { name: petName })}</Text>
           </View>
         </View>
-        {messages.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearBtn}
-            activeOpacity={0.7}
-            onPress={() =>
-              router.push({
-                pathname: '/(app)/pet/[id]/ia-pdf',
-                params: {
-                  id: petId,
-                  messagesJson: JSON.stringify(messages),
-                  petName,
-                },
-              })
-            }
-          >
-            <Download size={rs(16)} color={colors.accent} strokeWidth={1.8} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Messages */}
@@ -511,9 +496,13 @@ type SubView = 'insights' | 'chat';
 interface IATabProps {
   petId: string;
   petName?: string;
+  chatMessages: ChatMessage[];
+  chatIsLoading: boolean;
+  chatError: string | null;
+  onSendMessage: (text: string) => Promise<void>;
 }
 
-export default function IATab({ petId, petName }: IATabProps) {
+export default function IATab({ petId, petName, chatMessages, chatIsLoading, chatError, onSendMessage }: IATabProps) {
   const { t } = useTranslation();
   const { insights, isLoading, refetch } = useInsights(petId);
   const resolvedName = petName ?? '';
@@ -639,7 +628,13 @@ export default function IATab({ petId, petName }: IATabProps) {
 
       {/* Chat view */}
       {subView === 'chat' && (
-        <ChatView petId={petId} petName={resolvedName} />
+        <ChatView
+          petName={resolvedName}
+          messages={chatMessages}
+          isLoading={chatIsLoading}
+          error={chatError}
+          sendMessage={onSendMessage}
+        />
       )}
     </View>
   );

@@ -14,6 +14,8 @@ import { colors } from '../../../../../constants/colors';
 import { useNutricao } from '../../../../../hooks/useNutricao';
 import { useToast } from '../../../../../components/Toast';
 import { usePets } from '../../../../../hooks/usePets';
+import PdfActionModal from '../../../../../components/pdf/PdfActionModal';
+import { previewNutritionPdf, shareNutritionPdf } from '../../../../../lib/nutritionPdf';
 
 const ASPCA_KEYS = [
   'aspcaChocolate', 'aspcaGrapes', 'aspcaOnion', 'aspcaXylitol', 'aspcaMacadamia',
@@ -31,6 +33,8 @@ export default function RestricoesScreen() {
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'restriction' | 'intolerance'>('restriction');
+  const [pdfModal, setPdfModal] = useState(false);
+  const petName = pet?.name ?? '';
 
   const handleAdd = async () => {
     if (!name.trim()) return;
@@ -62,7 +66,7 @@ export default function RestricoesScreen() {
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('nutrition.restricoesTitle')}</Text>
         <TouchableOpacity
-          onPress={() => router.push(`/pet/${petId}/nutrition-pdf` as never)}
+          onPress={() => setPdfModal(true)}
           style={s.backBtn}
           accessibilityLabel={t('nutritionPdf.icon')}
         >
@@ -150,6 +154,14 @@ export default function RestricoesScreen() {
           ))}
         </View>
       </ScrollView>
+
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('nutritionPdf.title', { name: petName })}
+        onPreview={() => previewNutritionPdf({ petId: petId ?? '', petName })}
+        onShare={() => shareNutritionPdf({ petId: petId ?? '', petName })}
+      />
     </SafeAreaView>
   );
 }

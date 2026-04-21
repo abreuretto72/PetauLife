@@ -9,12 +9,12 @@ import {
   TextInput, ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Download, FileText, X } from 'lucide-react-native';
+import { Download, FileText, Share2, X } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import * as FileSystem from 'expo-file-system/legacy';
-import { previewPdf } from '../../lib/pdf';
+import { previewPdf, sharePdf } from '../../lib/pdf';
 import { getPublicUrl } from '../../lib/storage';
 import { useToast } from '../Toast';
 import type { TimelineEvent } from './timelineTypes';
@@ -78,89 +78,106 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
     setter(`${clean.slice(0, 2)}/${clean.slice(2, 4)}/${clean.slice(4, 8)}`);
   }, []);
 
-  const handleGenerate = useCallback(async () => {
-    setGenerating(true);
-    try {
-      const parseDate = (d: string): number => {
-        const parts = d.split('/');
-        if (parts.length !== 3 || parts[2].length !== 4) return 0;
-        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
-      };
-      const fromTs = dateFrom.length === 10 ? parseDate(dateFrom) : 0;
-      const toTs = dateTo.length === 10 ? parseDate(dateTo) + 86399000 : Infinity;
+  const buildPdfOptions = useCallback(async () => {
+    const parseDate = (d: string): number => {
+      const parts = d.split('/');
+      if (parts.length !== 3 || parts[2].length !== 4) return 0;
+      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime();
+    };
+    const fromTs = dateFrom.length === 10 ? parseDate(dateFrom) : 0;
+    const toTs = dateTo.length === 10 ? parseDate(dateTo) + 86399000 : Infinity;
 
-      let filtered = events
-        .filter((e) => e.type === 'diary' || e.type === 'photo_analysis')
-        .filter((e) => e.sortDate >= fromTs && e.sortDate <= toTs);
+    let filtered = events
+      .filter((e) => e.type === 'diary' || e.type === 'photo_analysis')
+      .filter((e) => e.sortDate >= fromTs && e.sortDate <= toTs);
 
-      const totalFound = filtered.length;
-      const wasTruncated = totalFound > MAX_PDF_ENTRIES;
-      filtered = filtered.slice(0, MAX_PDF_ENTRIES);
+    const totalFound = filtered.length;
+    const wasTruncated = totalFound > MAX_PDF_ENTRIES;
+    filtered = filtered.slice(0, MAX_PDF_ENTRIES);
 
-      if (filtered.length === 0) {
-        toast(t('diary.pdfNoResults'), 'warning');
-        setGenerating(false);
-        return;
-      }
+    if (filtered.length === 0) return null;
 
-      // Pre-download all photos as base64 data URIs so expo-print can render them
-      const uniquePhotoPaths = [...new Set(
-        filtered.flatMap((e) => e.photos ?? []).filter((p) => !p.endsWith('.mp4') && !p.endsWith('.mov')),
-      )];
-      const photoDataUriMap = new Map<string, string>();
-      await Promise.all(uniquePhotoPaths.map(async (p) => {
-        const uri = await photoToDataUri(p);
-        if (uri) photoDataUriMap.set(p, uri);
-      }));
+    const uniquePhotoPaths = [...new Set(
+      filtered.flatMap((e) => e.photos ?? []).filter((p) => !p.endsWith('.mp4') && !p.endsWith('.mov')),
+    )];
+    const photoDataUriMap = new Map<string, string>();
+    await Promise.all(uniquePhotoPaths.map(async (p) => {
+      const uri = await photoToDataUri(p);
+      if (uri) photoDataUriMap.set(p, uri);
+    }));
 
-      const entriesHtml = filtered.map((e) => {
-        const dateObj = new Date(e.date);
-        const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
-        const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
-        const moodColor = MOOD_COLORS[e.moodId ?? ''] ?? '#95A5A6';
-        const moodLabel = getMoodData(e.moodId)?.label ?? e.moodId ?? '';
+    const entriesHtml = filtered.map((e) => {
+      const dateObj = new Date(e.date);
+      const dateStr = dateObj.toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' });
+      const timeStr = dateObj.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+      const moodColor = MOOD_COLORS[e.moodId ?? ''] ?? '#95A5A6';
+      const moodLabel = getMoodData(e.moodId)?.label ?? e.moodId ?? '';
 
-        const photosHtml = (e.photos && e.photos.length > 0)
-          ? `<div class="entry-photos">${e.photos.map((p) => {
-              const isVideo = p.endsWith('.mp4') || p.endsWith('.mov');
-              if (isVideo) return '<span style="font-size:9px;color:#888;">video</span>';
-              const isUrl = p.startsWith('https://') || p.startsWith('http://');
-              const fallback = isUrl ? p : getPublicUrl('pet-photos', p);
-              const src = photoDataUriMap.get(p) ?? fallback;
-              return `<img src="${src}" class="entry-photo" />`;
-            }).join('')}</div>`
-          : '';
-
-        return `<div class="entry">
-          <div class="entry-header">
-            <span class="entry-date">${dateStr} ${timeStr}</span>
-            ${moodLabel ? `<span class="entry-mood" style="background-color:${moodColor}">${moodLabel}</span>` : ''}
-          </div>
-          ${e.isSpecial ? `<div class="entry-special">${t('diary.specialMoment')}</div>` : ''}
-          ${e.content ? `<div class="entry-content">${e.content.replace(/\n/g, '<br/>')}</div>` : ''}
-          ${photosHtml}
-          ${e.narration ? `<div class="entry-narration">"${e.narration}" — ${petName}</div>` : ''}
-          ${e.tags && e.tags.length > 0 ? `<div class="entry-tags">${e.tags.map((tg) => `#${tg}`).join(' ')}</div>` : ''}
-        </div>`;
-      }).join('');
-
-      const truncNote = wasTruncated
-        ? `<p style="text-align:center;color:#888;font-size:10px;margin-top:16px;">${t('diary.pdfTruncated', { shown: String(MAX_PDF_ENTRIES), total: String(totalFound) })}</p>`
+      const photosHtml = (e.photos && e.photos.length > 0)
+        ? `<div class="entry-photos">${e.photos.map((p) => {
+            const isVideo = p.endsWith('.mp4') || p.endsWith('.mov');
+            if (isVideo) return '<span style="font-size:9px;color:#888;">video</span>';
+            const isUrl = p.startsWith('https://') || p.startsWith('http://');
+            const fallback = isUrl ? p : getPublicUrl('pet-photos', p);
+            const src = photoDataUriMap.get(p) ?? fallback;
+            return `<img src="${src}" class="entry-photo" />`;
+          }).join('')}</div>`
         : '';
 
-      await previewPdf({
-        title: t('diary.pdfTitle', { name: petName }),
-        subtitle: t('diary.pdfSubtitle', { count: String(filtered.length) }),
-        bodyHtml: entriesHtml + truncNote,
-        language: i18n.language,
-      });
+      return `<div class="entry">
+        <div class="entry-header">
+          <span class="entry-date">${dateStr} ${timeStr}</span>
+          ${moodLabel ? `<span class="entry-mood" style="background-color:${moodColor}">${moodLabel}</span>` : ''}
+        </div>
+        ${e.isSpecial ? `<div class="entry-special">${t('diary.specialMoment')}</div>` : ''}
+        ${e.content ? `<div class="entry-content">${e.content.replace(/\n/g, '<br/>')}</div>` : ''}
+        ${photosHtml}
+        ${e.narration ? `<div class="entry-narration">"${e.narration}" — ${petName}</div>` : ''}
+        ${e.tags && e.tags.length > 0 ? `<div class="entry-tags">${e.tags.map((tg) => `#${tg}`).join(' ')}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const truncNote = wasTruncated
+      ? `<p style="text-align:center;color:#888;font-size:10px;margin-top:16px;">${t('diary.pdfTruncated', { shown: String(MAX_PDF_ENTRIES), total: String(totalFound) })}</p>`
+      : '';
+
+    return {
+      title: t('diary.pdfTitle', { name: petName }),
+      subtitle: t('diary.pdfSubtitle', { count: String(filtered.length) }),
+      bodyHtml: entriesHtml + truncNote,
+      language: i18n.language,
+      count: filtered.length,
+    };
+  }, [events, dateFrom, dateTo, petName, t, i18n.language, getMoodData]);
+
+  const handlePreview = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const opts = await buildPdfOptions();
+      if (!opts) { toast(t('diary.pdfNoResults'), 'warning'); return; }
+      await previewPdf(opts);
       onClose();
     } catch {
       toast(t('errors.generic'), 'error');
     } finally {
       setGenerating(false);
     }
-  }, [events, dateFrom, dateTo, petName, t, i18n.language, getMoodData, toast, onClose]);
+  }, [buildPdfOptions, toast, t, onClose]);
+
+  const handleShare = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const opts = await buildPdfOptions();
+      if (!opts) { toast(t('diary.pdfNoResults'), 'warning'); return; }
+      const fileName = `diario_${petName.toLowerCase().replace(/\s+/g, '_')}.pdf`;
+      await sharePdf(opts, fileName);
+      onClose();
+    } catch {
+      toast(t('errors.generic'), 'error');
+    } finally {
+      setGenerating(false);
+    }
+  }, [buildPdfOptions, petName, toast, t, onClose]);
 
 
   return (
@@ -211,11 +228,36 @@ export default function PdfExportModal({ visible, onClose, events, petName, getM
 
             <Text style={styles.info}>{t('diary.pdfMaxEntries', { max: String(MAX_PDF_ENTRIES) })}</Text>
 
-            <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} disabled={generating} activeOpacity={0.7}>
-              {generating
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Download size={rs(18)} color="#fff" strokeWidth={2} />}
-              <Text style={styles.generateBtnText}>{t('diary.pdfGenerate')}</Text>
+            <TouchableOpacity
+              style={[styles.actionRow, { borderColor: colors.accent + '40' }]}
+              onPress={handlePreview}
+              disabled={generating}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: colors.accentGlow }]}>
+                {generating
+                  ? <ActivityIndicator color={colors.accent} size="small" />
+                  : <Download size={rs(20)} color={colors.accent} strokeWidth={1.8} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.actionTitle}>{t('diary.printOrSave')}</Text>
+                <Text style={styles.actionSubtitle}>{t('diary.printOrSaveHint')}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionRow, { borderColor: colors.petrol + '40' }]}
+              onPress={handleShare}
+              disabled={generating}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: colors.petrolSoft }]}>
+                <Share2 size={rs(20)} color={colors.petrol} strokeWidth={1.8} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.actionTitle}>{t('diary.shareFile')}</Text>
+                <Text style={styles.actionSubtitle}>{t('diary.shareFileHint')}</Text>
+              </View>
             </TouchableOpacity>
           </ScrollView>
         </Pressable>
@@ -237,7 +279,13 @@ const styles = StyleSheet.create({
   dateLabel: { fontFamily: 'Sora_500Medium', fontSize: fs(10), color: colors.textDim, marginBottom: rs(4) },
   dateInput: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, borderRadius: rs(10), paddingHorizontal: rs(12), paddingVertical: rs(10), fontFamily: 'JetBrainsMono_400Regular', fontSize: fs(13), color: colors.text, textAlign: 'center' },
   dateHint: { fontFamily: 'Sora_400Regular', fontSize: fs(9), color: colors.textGhost, textAlign: 'center', marginTop: rs(6) },
-  info: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textGhost, textAlign: 'center', marginTop: rs(14) },
-  generateBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.accent, borderRadius: rs(14), paddingVertical: rs(14), marginTop: rs(16) },
-  generateBtnText: { fontFamily: 'Sora_700Bold', fontSize: fs(15), color: '#fff' },
+  info: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textGhost, textAlign: 'center', marginTop: rs(14), marginBottom: rs(4) },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: rs(14),
+    backgroundColor: colors.card, borderRadius: rs(14), padding: rs(14),
+    borderWidth: 1, marginTop: rs(10),
+  },
+  actionIcon: { width: rs(44), height: rs(44), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center' },
+  actionTitle: { fontFamily: 'Sora_600SemiBold', fontSize: fs(14), color: colors.text },
+  actionSubtitle: { fontFamily: 'Sora_400Regular', fontSize: fs(11), color: colors.textDim, marginTop: rs(2) },
 });

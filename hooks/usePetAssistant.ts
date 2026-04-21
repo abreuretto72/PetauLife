@@ -17,10 +17,26 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+// Module-level cache: messages survive component unmount/remount within the session.
+const _cache = new Map<string, ChatMessage[]>();
+
 export function usePetAssistant(petId: string) {
-  const [messages, setMessages]   = useState<ChatMessage[]>([]);
+  const [messages, setMessagesRaw] = useState<ChatMessage[]>(
+    () => _cache.get(petId) ?? [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError]         = useState<string | null>(null);
+
+  const setMessages = useCallback(
+    (updater: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => {
+      setMessagesRaw((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        _cache.set(petId, next);
+        return next;
+      });
+    },
+    [petId],
+  );
 
   const language = getLocales()[0]?.languageTag ?? 'pt-BR';
 
