@@ -39,6 +39,8 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
+import PdfActionModal from '../../components/pdf/PdfActionModal';
+import { previewHelpPdf, shareHelpPdf } from '../../lib/helpPdf';
 import { radii, spacing } from '../../constants/spacing';
 import { rs, fs } from '../../hooks/useResponsive';
 
@@ -100,6 +102,7 @@ export default function HelpScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('faq');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [pdfModal, setPdfModal] = useState(false);
 
   const faqItems = [
     { q: t('help.faqItems.q1'), a: t('help.faqItems.a1') },
@@ -140,7 +143,13 @@ export default function HelpScreen() {
           <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('help.title')}</Text>
-        <View style={styles.backBtn} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => setPdfModal(true)}
+          activeOpacity={0.7}
+        >
+          <FileText size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -237,6 +246,14 @@ export default function HelpScreen() {
           ItemSeparatorComponent={() => <View style={styles.lensSeparator} />}
         />
       )}
+      <PdfActionModal
+        visible={pdfModal}
+        onClose={() => setPdfModal(false)}
+        title={t('help.pdfTitle', { defaultValue: 'Ajuda e Suporte' })}
+        subtitle={t('help.pdfSubtitle', { defaultValue: 'Manual do app + 20 lentes da IA' })}
+        onPreview={() => previewHelpPdf()}
+        onShare={() => shareHelpPdf()}
+      />
     </SafeAreaView>
   );
 }

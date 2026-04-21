@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="auExpert — Política de Privacidade completa, em conformidade com a LGPD.">
+  <title data-i18n="privacy.pageTitle">Política de Privacidade — auExpert</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23F29542'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='central' font-size='18' font-weight='700' fill='white' font-family='Arial,sans-serif'%3Ea%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <a href="index.html" class="site-logo">
+        <span class="site-logo-mark">a</span>
+        <span>au<span class="site-logo-brand">Expert</span></span>
+      </a>
+      <nav class="site-nav">
+        <a href="index.html" data-i18n="nav.home">Início</a>
+        <a href="privacy.html" class="active" data-i18n="nav.privacy">Política de Privacidade</a>
+        <a href="terms.html" data-i18n="nav.terms">Termos de Uso</a>
+        <div class="lang-selector" data-lang-selector></div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="doc-layout">
+    <aside class="doc-sidebar">
+      <p class="doc-sidebar-title" data-i18n="nav.privacy">Política de Privacidade</p>
+      <nav class="doc-toc" data-toc aria-label="Document sections"></nav>
+    </aside>
+
+    <article class="doc-content">
+      <header class="doc-header">
+        <p class="doc-eyebrow" data-i18n="privacy.eyebrow">Documento legal</p>
+        <h1 data-i18n="privacy.title">Política de Privacidade</h1>
+        <p class="doc-meta" data-i18n="privacy.meta">Versão 1.0 · Vigência: 20 de abril de 2026 · Desenvolvido por Multiverso Digital</p>
+      </header>
+
+      <p class="doc-intro" data-i18n="privacy.intro">Esta Política de Privacidade descreve como coletamos, usamos, armazenamos, compartilhamos e protegemos as informações pessoais dos usuários do aplicativo auExpert.</p>
+
+      <div data-i18n-sections="privacy.sections"></div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      <span data-i18n="footer.copyright">© 2026 Multiverso Digital. Todos os direitos reservados.</span>
+      &nbsp;·&nbsp;
+      <a href="mailto:contato@multiversodigital.com.br" data-i18n="footer.contact">contato@multiversodigital.com.br</a>
+    </p>
+  </footer>
+
+  <script src="assets/languages.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script>
+    // Destaque da seção ativa no TOC ao rolar
+    document.addEventListener('DOMContentLoaded', () => {
+      let tocObserver = null;
+
+      const setupObserver = () => {
+        if (tocObserver) tocObserver.disconnect();
+        const links = document.querySelectorAll('.toc-link');
+        const sections = document.querySelectorAll('.doc-section');
+        if (!sections.length) return setTimeout(setupObserver, 200);
+
+        tocObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              links.forEach((l) => l.classList.toggle('active', l.getAttribute('href') === `#${id}`));
+            }
+          });
+        }, { rootMargin: '-80px 0px -70% 0px' });
+
+        sections.forEach((s) => tocObserver.observe(s));
+      };
+
+      // Espera i18n renderizar as seções
+      setTimeout(setupObserver, 400);
+    });
+  </script>
+</body>
+</html>

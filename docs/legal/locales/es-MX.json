@@ -1,0 +1,604 @@
+{
+  "meta": {
+    "brand": "auExpert",
+    "tagline": "Gestor de Mascotas con Inteligencia Artificial",
+    "company": "Multiverso Digital",
+    "version": "Versión 1.0",
+    "effectiveDate": "Fecha de vigencia: 20 de abril de 2026",
+    "developedBy": "Desarrollado por Multiverso Digital"
+  },
+  "nav": {
+    "home": "Inicio",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Uso"
+  },
+  "home": {
+    "pageTitle": "auExpert — Documentos Legales",
+    "heroTitle": "Documentos Legales de <span class=\"brand\">auExpert</span>",
+    "heroSubtitle": "Gestor de mascotas con inteligencia artificial exclusiva para cada mascota. Aquí encuentras nuestra Política de Privacidad y Términos de Uso completos.",
+    "ctaPrivacy": "Política de Privacidad",
+    "ctaTerms": "Términos de Uso",
+    "docs": {
+      "privacy": {
+        "title": "Política de Privacidad",
+        "description": "Cómo recopilamos, usamos, almacenamos y protegemos tus datos personales y los de tus mascotas, en conformidad con la ley brasileña LGPD.",
+        "link": "Leer documento completo →"
+      },
+      "terms": {
+        "title": "Términos de Uso",
+        "description": "Reglas, derechos y responsabilidades para el uso de la aplicación auExpert y sus funciones de IA.",
+        "link": "Leer documento completo →"
+      }
+    }
+  },
+  "footer": {
+    "copyright": "© 2026 Multiverso Digital. Todos los derechos reservados.",
+    "contact": "contato@multiversodigital.com.br"
+  },
+  "privacy": {
+    "pageTitle": "Política de Privacidad — auExpert",
+    "eyebrow": "Documento legal",
+    "title": "Política de Privacidad",
+    "meta": "Versión 1.0 · Vigencia: 20 de abril de 2026 · Desarrollado por Multiverso Digital",
+    "intro": "Esta Política de Privacidad describe cómo recopilamos, usamos, almacenamos, compartimos y protegemos la información personal de los usuarios de la aplicación auExpert, disponible en las plataformas iOS y Android.",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Introducción e Identificación del Controlador",
+        "intro": "Bienvenido a auExpert, una aplicación gestora de mascotas con inteligencia artificial exclusiva para cada mascota, desarrollada y operada por Multiverso Digital, empresa brasileña registrada bajo las leyes de la República Federativa de Brasil.\n\nEsta Política de Privacidad describe cómo recopilamos, usamos, almacenamos, compartimos y protegemos la información personal de los usuarios de la aplicación auExpert, disponible en las plataformas iOS (Apple App Store) y Android (Google Play Store). La aplicación requiere conexión a internet para funcionar en su totalidad.\n\nAl utilizar auExpert, aceptas los términos de esta Política de Privacidad. Si no estás de acuerdo con cualquier disposición aquí prevista, te recomendamos que no utilices la aplicación.",
+        "items": [
+          "Razón Social: Multiverso Digital",
+          "País de operación: Brasil",
+          "Correo electrónico de contacto: contato@multiversodigital.com.br",
+          "Canal de atención: Disponible dentro de la aplicación auExpert"
+        ]
+      },
+      {
+        "number": "2",
+        "title": "Datos Personales Recopilados",
+        "subsections": [
+          {
+            "number": "2.1",
+            "title": "Datos proporcionados por el usuario",
+            "intro": "Durante el registro y uso de la aplicación, recopilamos la siguiente información:",
+            "items": [
+              "Nombre completo",
+              "Dirección de correo electrónico",
+              "Contraseña (almacenada con cifrado — no tenemos acceso al texto puro)",
+              "Foto de perfil (opcional)",
+              "Información sobre tus mascotas: nombre, especie, raza, edad, peso, sexo, foto",
+              "Contenido insertado en el gestor: textos, fotos, videos y audios enviados por el usuario",
+              "Registros de salud de las mascotas: vacunas, consultas, medicamentos, exámenes, gastos"
+            ]
+          },
+          {
+            "number": "2.2",
+            "title": "Datos recopilados automáticamente",
+            "intro": "Al utilizar la aplicación con conexión a internet, podemos recopilar automáticamente:",
+            "items": [
+              "Identificador único del dispositivo (UUID anonimizado)",
+              "Sistema operativo y versión",
+              "Versión de la aplicación",
+              "Registros de uso y errores del sistema",
+              "Fecha y hora de acceso",
+              "Idioma configurado en el dispositivo",
+              "Dirección IP (utilizada solo para seguridad y no almacenada permanentemente)"
+            ]
+          },
+          {
+            "number": "2.3",
+            "title": "Datos de medios",
+            "intro": "Cuando el usuario elige adjuntar medios al gestor, recopilamos y almacenamos:",
+            "items": [
+              "Fotografías e imágenes enviadas por el usuario",
+              "Videos de corta duración (límite de 60 segundos)",
+              "Grabaciones de audio (límite de 30 segundos)",
+              "Documentos digitalizados (como cartillas de vacunación y recetas veterinarias)"
+            ],
+            "outro": "Todos los medios se almacenan en infraestructura segura ubicada en Brasil, con cifrado en tránsito y en reposo. El usuario es el único responsable del contenido de los medios que envía a la aplicación."
+          }
+        ]
+      },
+      {
+        "number": "3",
+        "title": "Finalidades del Tratamiento de Datos",
+        "subsections": [
+          {
+            "number": "3.1",
+            "title": "Prestación del servicio",
+            "items": [
+              "Creación y autenticación de cuentas de usuario",
+              "Gestión del perfil del usuario y de sus mascotas",
+              "Funcionamiento del gestor inteligente y de las funciones de IA exclusiva por mascota",
+              "Análisis de imágenes, videos y audios para generación de insights de salud",
+              "Generación de narrativas, clasificaciones e informes de salud de las mascotas"
+            ]
+          },
+          {
+            "number": "3.2",
+            "title": "Desarrollo de IA especializada en mascotas",
+            "intro": "auExpert utiliza datos anonimizados de mascotas (perros y gatos) para el desarrollo y mejora de modelos de inteligencia artificial especializados en salud y comportamiento animal. Sobre este uso:",
+            "items": [
+              "Solo se utilizan datos sin identificación del tutor o de la mascota para este fin",
+              "Los datos son anonimizados de forma irreversible antes de ser usados en el entrenamiento",
+              "El objetivo es crear una IA especializada en perros y gatos para beneficiar a todos los usuarios de auExpert",
+              "El usuario puede oponerse a este uso en cualquier momento, poniéndose en contacto por el correo contato@multiversodigital.com.br",
+              "Los datos anonimizados podrán conservarse permanentemente para esta finalidad, incluso después del cierre de la cuenta"
+            ]
+          },
+          {
+            "number": "3.3",
+            "title": "Mejora del servicio",
+            "items": [
+              "Análisis de patrones de uso (de forma anonimizada y agregada)",
+              "Identificación y corrección de errores y fallas en el sistema",
+              "Desarrollo de nuevas funcionalidades"
+            ]
+          },
+          {
+            "number": "3.4",
+            "title": "Comunicación",
+            "items": [
+              "Envío de notificaciones push sobre eventos programados de las mascotas",
+              "Comunicaciones sobre actualizaciones importantes del servicio",
+              "Respuestas a solicitudes y soporte al usuario"
+            ]
+          },
+          {
+            "number": "3.5",
+            "title": "Obligaciones legales",
+            "items": [
+              "Cumplimiento de obligaciones legales y regulatorias",
+              "Atención a órdenes judiciales o determinaciones de autoridades competentes"
+            ]
+          }
+        ]
+      },
+      {
+        "number": "4",
+        "title": "Base Legal para el Tratamiento (LGPD)",
+        "intro": "El tratamiento de datos personales por auExpert está fundamentado en las siguientes bases legales, conforme a la Ley General de Protección de Datos Personales de Brasil (LGPD — Ley n.º 13.709/2018):",
+        "items": [
+          "Ejecución de contrato: para prestar los servicios contratados por el usuario al aceptar los Términos de Uso",
+          "Consentimiento: para uso de datos anonimizados en el entrenamiento de IA especializada en mascotas",
+          "Interés legítimo: para mejoras del servicio, seguridad y prevención de fraudes",
+          "Cumplimiento de obligación legal: cuando sea exigido por ley o autoridad competente"
+        ]
+      },
+      {
+        "number": "5",
+        "title": "Compartición de Datos con Terceros",
+        "intro": "Multiverso Digital no vende, alquila ni comercializa datos personales de usuarios. La compartición ocurre solo en las siguientes situaciones:",
+        "subsections": [
+          {
+            "number": "5.1",
+            "title": "Proveedores de servicio esenciales",
+            "items": [
+              "Supabase Inc.: infraestructura de base de datos, autenticación y almacenamiento de archivos. La base de datos principal está ubicada en Brasil (región South America East — São Paulo), en conformidad con la LGPD",
+              "Anthropic PBC: procesamiento de inteligencia artificial para análisis de contenido y generación de narrativas (API Claude)",
+              "Google LLC: servicios de inteligencia artificial complementarios (Gemini API), distribución vía Google Play y servicios de notificación push (FCM)",
+              "Apple Inc.: distribución vía App Store y servicios de notificación push (APNs)",
+              "Expo / EAS: infraestructura de desarrollo y distribución de la aplicación"
+            ]
+          },
+          {
+            "number": "5.2",
+            "title": "Otros casos de compartición",
+            "items": [
+              "Con otros usuarios, solo cuando el propio usuario comparte información (ej.: co-tutores de una mascota)",
+              "Con autoridades públicas, mediante orden judicial o determinación legal",
+              "En caso de fusión, adquisición o venta de activos de la empresa, con aviso previo a los usuarios"
+            ]
+          },
+          {
+            "number": "5.3",
+            "title": "Transferencia internacional de datos",
+            "intro": "Algunos proveedores de servicio están ubicados fuera de Brasil (Anthropic — EUA; Google — EUA). Garantizamos que estas transferencias ocurren con los mecanismos de protección adecuados, incluyendo cláusulas contractuales estándar y conformidad con la LGPD."
+          }
+        ]
+      },
+      {
+        "number": "6",
+        "title": "Almacenamiento y Ubicación de los Datos",
+        "intro": "Los datos personales de los usuarios se almacenan prioritariamente en Brasil:",
+        "items": [
+          "Base de datos principal: Supabase — región Brasil (São Paulo / South America East)",
+          "Archivos de medios (fotos, videos, audios): almacenados en el mismo servidor en Brasil",
+          "Datos anonimizados para IA: pueden ser procesados en servidores externos (EUA) por los proveedores Anthropic y Google",
+          "Copias de seguridad: realizadas dentro de la infraestructura de Supabase, manteniendo la ubicación en Brasil"
+        ]
+      },
+      {
+        "number": "7",
+        "title": "Retención y Eliminación de Datos",
+        "intro": "Los datos personales se retienen por el tiempo necesario para las finalidades descritas en esta política:",
+        "items": [
+          "Datos de cuenta: mantenidos mientras la cuenta esté activa",
+          "Datos del gestor y mascotas: mantenidos mientras la cuenta esté activa y por hasta 30 días después del cierre",
+          "Medios (fotos, videos, audios): mantenidos mientras la cuenta esté activa",
+          "Registros de acceso y seguridad: retenidos por hasta 6 meses",
+          "Datos anonimizados de mascotas (perros y gatos): retenidos por plazo indeterminado para fines de entrenamiento de IA especializada, incluso después del cierre de la cuenta"
+        ],
+        "outro": "El usuario puede solicitar la eliminación de sus datos personales identificados en cualquier momento. Después de la solicitud, los datos serán removidos en hasta 30 días, excepto cuando haya obligación legal de retención o cuando se trate de datos ya anonimizados."
+      },
+      {
+        "number": "8",
+        "title": "Derechos del Titular de los Datos",
+        "intro": "En conformidad con la LGPD y con las directrices de Apple App Store y Google Play, el usuario tiene los siguientes derechos:",
+        "items": [
+          "Confirmación: saber si tratamos tus datos personales",
+          "Acceso: recibir una copia de los datos que mantenemos sobre ti",
+          "Corrección: solicitar la corrección de datos incompletos, inexactos o desactualizados",
+          "Anonimización, bloqueo o eliminación: de datos innecesarios o tratados en desconformidad con la LGPD",
+          "Portabilidad: recibir tus datos en formato estructurado e interoperable",
+          "Eliminación: solicitar la exclusión de datos tratados con base en el consentimiento",
+          "Oposición al uso en IA: oponerte al uso de datos anonimizados para entrenamiento de modelos de IA",
+          "Información sobre compartición: saber con quién compartimos tus datos"
+        ],
+        "outro": "Para ejercer cualquiera de estos derechos, ponte en contacto por el correo contato@multiversodigital.com.br o por el canal de soporte dentro de la aplicación. Responderemos en hasta 15 días hábiles."
+      },
+      {
+        "number": "9",
+        "title": "Seguridad de los Datos",
+        "intro": "Adoptamos medidas técnicas y organizacionales adecuadas para proteger los datos personales de los usuarios:",
+        "items": [
+          "Cifrado TLS/HTTPS en todas las transmisiones de datos vía internet",
+          "Cifrado AES-256 para datos en reposo",
+          "Autenticación segura con tokens JWT y refresh tokens",
+          "Control de acceso basado en roles (RBAC)",
+          "Monitoreo continuo de seguridad y registros de auditoría",
+          "Política de no almacenamiento de contraseñas en texto puro",
+          "Actualizaciones regulares de seguridad y dependencias del sistema"
+        ],
+        "outro": "En caso de incidente de seguridad que afecte datos personales, notificaremos a la Autoridad Nacional de Protección de Datos de Brasil (ANPD) y a los usuarios afectados conforme lo exigido por la LGPD."
+      },
+      {
+        "number": "10",
+        "title": "Uso de Internet y Tecnologías",
+        "intro": "auExpert requiere conexión a internet para el funcionamiento de sus principales funcionalidades. La aplicación utiliza internet para:",
+        "items": [
+          "Sincronización de datos entre dispositivos y el servidor",
+          "Envío de medios para almacenamiento y análisis",
+          "Comunicación con los modelos de inteligencia artificial (Anthropic Claude y Google Gemini)",
+          "Recepción de notificaciones push",
+          "Actualizaciones de contenido y configuraciones de la aplicación"
+        ],
+        "outro": "La aplicación no utiliza cookies de rastreo publicitario. Utiliza solo tokens de sesión para autenticación segura y caché local para mejora de rendimiento."
+      },
+      {
+        "number": "11",
+        "title": "Inteligencia Artificial y Datos de las Mascotas",
+        "subsections": [
+          {
+            "number": "11.1",
+            "title": "IA exclusiva por mascota",
+            "intro": "auExpert ofrece una inteligencia artificial exclusiva para cada mascota registrada, que aprende y se adapta al perfil individual del animal a lo largo del tiempo. Esta IA utiliza los datos registrados por el tutor para ofrecer insights, alertas y recomendaciones personalizadas."
+          },
+          {
+            "number": "11.2",
+            "title": "Proveedores de IA",
+            "items": [
+              "Anthropic PBC (Claude API): análisis de contenido, generación de narrativas y clasificación de registros",
+              "Google LLC (Gemini API): funcionalidades complementarias de inteligencia artificial"
+            ],
+            "outro": "Los contenidos enviados para análisis de IA no son usados para entrenar modelos de los proveedores terceros, conforme los contratos vigentes."
+          },
+          {
+            "number": "11.3",
+            "title": "IA especializada en mascotas de Multiverso Digital",
+            "intro": "Multiverso Digital está desarrollando una IA propia especializada en perros y gatos. Para este fin:",
+            "items": [
+              "Se utilizarán datos anonimizados y sin identificación de mascotas para entrenamiento",
+              "Ningún dato que permita identificar al tutor o a la mascota individualmente será utilizado",
+              "El objetivo es mejorar continuamente las recomendaciones de salud y comportamiento para todos los usuarios",
+              "El usuario puede oponerse a este uso poniéndose en contacto por el correo contato@multiversodigital.com.br"
+            ]
+          },
+          {
+            "number": "11.4",
+            "title": "Limitaciones de los análisis de IA",
+            "intro": "Los análisis generados por la IA son indicativos y no constituyen diagnóstico veterinario. El tutor es responsable del contenido de los medios que envía para análisis."
+          }
+        ]
+      },
+      {
+        "number": "12",
+        "title": "Protección de Menores de Edad",
+        "intro": "auExpert no está dirigido a menores de 18 años. No recopilamos intencionalmente datos personales de menores de edad. Si identificamos que hemos recopilado datos de un menor sin el consentimiento de los responsables legales, eliminaremos esa información inmediatamente."
+      },
+      {
+        "number": "13",
+        "title": "Cambios a esta Política de Privacidad",
+        "intro": "Multiverso Digital se reserva el derecho de actualizar esta Política de Privacidad periódicamente. En caso de cambios relevantes, el usuario será notificado con al menos 30 días de antelación mediante notificación en la aplicación y/o correo electrónico. El uso continuado de la aplicación después de la vigencia de los cambios constituye aceptación de las nuevas condiciones."
+      },
+      {
+        "number": "14",
+        "title": "Contacto y Encargado de Datos (DPO)",
+        "intro": "Para ejercer tus derechos, aclarar dudas o registrar reclamaciones relacionadas con la privacidad:",
+        "items": [
+          "Correo electrónico: contato@multiversodigital.com.br",
+          "Soporte: Disponible dentro de la aplicación auExpert, sección \"Ayuda y Soporte\"",
+          "Plazo de respuesta: hasta 15 días hábiles"
+        ],
+        "outro": "Si no estás satisfecho con nuestra respuesta, tienes el derecho de registrar una reclamación ante la Autoridad Nacional de Protección de Datos de Brasil (ANPD): www.gov.br/anpd"
+      }
+    ]
+  },
+  "terms": {
+    "pageTitle": "Términos de Uso — auExpert",
+    "eyebrow": "Documento legal",
+    "title": "Términos de Uso",
+    "meta": "Versión 1.0 · Vigencia: 20 de abril de 2026 · Desarrollado por Multiverso Digital",
+    "intro": "Estos Términos de Uso constituyen un contrato jurídicamente vinculante entre tú (Usuario) y Multiverso Digital, desarrolladora y operadora de la aplicación auExpert.",
+    "sections": [
+      {
+        "number": "1",
+        "title": "Aceptación de los Términos",
+        "intro": "Estos Términos de Uso (\"Términos\") constituyen un contrato jurídicamente vinculante entre tú (\"Usuario\") y Multiverso Digital (\"Empresa\", \"nosotros\", \"nuestro\"), persona jurídica desarrolladora y operadora de la aplicación auExpert.",
+        "notice": "AL INSTALAR, ACCEDER O UTILIZAR LA APLICACIÓN AUEXPERT, EL USUARIO DECLARA HABER LEÍDO, COMPRENDIDO Y ESTAR DE ACUERDO CON ESTOS TÉRMINOS EN SU TOTALIDAD. Si no estás de acuerdo con cualquier disposición, no utilices la aplicación.",
+        "outro": "El uso de auExpert también está sujeto a nuestra Política de Privacidad, que es parte integral de estos Términos."
+      },
+      {
+        "number": "2",
+        "title": "Descripción del Servicio",
+        "intro": "auExpert es una aplicación gestora de mascotas con inteligencia artificial exclusiva para cada mascota, que aprende y se adapta al perfil individual de cada animal. La aplicación requiere conexión a internet para el funcionamiento de sus principales funcionalidades y ofrece:",
+        "items": [
+          "Gestión completa del perfil de la mascota con IA exclusiva y personalizada",
+          "Diario digital con soporte para texto, fotos, videos y audios",
+          "Análisis de imágenes y medios por inteligencia artificial (Anthropic Claude y Google Gemini)",
+          "Generación de narrativas e insights de salud de las mascotas",
+          "Registro y seguimiento de vacunas, consultas, medicamentos y exámenes",
+          "Control de gastos y costos con mascotas",
+          "Agenda de eventos y recordatorios",
+          "Compartir perfil con co-tutores",
+          "Asistente de IA para dudas sobre cuidados con mascotas"
+        ],
+        "outro": "auExpert es una herramienta de apoyo al tutor y no sustituye, bajo ninguna hipótesis, la evaluación y el seguimiento de un médico veterinario habilitado."
+      },
+      {
+        "number": "3",
+        "title": "Elegibilidad y Registro",
+        "subsections": [
+          {
+            "number": "3.1",
+            "title": "Requisitos de elegibilidad",
+            "intro": "Para utilizar auExpert, el usuario debe:",
+            "items": [
+              "Tener edad igual o superior a 18 años, o estar legalmente emancipado",
+              "Tener plena capacidad jurídica para contratar",
+              "No haber sido suspendido o excluido de la aplicación anteriormente",
+              "Residir en un país donde el servicio esté disponible",
+              "Poseer conexión a internet para utilizar las funcionalidades de la aplicación"
+            ]
+          },
+          {
+            "number": "3.2",
+            "title": "Registro y responsabilidades de la cuenta",
+            "intro": "El usuario es responsable de:",
+            "items": [
+              "Proporcionar información verídica, precisa y actualizada en el registro",
+              "Mantener la confidencialidad de su contraseña y credenciales de acceso",
+              "Notificar inmediatamente a la Empresa sobre cualquier uso no autorizado de su cuenta",
+              "Todas las actividades realizadas en su cuenta, incluso por terceros"
+            ]
+          }
+        ]
+      },
+      {
+        "number": "4",
+        "title": "Uso Aceptable y Conducta del Usuario",
+        "subsections": [
+          {
+            "number": "4.1",
+            "title": "Usos permitidos",
+            "items": [
+              "Registrar y seguir la salud y el bienestar de sus propias mascotas",
+              "Compartir información con co-tutores autorizados",
+              "Utilizar las funcionalidades de IA para apoyo al cuidado de las mascotas",
+              "Exportar sus propios datos personales"
+            ]
+          },
+          {
+            "number": "4.2",
+            "title": "Usos prohibidos",
+            "intro": "Está expresamente prohibido al usuario:",
+            "items": [
+              "Utilizar la aplicación para fines ilegales, fraudulentos o perjudiciales a terceros",
+              "Publicar contenido ofensivo, difamatorio, obsceno o que infrinja derechos de terceros",
+              "Intentar acceder a cuentas de otros usuarios sin autorización",
+              "Realizar ingeniería inversa, descompilar o desmontar la aplicación",
+              "Utilizar bots, scripts o medios automatizados para acceder al servicio",
+              "Sobrecargar intencionalmente la infraestructura de la aplicación",
+              "Revender, sublicenciar o transferir el acceso al servicio a terceros",
+              "Remover o alterar avisos de derechos de autor o marcas registradas",
+              "Insertar contenido que contenga virus, malware o código malicioso"
+            ]
+          }
+        ]
+      },
+      {
+        "number": "5",
+        "title": "Contenido Generado por el Usuario",
+        "subsections": [
+          {
+            "number": "5.1",
+            "title": "Propiedad del contenido",
+            "intro": "El usuario mantiene todos los derechos de propiedad intelectual sobre el contenido que crea e inserta en auExpert, incluyendo textos, fotos, videos y audios."
+          },
+          {
+            "number": "5.2",
+            "title": "Licencia concedida a Multiverso Digital",
+            "intro": "Al insertar contenido en la aplicación, el usuario concede a Multiverso Digital una licencia limitada, no exclusiva, mundial, gratuita y revocable para:",
+            "items": [
+              "Almacenar, procesar y exhibir el contenido al propio usuario",
+              "Utilizar el contenido para proporcionar las funcionalidades del servicio",
+              "Anonimizar datos de mascotas para desarrollo de IA especializada (conforme la Política de Privacidad)"
+            ]
+          },
+          {
+            "number": "5.3",
+            "title": "Responsabilidad por el contenido",
+            "intro": "El usuario es el único responsable del contenido que inserta en la aplicación. Al insertar fotos, videos o audios, el usuario declara que:",
+            "items": [
+              "Es el propietario o posee autorización para compartir el contenido",
+              "El contenido no viola derechos de terceros, leyes aplicables o estos Términos",
+              "El contenido se refiere a la mascota del propio usuario, siendo el tutor responsable por la veracidad de la información y por el material adjuntado"
+            ]
+          }
+        ]
+      },
+      {
+        "number": "6",
+        "title": "Inteligencia Artificial y Limitaciones",
+        "subsections": [
+          {
+            "number": "6.1",
+            "title": "IA exclusiva por mascota",
+            "intro": "auExpert dispone de una inteligencia artificial exclusiva para cada mascota registrada. Esta IA utiliza Anthropic Claude y Google Gemini para analizar contenidos y generar insights personalizados. El usuario comprende y acepta que:",
+            "items": [
+              "Los análisis generados por la IA son indicativos y no constituyen diagnóstico veterinario",
+              "La IA puede cometer errores, imprecisiones o interpretaciones incorrectas",
+              "Las narrativas y clasificaciones generadas son automatizadas y no revisadas por veterinarios",
+              "La IA asume que los medios insertados se refieren a la mascota registrada por el tutor",
+              "El tutor es responsable por el contenido que envía para análisis"
+            ]
+          },
+          {
+            "number": "6.2",
+            "title": "Desarrollo de IA especializada en mascotas",
+            "intro": "Multiverso Digital utiliza datos anonimizados de mascotas para desarrollar una IA propia especializada en perros y gatos. Esos datos serán mantenidos en la base de datos incluso después del cierre de la cuenta del usuario, siempre que estén debidamente anonimizados y sin posibilidad de identificación del tutor o de la mascota."
+          },
+          {
+            "number": "6.3",
+            "title": "Aviso médico",
+            "notice": "LOS ANÁLISIS, INSIGHTS Y RECOMENDACIONES GENERADOS POR LA IA DE AUEXPERT NO SUSTITUYEN, BAJO NINGUNA HIPÓTESIS, LA CONSULTA, EL DIAGNÓSTICO Y EL TRATAMIENTO REALIZADOS POR UN MÉDICO VETERINARIO HABILITADO Y DEBIDAMENTE REGISTRADO EN EL CONSEJO FEDERAL DE MEDICINA VETERINARIA (CFMV) DE BRASIL O EN EL ÓRGANO EQUIVALENTE EN EL PAÍS DEL USUARIO.",
+            "outro": "En caso de emergencia o sospecha de enfermedad, consulta inmediatamente a un veterinario."
+          }
+        ]
+      },
+      {
+        "number": "7",
+        "title": "Planes, Precios y Pagos",
+        "subsections": [
+          {
+            "number": "7.1",
+            "title": "Modelo de servicio",
+            "intro": "auExpert puede ofrecer planes gratuitos y de pago. Las condiciones específicas de cada plan, incluyendo precios, funcionalidades incluidas y límites de uso, están descritas dentro de la propia aplicación."
+          },
+          {
+            "number": "7.2",
+            "title": "Pagos",
+            "intro": "Los pagos son procesados por las plataformas Apple App Store (iOS) y Google Play (Android), sujetos a sus respectivos Términos de Servicio. Multiverso Digital no almacena datos de tarjeta de crédito o medios de pago del usuario."
+          },
+          {
+            "number": "7.3",
+            "title": "Cancelación y reembolso",
+            "items": [
+              "El usuario puede cancelar su suscripción en cualquier momento por la App Store o Google Play",
+              "Los reembolsos están sujetos a las políticas de Apple y Google",
+              "La cancelación no implica eliminación inmediata de los datos — consulta la Política de Privacidad"
+            ]
+          }
+        ]
+      },
+      {
+        "number": "8",
+        "title": "Propiedad Intelectual",
+        "intro": "auExpert, incluyendo su código fuente, diseño, interfaz, logotipo, textos, gráficos, funcionalidades y toda la propiedad intelectual relacionada, es de titularidad exclusiva de Multiverso Digital o de sus licenciantes.",
+        "outro": "Está prohibido al usuario reproducir, distribuir, modificar, crear obras derivadas, exhibir públicamente o explotar comercialmente cualquier elemento de la aplicación sin autorización previa y expresa de la Empresa."
+      },
+      {
+        "number": "9",
+        "title": "Disponibilidad del Servicio",
+        "intro": "Multiverso Digital hará sus mejores esfuerzos para mantener auExpert disponible continuamente. Sin embargo, el usuario reconoce que:",
+        "items": [
+          "El servicio requiere conexión a internet y puede estar indisponible en áreas sin cobertura",
+          "El servicio puede estar temporalmente indisponible por mantenimiento programado o no programado",
+          "La Empresa no garantiza disponibilidad ininterrumpida o exenta de errores",
+          "Factores fuera del control de la Empresa, como fallas de infraestructura de terceros o interrupciones de internet, pueden impactar la disponibilidad"
+        ]
+      },
+      {
+        "number": "10",
+        "title": "Limitación de Responsabilidad y Exención de Garantías",
+        "notice": "AUEXPERT SE PROPORCIONA \"TAL COMO ESTÁ\" Y \"SEGÚN DISPONIBILIDAD\", SIN GARANTÍAS DE NINGUNA NATURALEZA, EXPRESAS O IMPLÍCITAS.",
+        "intro": "EN LA MÁXIMA EXTENSIÓN PERMITIDA POR LA LEGISLACIÓN APLICABLE, MULTIVERSO DIGITAL NO SE RESPONSABILIZA POR:",
+        "items": [
+          "Daños directos, indirectos, incidentales, especiales o consecuenciales derivados del uso o imposibilidad de uso del servicio",
+          "Decisiones tomadas con base en análisis o insights generados por la IA de la aplicación",
+          "Pérdida de datos derivada de fallas técnicas, de conectividad o de internet",
+          "Contenido insertado por otros usuarios",
+          "Interrupciones, retrasos o fallas técnicas en el servicio"
+        ],
+        "outro": "La responsabilidad total de Multiverso Digital, si aplicable, queda limitada al valor pagado por el usuario en los últimos 12 meses por el uso del servicio."
+      },
+      {
+        "number": "11",
+        "title": "Indemnización",
+        "intro": "El usuario acepta indemnizar, defender y eximir a Multiverso Digital, sus administradores, empleados, socios y prestadores de servicio de cualesquiera reclamaciones, daños, pérdidas, responsabilidades, costos y gastos derivados de:",
+        "items": [
+          "Violación de estos Términos por el usuario",
+          "Contenido insertado por el usuario en la aplicación",
+          "Uso indebido de la aplicación",
+          "Violación de derechos de terceros"
+        ]
+      },
+      {
+        "number": "12",
+        "title": "Suspensión y Cierre de la Cuenta",
+        "subsections": [
+          {
+            "number": "12.1",
+            "title": "Por iniciativa del usuario",
+            "intro": "El usuario puede cerrar su cuenta en cualquier momento, accediendo a las configuraciones de la aplicación o poniéndose en contacto con el soporte por el correo contato@multiversodigital.com.br."
+          },
+          {
+            "number": "12.2",
+            "title": "Por iniciativa de la Empresa",
+            "intro": "Multiverso Digital se reserva el derecho de suspender o cerrar la cuenta del usuario, con o sin aviso previo, en caso de:",
+            "items": [
+              "Violación de estos Términos o de la Política de Privacidad",
+              "Comportamiento fraudulento o abusivo",
+              "Solicitud de autoridad competente",
+              "Inactividad prolongada de la cuenta (más de 24 meses)"
+            ],
+            "outro": "Después del cierre de la cuenta, los datos personales identificados serán eliminados conforme la Política de Privacidad, siendo posible la retención de datos anonimizados de mascotas para fines de desarrollo de IA especializada."
+          }
+        ]
+      },
+      {
+        "number": "13",
+        "title": "Ley Aplicable y Resolución de Disputas",
+        "intro": "Estos Términos se rigen por las leyes de la República Federativa de Brasil, en especial:",
+        "items": [
+          "Código de Defensa del Consumidor (Ley n.º 8.078/1990)",
+          "Ley General de Protección de Datos Personales — LGPD (Ley n.º 13.709/2018)",
+          "Marco Civil de Internet (Ley n.º 12.965/2014)",
+          "Código Civil Brasileño (Ley n.º 10.406/2002)"
+        ],
+        "outro": "Las partes eligen el fuero de la comarca de São Paulo/SP para dirimir cualesquiera controversias derivadas de estos Términos, con renuncia expresa a cualquier otro fuero, por más privilegiado que sea."
+      },
+      {
+        "number": "14",
+        "title": "Disposiciones Generales",
+        "items": [
+          "Integralidad: Estos Términos, juntamente con la Política de Privacidad, constituyen el acuerdo integral entre las partes",
+          "Divisibilidad: Si cualquier disposición es considerada inválida o inejecutable, las demás permanecerán en plena vigencia",
+          "Tolerancia: La no aplicación de cualquier disposición no constituirá renuncia al derecho de aplicarla en el futuro",
+          "Cesión: El usuario no puede ceder sus derechos bajo estos Términos sin consentimiento previo de la Empresa",
+          "Actualizaciones: La Empresa puede modificar estos Términos con aviso previo de 30 días, excepto en casos de urgencia legal"
+        ]
+      },
+      {
+        "number": "15",
+        "title": "Contacto",
+        "intro": "Para cuestiones relacionadas con estos Términos de Uso:",
+        "items": [
+          "Correo electrónico: contato@multiversodigital.com.br",
+          "Soporte: Disponible dentro de la aplicación auExpert, sección \"Ayuda y Soporte\"",
+          "Plazo de respuesta: hasta 10 días hábiles"
+        ]
+      }
+    ]
+  }
+}

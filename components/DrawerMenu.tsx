@@ -50,6 +50,7 @@ interface MenuItem {
   sublabel: string;
   badge?: string;
   route?: string;
+  onPress?: () => void;
 }
 
 const DrawerMenu: React.FC<DrawerMenuProps> = ({
@@ -160,6 +161,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({
       label: t('menu.backup'),
       sublabel: t('menu.backupDesc'),
       badge: t('menu.auto'),
+      onPress: () => toast(t('menu.backupToast'), 'info'),
     },
   ];
 
@@ -218,7 +220,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({
               <TouchableOpacity
                 key={idx}
                 style={styles.menuItem}
-                onPress={item.route ? () => handleNavigate(item.route!) : undefined}
+                onPress={item.route ? () => handleNavigate(item.route!) : item.onPress}
                 activeOpacity={0.7}
               >
                 <View style={styles.menuIconBox}>{item.icon}</View>
