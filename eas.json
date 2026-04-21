@@ -7,12 +7,8 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
-      },
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"
@@ -20,11 +16,21 @@
     },
     "preview": {
       "distribution": "internal",
+      "autoIncrement": true,
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": false },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"
+      }
+    },
+    "apk": {
+      "distribution": "internal",
+      "developmentClient": false,
+      "autoIncrement": true,
       "android": {
-        "buildType": "apk"
-      },
-      "ios": {
-        "simulator": false
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
@@ -33,6 +39,10 @@
     },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://peqpkzituzpwukzusgcq.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jlRPLbKcPSTNWeniHqThZg_0Nnb0ydK"
@@ -40,6 +50,15 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6761654199"
+      }
+    },
+    "preview": {
+      "ios": {
+        "ascAppId": "6761654199"
+      }
+    }
   }
 }

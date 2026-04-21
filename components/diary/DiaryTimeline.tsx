@@ -11,25 +11,31 @@ import {
   RefreshControl, StyleSheet,
 } from 'react-native';
 import {
-  BookOpen, Pencil, Sparkles,
+  BookOpen, Download, Pencil,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../../lib/supabase';
+import { useToast } from '../Toast';
+import { useMyPetRole } from '../../hooks/usePetMembers';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import PawIcon from '../PawIcon';
 import {
   MonthSummaryCard, DiaryCard, HealthCard,
   AudioAnalysisCard, PhotoAnalysisCard, VideoAnalysisCard,
-  MilestoneCard, CapsuleCard, ConnectionCard,
+  MilestoneCard, CapsuleCard, ConnectionCard, ScheduledEventCard,
 } from './TimelineCards';
 import {
   EVENT_TYPE_CONFIG,
   diaryEntryToEvent,
+  scheduledEventToTimelineEvent,
 } from './timelineTypes';
 import type {
   TimelineEvent,
 } from './timelineTypes';
 import type { DiaryEntry } from '../../types/database';
+import type { ScheduledEvent } from '../../lib/api';
+import { sexContext, type PetSex } from '../../utils/petGender';
 
 // ── Skeleton ──
 
@@ -51,37 +57,78 @@ function SkeletonCard() {
 
 interface DiaryTimelineProps {
   entries: DiaryEntry[];
+  scheduledEvents?: ScheduledEvent[];
   isLoading: boolean;
+  petId: string;
   petName: string;
+  petSex?: PetSex;
   petSpecies?: string;
   petAvatarUrl?: string | null;
   petCreatedAt?: string;
-  petPersonality?: string | null;
   onRefresh: () => void;
   onNewEntry: () => void;
   onEditEntry: (id: string) => void;
   onRetryEntry?: (id: string) => void;
+  onOpenPdf?: () => void;
   /** Render additional content below the header (e.g. LensGrid) */
   headerExtra?: React.ReactNode;
 }
 
 export default function DiaryTimeline({
   entries,
+  scheduledEvents = [],
   isLoading,
+  petId,
   petName,
+  petSex,
   petSpecies,
   petAvatarUrl,
   petCreatedAt,
-  petPersonality,
   onRefresh,
   onNewEntry,
   onEditEntry,
   onRetryEntry,
+  onOpenPdf,
   headerExtra,
 }: DiaryTimelineProps) {
   const { t, i18n } = useTranslation();
+  const { toast, confirm } = useToast();
+  const { isOwner } = useMyPetRole(petId);
 
   const petColor = petSpecies === 'cat' ? colors.purple : colors.accent;
+
+  const handleDeleteEntry = useCallback(async (id: string) => {
+    const yes = await confirm({ text: t('diary.deleteConfirm'), type: 'warning' });
+    if (!yes) return;
+    try {
+      const { error } = await supabase
+        .from('diary_entries')
+        .update({ is_active: false })
+        .eq('id', id);
+      if (error) throw error;
+      onRefresh();
+      toast(t('toast.entryDeleted'), 'success');
+    } catch {
+      toast(t('errors.generic'), 'error');
+    }
+  }, [confirm, t, toast, onRefresh]);
+
+  // Admin (owner) deactivating another tutor's record
+  const handleAdminDeactivate = useCallback(async (id: string) => {
+    const yes = await confirm({ text: t('diary.adminDeactivateConfirm'), type: 'warning' });
+    if (!yes) return;
+    try {
+      const { error } = await supabase
+        .from('diary_entries')
+        .update({ is_active: false })
+        .eq('id', id);
+      if (error) throw error;
+      onRefresh();
+      toast(t('toast.adminEntryDeactivated'), 'success');
+    } catch {
+      toast(t('errors.generic'), 'error');
+    }
+  }, [confirm, t, toast, onRefresh]);
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
 
   const getMoodData = useCallback(
@@ -99,16 +146,21 @@ export default function DiaryTimeline({
 
   const timelineEvents = useMemo(() => {
     const seen = new Set<string>();
-    const diaryEvents = entries
+    const diaryEvts = entries
       .filter((e) => {
         if (seen.has(e.id)) return false;
         seen.add(e.id);
         return true;
       })
       .map(diaryEntryToEvent);
-    diaryEvents.sort((a, b) => b.sortDate - a.sortDate);
-    return diaryEvents;
-  }, [entries]);
+
+    const schedEvts = scheduledEvents.map(scheduledEventToTimelineEvent);
+
+    const all = [...diaryEvts, ...schedEvts];
+    // Future scheduled events float to top (highest sortDate first), past entries below
+    all.sort((a, b) => b.sortDate - a.sortDate);
+    return all;
+  }, [entries, scheduledEvents]);
 
   // ── Render event ──
 
@@ -117,34 +169,40 @@ export default function DiaryTimeline({
       const config = EVENT_TYPE_CONFIG[item.type];
       const isLast = index === timelineEvents.length - 1;
 
+      // Admin props — only owner sees the EyeOff deactivate button on others' records
+      const adminProps = { isOwner, onAdminDeactivate: isOwner ? handleAdminDeactivate : undefined };
+
       let cardContent: React.ReactNode = null;
       switch (item.type) {
         case 'month_summary':
           cardContent = <MonthSummaryCard event={item} t={t} />;
           break;
         case 'diary':
-          cardContent = <DiaryCard event={item} petName={petName} t={t} getMoodData={getMoodData} onEdit={onEditEntry} onRetry={onRetryEntry} />;
+          cardContent = <DiaryCard event={item} petName={petName} t={t} getMoodData={getMoodData} onEdit={onEditEntry} onRetry={onRetryEntry} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'audio_analysis':
-          cardContent = <AudioAnalysisCard event={item} t={t} />;
+          cardContent = <AudioAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'photo_analysis':
-          cardContent = <PhotoAnalysisCard event={item} t={t} />;
+          cardContent = <PhotoAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'video_analysis':
-          cardContent = <VideoAnalysisCard event={item} t={t} />;
+          cardContent = <VideoAnalysisCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'milestone':
-          cardContent = <MilestoneCard event={item} t={t} />;
+          cardContent = <MilestoneCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'capsule':
-          cardContent = <CapsuleCard event={item} t={t} />;
+          cardContent = <CapsuleCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
         case 'connection':
-          cardContent = <ConnectionCard event={item} t={t} />;
+          cardContent = <ConnectionCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
+          break;
+        case 'scheduled_event':
+          cardContent = <ScheduledEventCard event={item} t={t} />;
           break;
         default:
-          cardContent = <HealthCard event={item} t={t} />;
+          cardContent = <HealthCard event={item} t={t} onDelete={handleDeleteEntry} {...adminProps} />;
           break;
       }
 
@@ -156,28 +214,22 @@ export default function DiaryTimeline({
         </View>
       );
     },
-    [timelineEvents.length, petName, t, getMoodData, onEditEntry, onRetryEntry],
+    [timelineEvents.length, petName, t, getMoodData, onEditEntry, onRetryEntry, handleDeleteEntry, handleAdminDeactivate, isOwner],
   );
 
   // ── Header ──
 
   const renderHeader = useCallback(() => (
     <View>
-      {/* Extra content (e.g. pet hero section) */}
       {headerExtra}
-
-      {/* AI Personality */}
-      <View style={styles.personalityCard}>
-        <View style={styles.personalityIcon}>
-          <Sparkles size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-        </View>
-        <View style={styles.personalityContent}>
-          <Text style={styles.personalityLabel}>{t('diary.aiPersonality')}</Text>
-          <Text style={styles.personalityText}>{petPersonality ?? t('diary.defaultPersonality')}</Text>
-        </View>
-      </View>
+      {onOpenPdf && (
+        <TouchableOpacity style={styles.pdfBtn} onPress={onOpenPdf} activeOpacity={0.7}>
+          <Download size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+          <Text style={styles.pdfBtnText}>{t('diary.pdfExport')}</Text>
+        </TouchableOpacity>
+      )}
     </View>
-  ), [petPersonality, t, headerExtra]);
+  ), [headerExtra, onOpenPdf, t]);
 
   // ── Footer ──
 
@@ -186,7 +238,7 @@ export default function DiaryTimeline({
     return (
       <View style={styles.footerContainer}>
         <PawIcon size={rs(20)} color={colors.accent} />
-        <Text style={styles.footerText}>{t('diary.storyContinues', { name: petName })}</Text>
+        <Text style={styles.footerText}>{t('diary.storyContinues', { name: petName, context: sexContext(petSex) })}</Text>
       </View>
     );
   }, [timelineEvents.length, petName, t]);
@@ -199,7 +251,7 @@ export default function DiaryTimeline({
       <View style={styles.emptyContainer}>
         <BookOpen size={rs(48)} color={colors.textGhost} strokeWidth={1.4} />
         <Text style={styles.emptyTitle}>{t('diary.emptyTitle')}</Text>
-        <Text style={styles.emptySub}>{t('diary.emptySub', { name: petName })}</Text>
+        <Text style={styles.emptySub}>{t('diary.emptySub', { name: petName, context: sexContext(petSex) })}</Text>
       </View>
     );
   }, [isLoading, petName, t]);
@@ -256,13 +308,6 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: rs(100) },
 
 
-  // Personality
-  personalityCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.accent + '08', borderWidth: 1, borderColor: colors.accent + '15', borderRadius: rs(18), marginHorizontal: rs(16), marginTop: rs(16), padding: rs(14), gap: rs(12) },
-  personalityIcon: { width: rs(36), height: rs(36), borderRadius: rs(10), backgroundColor: colors.accent + '15', alignItems: 'center', justifyContent: 'center' },
-  personalityContent: { flex: 1 },
-  personalityLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.accent, letterSpacing: 1.5, marginBottom: rs(4) },
-  personalityText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textSec, lineHeight: fs(18) },
-
   // Timeline
   entryRow: { flexDirection: 'row', marginLeft: rs(28), marginRight: rs(16), marginTop: rs(16) },
   timelineLine: { position: 'absolute', left: rs(5), top: rs(16), bottom: rs(-16), width: 2, backgroundColor: colors.accent + '15' },
@@ -276,7 +321,11 @@ const styles = StyleSheet.create({
 
   // Footer
   footerContainer: { alignItems: 'center', paddingVertical: rs(24), gap: rs(10) },
-  footerText: { fontFamily: 'Caveat_400Regular', fontSize: fs(15), color: colors.textDim, fontStyle: 'italic' },
+  footerText: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textDim },
+
+  // PDF export button (header)
+  pdfBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(6), alignSelf: 'flex-end', marginRight: rs(16), marginTop: rs(8), marginBottom: rs(4), backgroundColor: colors.accentGlow, borderRadius: rs(10), paddingHorizontal: rs(10), paddingVertical: rs(6), borderWidth: 1, borderColor: colors.accent + '30' },
+  pdfBtnText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.accent },
 
   // FABs
   fab: { position: 'absolute', bottom: rs(24), right: rs(20), width: rs(56), height: rs(56), borderRadius: rs(18), backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: colors.accent, shadowOffset: { width: 0, height: rs(8) }, shadowOpacity: 0.35, shadowRadius: rs(16) },

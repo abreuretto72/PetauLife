@@ -1,20 +1,23 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl,
+  View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
+import { FileText } from 'lucide-react-native';
 
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
 import { usePet } from '../../../../hooks/usePets';
+import { sexContext } from '../../../../utils/petGender';
 import { Skeleton } from '../../../../components/Skeleton';
 import { AgendaLensContent } from '../../../../components/lenses/AgendaLensContent';
 
 export default function AgendaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: pet, isLoading } = usePet(id);
@@ -57,14 +60,24 @@ export default function AgendaScreen() {
     >
       {/* Header bar */}
       <View style={styles.headerBar}>
-        <Text style={styles.title}>
-          {t('agenda.screenTitle', { name: pet?.name ?? '' })}
-        </Text>
-        <Text style={styles.subtitle}>{t('agenda.screenSubtitle')}</Text>
+        <View style={styles.headerTextCol}>
+          <Text style={styles.title}>
+            {t('agenda.screenTitle', { name: pet?.name ?? '', context: sexContext(pet?.sex) })}
+          </Text>
+          <Text style={styles.subtitle}>{t('agenda.screenSubtitle')}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.pdfBtn}
+          onPress={() => router.push(`/pet/${id}/agenda-pdf`)}
+          activeOpacity={0.7}
+          accessibilityLabel={t('pdfCommon.printOrSave')}
+        >
+          <FileText size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
 
       {id && pet && (
-        <AgendaLensContent petId={id} petName={pet.name} />
+        <AgendaLensContent petId={id} petName={pet.name} petSex={pet.sex} />
       )}
 
       <View style={{ height: spacing.xxl }} />
@@ -82,7 +95,24 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   headerBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: rs(12),
     marginBottom: spacing.md,
+  },
+  headerTextCol: {
+    flex: 1,
+  },
+  pdfBtn: {
+    width: rs(36),
+    height: rs(36),
+    borderRadius: rs(10),
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontFamily: 'Sora_700Bold',

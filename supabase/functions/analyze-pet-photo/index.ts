@@ -1,7 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getAIConfig } from '../_shared/ai-config.ts';
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +18,25 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Auth enforcement — verify_jwt disabled at gateway (ES256/HS256 mismatch);
+    // validate here via getUser() which handles ES256 correctly via Auth server
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!ANTHROPIC_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured' }),
@@ -50,6 +72,12 @@ Deno.serve(async (req: Request) => {
     };
     const lang = LANG_NAMES[language] ?? LANG_NAMES[language.split('-')[0]] ?? 'English';
 
+    // System prompt: 100% estático (frameworks clínicos + JSON schema + requirements).
+    // Todo conteúdo fixo vai aqui para maximizar o bloco cacheável. O `${lang}` foi
+    // movido para a user message (é a única coisa que varia além da foto). Com ~1800
+    // tokens estáticos, ultrapassa o mínimo de 1024 tokens do prompt caching
+    // (Sonnet) → hit de cache em fotos subsequentes corta input tokens em ~90% e
+    // reduz TTFT. Primeira chamada paga +25% (write), seguintes pagam −90% (read).
     const systemPrompt = `You are a clinical veterinary AI analyst for AuExpert.
 Apply these evidence-based frameworks when analyzing photos:
 
@@ -62,9 +90,11 @@ WOUNDS: Classify as superficial/partial/full thickness. Infection signs: erythem
 PLANTS/FOOD: Cross-reference ASPCA Animal Poison Control Center. Identify genus+common name. Note toxicity mechanism: GI irritant, hepatotoxic, nephrotoxic, cardiotoxic, neurotoxic.
 
 Use hedged language: "consistent with", "suggestive of", "warrants veterinary evaluation".
-NEVER diagnose. Return ONLY valid JSON. No markdown. Respond in ${lang}.`;
+NEVER diagnose. Return ONLY valid JSON. No markdown.
 
-    const jsonSchema = `{
+Return this exact JSON structure with real values (not type annotations):
+
+{
   "identification": {
     "species": { "value": "dog|cat", "confidence": 0.0 },
     "breed": { "primary": "Labrador Retriever", "confidence": 0.8, "is_mixed": false, "secondary_breeds": null },
@@ -107,15 +137,7 @@ NEVER diagnose. Return ONLY valid JSON. No markdown. Respond in ${lang}.`;
     "items": null
   },
   "sources": ["WSAVA Body Condition Score Guidelines (2021)"]
-}`;
-
-    const petIdentity = [pet_name, pet_breed].filter(Boolean).join(', ');
-    const petContext = petIdentity ? ` (${petIdentity})` : '';
-    const userPrompt = `Perform a clinical veterinary assessment of this photo for a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}${petContext}.
-
-Return this JSON structure with real values (not type annotations):
-
-${jsonSchema}
+}
 
 Requirements:
 - description: 2-3 actionable sentences with clinical interpretation. NEVER null.
@@ -125,8 +147,14 @@ Requirements:
 - For pets: include BCS score, pain signals, behavioral state.
 - toxicity_check: always fill, even if has_toxic_items is false.
 - sources: list up to 3 scientific references actually used. NEVER null.
-- alerts: add if any finding warrants attention or concern.
-- Write all text fields in ${lang}.`;
+- alerts: add if any finding warrants attention or concern.`;
+
+    const petIdentity = [pet_name, pet_breed].filter(Boolean).join(', ');
+    const petContext = petIdentity ? ` (${petIdentity})` : '';
+    // User prompt agora é só o que varia: espécie, nome/raça do pet, idioma.
+    // Tudo o mais (frameworks clínicos + schema + requirements) está cacheado no system.
+    const userPrompt = `Perform a clinical veterinary assessment of this photo for a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}${petContext}.
+Write all text fields in ${lang}.`;
 
     const cfg = await getAIConfig();
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -138,9 +166,15 @@ Requirements:
       },
       body: JSON.stringify({
         model: cfg.model_vision,
-        max_tokens: 4096,
+        // Resposta: description 2-3 frases + JSON schema (toxicity, sources até 3,
+        // alerts). Fica em ~1000-1800 tokens. 2500 dá folga sem reservar budget.
+        max_tokens: 2500,
         temperature: 0,
-        system: systemPrompt,
+        // Prompt caching: o system inteiro é estático (~1800 tokens) → cache hit
+        // em fotos subsequentes corta input tokens em ~90% e reduz TTFT.
+        system: [
+          { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
+        ],
         messages: [{
           role: 'user',
           content: [

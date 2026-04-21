@@ -473,7 +473,6 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
   },
   fieldInput: {
-    fontFamily: 'Sora_400Regular',
     fontSize: fs(13),
     color: colors.text,
     backgroundColor: colors.card,

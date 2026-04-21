@@ -12,10 +12,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View, Text, TouchableOpacity, ScrollView, FlatList,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
-  StyleSheet, RefreshControl,
+  StyleSheet, RefreshControl, Animated,
 } from 'react-native';
-import { MessageCircle, Send, Sparkles, ChevronRight, RotateCcw } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { MessageCircle, Send, Sparkles, ChevronRight, Download, Mic, Square } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { getLocales } from 'expo-localization';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { spacing, radii } from '../../constants/spacing';
@@ -24,6 +26,16 @@ import { useInsights, PetInsight, InsightUrgency } from '../../hooks/useInsights
 import { usePetAssistant, ChatMessage } from '../../hooks/usePetAssistant';
 import { indexPetHealthData } from '../../lib/rag';
 import { useAuthStore } from '../../stores/authStore';
+
+// ── STT (optional native module) ──────────────────────────────────────────────
+
+let SpeechModule: typeof import('expo-speech-recognition').ExpoSpeechRecognitionModule | null = null;
+let useSpeechEvent: typeof import('expo-speech-recognition').useSpeechRecognitionEvent | null = null;
+try {
+  const sr = require('expo-speech-recognition');
+  SpeechModule   = sr.ExpoSpeechRecognitionModule;
+  useSpeechEvent = sr.useSpeechRecognitionEvent;
+} catch { /* módulo indisponível — mic fica oculto */ }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -226,21 +238,115 @@ function EmptyInsights({ filter }: { filter: InsightCategory | 'all' }) {
 
 // ── ChatView ──────────────────────────────────────────────────────────────────
 
-const SUGGESTIONS_KEYS = [
-  'ia.suggestionVaccine',
-  'ia.suggestionWeight',
-  'ia.suggestionMedication',
-  'ia.suggestionHealth',
-] as const;
 
 function ChatView({ petId, petName }: { petId: string; petName: string }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const { messages, isLoading, error, sendMessage, clearConversation } =
     usePetAssistant(petId);
-  const [inputText, setInputText] = useState('');
-  const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const [inputText, setInputText]       = useState('');
+  const [inputHeight, setInputHeight]   = useState(rs(44));
+  const [isListening, setIsListening]   = useState(false);
+  const [interimText, setInterimText]   = useState('');
+  const flatListRef       = useRef<FlatList<ChatMessage>>(null);
+  const intentionalStop   = useRef(false);
+  const pulseAnim         = useRef(new Animated.Value(1)).current;
+  const pulseLoopRef      = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Scroll to bottom whenever messages change
+  // ── STT event wiring ──────────────────────────────────────────────────────
+
+  const noopHook = (_event: string, _cb: (event: never) => void) => {};
+  const useEvent = useSpeechEvent ?? noopHook;
+
+  useEvent('result', (event: { results: { transcript: string }[]; isFinal: boolean }) => {
+    const transcript = event.results[0]?.transcript ?? '';
+    if (event.isFinal) {
+      setInputText((prev) => (prev ? `${prev} ${transcript}`.trim() : transcript));
+      setInterimText('');
+    } else {
+      setInterimText(transcript);
+    }
+  });
+
+  useEvent('end', () => {
+    if (!intentionalStop.current && SpeechModule) {
+      SpeechModule.start({
+        lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+        interimResults: true,
+        maxAlternatives: 1,
+      });
+      return;
+    }
+    setIsListening(false);
+    setInterimText('');
+  });
+
+  useEvent('error', (event: { error: string }) => {
+    if (event.error === 'no-speech') return;
+    setInterimText('');
+    const fatalErrors = ['permission', 'not-allowed', 'service-not-available'];
+    if (fatalErrors.includes(event.error)) {
+      intentionalStop.current = true;
+      setIsListening(false);
+    }
+  });
+
+  // Stop mic on unmount
+  useEffect(() => {
+    return () => {
+      intentionalStop.current = true;
+      if (SpeechModule) SpeechModule.stop();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Pulse animation while listening
+  useEffect(() => {
+    if (isListening) {
+      pulseLoopRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.18, duration: 500, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ]),
+      );
+      pulseLoopRef.current.start();
+    } else {
+      pulseLoopRef.current?.stop();
+      pulseAnim.setValue(1);
+    }
+  }, [isListening, pulseAnim]);
+
+  const startListening = useCallback(async () => {
+    if (!SpeechModule) return;
+    const { granted } = await SpeechModule.requestPermissionsAsync();
+    if (!granted) return;
+    intentionalStop.current = false;
+    setIsListening(true);
+    setInterimText('');
+    try {
+      SpeechModule.start({
+        lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+        interimResults: true,
+        maxAlternatives: 1,
+      });
+    } catch {
+      setIsListening(false);
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    intentionalStop.current = true;
+    if (SpeechModule && isListening) SpeechModule.stop();
+    setIsListening(false);
+  }, [isListening]);
+
+  const handleMicToggle = useCallback(async () => {
+    if (isListening) stopListening();
+    else await startListening();
+  }, [isListening, stopListening, startListening]);
+
+  // ── Scroll / send ─────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
@@ -250,13 +356,11 @@ function ChatView({ petId, petName }: { petId: string; petName: string }) {
   const handleSend = useCallback(() => {
     const text = inputText.trim();
     if (!text || isLoading) return;
+    if (isListening) stopListening();
     setInputText('');
+    setInputHeight(rs(44));
     void sendMessage(text);
-  }, [inputText, isLoading, sendMessage]);
-
-  const handleSuggestion = useCallback((key: string) => {
-    void sendMessage(t(key as Parameters<typeof t>[0]));
-  }, [sendMessage, t]);
+  }, [inputText, isLoading, isListening, stopListening, sendMessage]);
 
   const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
     const isUser = item.role === 'user';
@@ -276,8 +380,6 @@ function ChatView({ petId, petName }: { petId: string; petName: string }) {
     );
   }, []);
 
-  const showSuggestions = messages.length === 0 && !isLoading;
-
   return (
     <KeyboardAvoidingView
       style={styles.chatRoot}
@@ -290,12 +392,25 @@ function ChatView({ petId, petName }: { petId: string; petName: string }) {
           <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
           <View>
             <Text style={styles.chatTitle}>{t('ia.title')}</Text>
-            <Text style={styles.chatSubtitle}>{t('ia.subtitle')}</Text>
+            <Text style={styles.chatSubtitle}>{t('ia.subtitle', { name: petName })}</Text>
           </View>
         </View>
         {messages.length > 0 && (
-          <TouchableOpacity onPress={clearConversation} style={styles.clearBtn} activeOpacity={0.7}>
-            <RotateCcw size={rs(14)} color={colors.textDim} strokeWidth={1.8} />
+          <TouchableOpacity
+            style={styles.clearBtn}
+            activeOpacity={0.7}
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/pet/[id]/ia-pdf',
+                params: {
+                  id: petId,
+                  messagesJson: JSON.stringify(messages),
+                  petName,
+                },
+              })
+            }
+          >
+            <Download size={rs(16)} color={colors.accent} strokeWidth={1.8} />
           </TouchableOpacity>
         )}
       </View>
@@ -335,40 +450,47 @@ function ChatView({ petId, petName }: { petId: string; petName: string }) {
         </View>
       )}
 
-      {/* Quick suggestion chips */}
-      {showSuggestions && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionsRow}
-        >
-          {SUGGESTIONS_KEYS.map((key) => (
-            <TouchableOpacity
-              key={key}
-              style={styles.suggestionChip}
-              onPress={() => handleSuggestion(key)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.suggestionText}>{t(key)}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* Interim transcript preview */}
+      {isListening && interimText.length > 0 && (
+        <View style={styles.interimRow}>
+          <Text style={styles.interimText}>{interimText}</Text>
+        </View>
       )}
 
       {/* Input bar */}
       <View style={styles.inputBar}>
         <TextInput
-          style={styles.chatInput}
+          style={[styles.chatInput, { height: inputHeight }]}
           value={inputText}
           onChangeText={setInputText}
+          onContentSizeChange={(e) => {
+            const h = Math.min(
+              Math.max(rs(44), e.nativeEvent.contentSize.height + rs(20)),
+              rs(160),
+            );
+            setInputHeight(h);
+          }}
           placeholder={t('ia.placeholder', { name: petName })}
           placeholderTextColor={colors.placeholder}
           multiline
-          maxLength={500}
-          returnKeyType="send"
-          onSubmitEditing={handleSend}
-          blurOnSubmit
+          maxLength={1000}
+          scrollEnabled
         />
+
+        {/* Mic — sempre visível */}
+        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <TouchableOpacity
+            style={[styles.micBtn, isListening && styles.micBtnActive]}
+            onPress={handleMicToggle}
+            activeOpacity={0.8}
+          >
+            {isListening
+              ? <Square size={rs(16)} color="#fff" strokeWidth={2} fill="#fff" />
+              : <Mic size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+            }
+          </TouchableOpacity>
+        </Animated.View>
+
         <TouchableOpacity
           style={[styles.sendBtn, (!inputText.trim() || isLoading) && styles.sendBtnDisabled]}
           onPress={handleSend}
@@ -396,7 +518,7 @@ export default function IATab({ petId, petName }: IATabProps) {
   const { insights, isLoading, refetch } = useInsights(petId);
   const resolvedName = petName ?? '';
 
-  const [subView, setSubView]           = useState<SubView>('insights');
+  const [subView, setSubView]           = useState<SubView>('chat');
   const [filter, setFilter]             = useState<InsightCategory | 'all'>('all');
   const [expandedId, setExpandedId]     = useState<string | null>(null);
 
@@ -404,7 +526,10 @@ export default function IATab({ petId, petName }: IATabProps) {
   useEffect(() => {
     const userId = useAuthStore.getState().user?.id;
     if (!petId || !userId) return;
-    indexPetHealthData(petId, userId).catch(() => {});
+    indexPetHealthData(petId, userId).catch((err) => {
+      // Intentional: background RAG indexing — non-critical, but log for dev observability
+      if (__DEV__) console.warn('[IATab] indexPetHealthData failed:', err);
+    });
   }, [petId]);
 
   const presentCategories = useMemo(
@@ -433,20 +558,6 @@ export default function IATab({ petId, petName }: IATabProps) {
       {/* Sub-view switcher */}
       <View style={styles.switcher}>
         <TouchableOpacity
-          style={[styles.switcherTab, subView === 'insights' && styles.switcherTabActive]}
-          onPress={() => setSubView('insights')}
-          activeOpacity={0.7}
-        >
-          <Sparkles
-            size={rs(14)}
-            color={subView === 'insights' ? colors.purple : colors.textDim}
-            strokeWidth={1.8}
-          />
-          <Text style={[styles.switcherLabel, subView === 'insights' && styles.switcherLabelActive]}>
-            {t('insights.tab')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={[styles.switcherTab, subView === 'chat' && styles.switcherTabActive]}
           onPress={() => setSubView('chat')}
           activeOpacity={0.7}
@@ -458,6 +569,20 @@ export default function IATab({ petId, petName }: IATabProps) {
           />
           <Text style={[styles.switcherLabel, subView === 'chat' && styles.switcherLabelActive]}>
             {t('ia.tab')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.switcherTab, subView === 'insights' && styles.switcherTabActive]}
+          onPress={() => setSubView('insights')}
+          activeOpacity={0.7}
+        >
+          <Sparkles
+            size={rs(14)}
+            color={subView === 'insights' ? colors.purple : colors.textDim}
+            strokeWidth={1.8}
+          />
+          <Text style={[styles.switcherLabel, subView === 'insights' && styles.switcherLabelActive]}>
+            {t('insights.tab')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -607,16 +732,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: rs(8),
     paddingHorizontal: rs(spacing.md), paddingVertical: rs(8),
   },
-  thinkingText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textDim, fontStyle: 'italic' },
+  thinkingText: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textDim },
   errorRow: { paddingHorizontal: rs(spacing.md), paddingVertical: rs(6) },
   errorMsg: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.danger },
-  suggestionsRow: { gap: rs(8), paddingHorizontal: rs(spacing.md), paddingBottom: rs(8) },
-  suggestionChip: {
-    paddingHorizontal: rs(12), paddingVertical: rs(6),
-    backgroundColor: colors.purple + '12', borderRadius: rs(999),
-    borderWidth: 1, borderColor: colors.purple + '30',
-  },
-  suggestionText: { fontFamily: 'Sora_500Medium', fontSize: fs(11), color: colors.purple },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: rs(8),
     paddingHorizontal: rs(spacing.md), paddingVertical: rs(spacing.sm),
@@ -627,8 +745,27 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: colors.card, borderRadius: rs(radii.xl),
     borderWidth: 1.5, borderColor: colors.border,
     paddingHorizontal: rs(14), paddingVertical: rs(10),
-    color: colors.text, fontFamily: 'Sora_400Regular', fontSize: fs(13),
-    maxHeight: rs(100),
+    color: colors.text, fontSize: fs(13),
+    textAlignVertical: 'top',
+  },
+  micBtn: {
+    width: rs(42), height: rs(42), borderRadius: rs(21),
+    backgroundColor: colors.accentGlow,
+    borderWidth: 1.5, borderColor: colors.accent + '40',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  micBtnActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  interimRow: {
+    paddingHorizontal: rs(spacing.md),
+    paddingVertical: rs(4),
+  },
+  interimText: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(12),
+    color: colors.textDim,
   },
   sendBtn: {
     width: rs(42), height: rs(42), borderRadius: rs(21),

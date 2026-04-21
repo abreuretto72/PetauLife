@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-07
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR Scanner Pipeline + Audio Unification
+**Last Updated:** 2026-04-19
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário PDF + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships
 
 ---
 
@@ -200,17 +200,37 @@ INTERFACE — 4 botões de anexo:
 // 5. updatePetRAG() indexa a entrada
 ```
 
-**Photo Analysis Pipeline:**
+**Photo & Video Analysis Pipeline (2026-04-10):**
 ```typescript
-// hooks/useDiaryEntry.ts → _photoAnalysis()
-// 1. Extrai videoThumbnailUrl do vídeo (frame 1) — NOT o tutor's photo
-// 2. Base64 encode foto
-// 3. Busca bgSession token (para background invoke)
-// 4. Chama analyze-pet-photo com: { photo_base64, species, language, media_type }
-// 5. Retorna: { identification, health, mood, environment, alerts, toxicity_check, description }
-// 6. Salva em photo_analyses table
-// 7. photoResultsRaw: []→map() mantém índice posicional com fotos array
-// [DIAG] logs para debugging análise
+// hooks/useDiaryEntry.ts
+// PHOTO UPLOAD (line ~905-930):
+// 1. ImageManipulator.manipulateAsync() — resize, compress WebP
+// 2. uploadMedia() → armazena no Supabase Storage
+// 3. _photoAnalysis() inicia background analysis
+
+// VIDEO UPLOAD (line ~945-1000):
+// 1. Para cada vídeo: expo-video-thumbnails.getThumbnailAsync()
+// 2. Thumbnail gerado no frame 1000ms, quality 0.3 (leve)
+// 3. uploadMedia() → vídeo + thumbnail como arquivos separados
+// 4. videoThumbUrls[] acompanha índice posicional com vídeos array
+// 5. Salva em media_analyses: { type: 'video', mediaUrl, thumbnailUrl, ... }
+
+// AI CLASSIFICATION (line ~1040-1100):
+// 1. classifyDiaryEntry() — passa skipAI flag
+// 2. Se skipAI=false: invoke classify-diary-entry edge function
+//    - Magic bytes MIME detection (detectar áudio via magic bytes)
+//    - model_audio separado de model_vision (Gemini para nativo audio/video)
+//    - OCR pipeline (texto extraído de documentos/fotos)
+//    - Photo analysis: { identification, health, mood, environment, alerts }
+//    - Narration: 1ª pessoa do pet, 3ª pessoa semântica
+// 3. Salva em photo_analyses table
+// 4. photoResultsRaw: []→map() mantém índice posicional com fotos array
+
+// BACKGROUND PROCESSING (line ~1120-1200):
+// 1. async _backgroundAnalyzePhotos()
+// 2. Para cada vídeo: gera thumbnail no frame 1s (again, para redundância)
+// 3. uploadMedia() → thumbnail para Storage
+// 4. Atualiza media_analyses com resultados
 ```
 
 **DiaryModuleCard — buildModuleValue()**
@@ -255,6 +275,132 @@ Response: { narration: "Eca! Que dia legal..." }  // 1ª pessoa do pet
 - 7 dias antes de vencimento → push
 - 1 dia antes → push
 - No dia → push
+
+---
+
+### Nutrição (`hooks/useNutricao.ts` + Edge Functions + PDF)
+
+**Status:** NEW (2026-04-18) — Completo com 14 telas + PDF export
+
+**Queries:**
+- `useNutricao(petId)` — dados agregados nutrição (fast, no AI)
+  - Modalidade atual (ração / natural / mix)
+  - Rações ativas + histórico
+  - Alimentos naturais + histórico
+  - Restrições + alérgenos
+  - Suplementos
+- `useCardapio(petId)` — cardápio semanal IA-gerado (cache 3 dias)
+
+**Mutations:**
+- `setModalidade(petId, modalidade)` — ativa nova modalidade de alimentação
+- `registerFoodChange(petId, foodType, foodData)` — registra mudança de ração/natural
+- `addRestriction(petId, productName, notes)` — adiciona alérgeno/restrição
+- `addSupplement(petId, supplementData)` — adiciona suplemento
+- `evaluateNutrition(petId)` — IA avalia qualidade, calcula score, retorna recomendações
+
+**Edge Functions:**
+- `get-nutricao` — aggregates from 4 tables (racao, racao_natural, restricoes, suplementos)
+- `generate-cardapio` — Claude gera cardápio semanal via IA based on pet profile
+- `evaluate-nutrition` — analyzes current nutrition vs ideal, retorna { score, pros, cons, recommendation }
+
+**Telas (14):**
+```
+app/(app)/pet/[id]/nutrition.tsx           — Hub com 6 abas
+  ├─ nutrition/racao.tsx                   — Ração comercial atual
+  ├─ nutrition/so-racao.tsx                — Só ração (no natural)
+  ├─ nutrition/racao-natural.tsx           — Alimentos naturais
+  ├─ nutrition/so-natural.tsx              — Só natural (no racao)
+  ├─ nutrition/cardapio.tsx                — Cardápio semanal IA
+  ├─ nutrition/cardapio-detail.tsx         — Detalhes receita dia
+  ├─ nutrition/cardapio-history.tsx        — Histórico cardápios
+  ├─ nutrition/cardapio-pdf.tsx            — PDF export
+  ├─ nutrition/restricoes.tsx              — Alergias + restrições
+  ├─ nutrition/dicas.tsx                   — IA dicas personalizadas
+  ├─ nutrition/historico.tsx               — Timeline mudanças alimentares
+  ├─ nutrition/modalidade.tsx              — Seletor modalidade
+  ├─ nutrition/trocar.tsx                  — Wizard trocar ração
+  └─ nutrition/receita.tsx                 — Editor receita natural
+```
+
+**i18n keys:**
+- `nutrition.*` — labels, placeholders, hints, IA evaluation messages
+- `toast.modalidadeChanged`, `toast.racaoUpdated`, `toast.cardapioGenerated`
+
+**Database tables (NEW):**
+- `nutricao_racao` — marca, modelo, proteína%, gordura%, calorias/kg, preço_kg
+- `nutricao_racao_natural` — componentes naturais (carne, cereal, legume, frutas, etc.)
+- `nutricao_restricoes` — alérgenos + sensibilidades
+- `nutricao_suplementos` — vitaminas, ômega, probióticos, etc.
+- `nutricao_avaliacoes_cache` — cache avaliação IA (TTL 7 dias)
+- `cardapio_semanal` — refeições IA 7 dias (TTL 3 dias)
+
+---
+
+### Prontuário (`hooks/useProntuario.ts` + PDF + QR Code)
+
+**Status:** NEW (2026-04-18) — Completo com dados agregados + PDF export + QR code
+
+**Queries:**
+- `useProntuario(petId)` — dados agregados saúde (vacinas + exames + cirurgias + medicações + consultas)
+
+**Mutations:**
+- Não há mutations (dados agregados de outras tabelas)
+
+**Telas (3):**
+```
+app/(app)/pet/[id]/prontuario.tsx          — Visualizador prontuário
+app/(app)/pet/[id]/prontuario-pdf.tsx      — PDF export
+app/(app)/pet/[id]/prontuario-qr.tsx       — QR code compartilhável
+```
+
+**PDF Export (`lib/prontuarioPdf.ts`):**
+- Header com foto do pet, nome, microchip, data de emissão
+- Seções: Vacinas, Exames, Cirurgias, Medicações, Alergias, Histórico Consultas
+- Footer com rodapé "Multiverso Digital © 2026 — auExpert"
+- Usa `expo-print` para preview + compartilhamento
+
+**i18n keys:**
+- `prontuario.*` — labels, seções, disclaimers
+- `toast.prontuarioCopied`, `toast.qrCodeGenerated`
+
+---
+
+### Health Modals — Input-First UX (2026-04-18 update)
+
+**Status:** REFACTORED — Step 0 (Input) antes de 3-step wizard
+
+**Modais afetados:**
+- `AddVaccineModal.tsx`
+- `AddExamModal.tsx`
+- `AddConsultationModal.tsx` (com time field HH:MM)
+- `AddMedicationModal.tsx`
+
+**Novo padrão de 3 passos:**
+```
+STEP 0 (Input) — Seletor rápido + sugestão IA
+├─ Chips pré-preenchidas com histórico (ex: vacinas anteriores)
+├─ Campo texto com autocomplete
+├─ Validação real-time
+
+STEP 1 (Detalhes) — Campos específicos por tipo
+├─ Data (datepicker)
+├─ Dosagem / Dose
+├─ Observações
+
+STEP 2 (Revisão + Salvar)
+├─ Resumo dados
+├─ Botão salvar
+```
+
+**Componentes de Input:**
+- `Input.tsx` — STT + ícone mic sempre laranja
+- `MedicationAutocomplete` — dropdown com histórico medicações
+- `VaccineAutocomplete` — dropdown com vacinas padrão por raça
+
+**i18n keys:**
+- `modals.addVaccine`, `modals.addExam`, `modals.addConsultation`, `modals.addMedication`
+- `consultTime` — novo field "Hora da consulta (HH:MM)"
+- `addedBy` — "Adicionado por {name}"
 
 ---
 
@@ -420,7 +566,9 @@ const queryClient = new QueryClient({
 
 ---
 
-## PDF Export (`lib/pdf.ts`)
+## PDF Export System
+
+**Master template:** `lib/pdf.ts`
 
 **Template obrigatório:**
 ```
@@ -435,24 +583,77 @@ const queryClient = new QueryClient({
 └─────────────────────────────────────────────────┘
 ```
 
-**Relatórios implementados:**
-- Diário completo (todas as entradas + narração)
-- Prontuário de saúde (vacinas, alergias, exames)
-- Análise de foto IA
-- Perfil do pet
-- Carteirinha (QR code)
+**Relatórios implementados (2026-04-19):**
+
+| Relatório | Arquivo | Tela | Tamanho | Status |
+|-----------|---------|------|---------|--------|
+| Diário | `lib/diaryPdf.ts` | `diary.tsx` | 146 lines | ✅ NEW |
+| IA Chat | `lib/iaChatPdf.ts` | `ia-pdf.tsx` | 80 lines | ✅ NEW |
+| Prontuário | `lib/prontuarioPdf.ts` | `prontuario-pdf.tsx` | — | ✅ Existing |
+| Cardápio | `lib/nutritioPdf.ts` | `nutrition/cardapio-pdf.tsx` | — | ✅ Existing |
+| Perfil do pet | — | (inline em diary.tsx) | — | ❌ Pending |
+| Carteirinha (QR) | — | (inline em id/index.tsx) | — | ❌ Pending |
+
+**Padrão de tela PDF Preview (2026-04-19):**
+
+Todas as telas `*-pdf.tsx` seguem o mesmo padrão:
+```
+┌─────────────────────────────────────────┐
+│  ←  Título do Relatório                 │
+├─────────────────────────────────────────┤
+│                                         │
+│         ┌─────────────────┐             │
+│         │   [ícone PDF]   │             │
+│         └─────────────────┘             │
+│         "Relatório pronto!"             │
+│         "Pronto para imprimir..."       │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ [↓] Imprimir ou salvar PDF      │    │  ← previewPdf()
+│  └─────────────────────────────────┘    │
+│  ┌─────────────────────────────────┐    │
+│  │ [↗] Compartilhar arquivo        │    │  ← sharePdf()
+│  └─────────────────────────────────┘    │
+│                                         │
+│    Gerado por IA · auExpert · ...       │
+└─────────────────────────────────────────┘
+```
 
 **Uso:**
 ```typescript
 import { previewPdf } from '../lib/pdf';
 
 await previewPdf({
-  title: 'Diário de Mana',
+  title: t('diary.pdfTitle'),
   subtitle: 'Jan 2026',
   bodyHtml: '<h1>Conteúdo</h1>',
   language: i18n.language,
 });
 ```
+
+**Header buttons (conditional):**
+- Diário: Always show FileText button (exports full diary)
+- IA Chat: Show FileText button when `activeTab === 'ia'` (exports chat history)
+- Other tabs: No PDF button
+
+**Implementation Details:**
+
+**Diary PDF (`lib/diaryPdf.ts` — 146 lines):**
+- Builds HTML with all diary entries
+- Includes pet name, creation date, narration
+- Formats entries chronologically
+- Exports via `app/(app)/pet/[id]/diary.tsx` → header button
+
+**IA Chat PDF (`lib/iaChatPdf.ts` — 80 lines):**
+- Builds HTML with message history
+- Q&A format with timestamps
+- Pet context and conversation summary
+- Exports via `app/(app)/pet/[id]/ia-pdf.tsx` → dedicated screen
+
+**Diary Timeline Header (`components/diary/DiaryTimeline.tsx`):**
+- Added PDF icon to header
+- Only visible when viewing diary tab
+- Navigates to diary view (implicit PDF export)
 
 ---
 
@@ -625,7 +826,7 @@ All record tables (`diary_entries`, `vaccines`, `consultations`, `medications`, 
 
 **Trigger:** `set_audit_fields()` — SECURITY DEFINER BEFORE INSERT OR UPDATE — calls `auth.uid()` safely.
 
-**DiaryCard display (`components/diary/TimelineCards.tsx`):**
+**DiaryCard display (`components/diary/TimelineCards.tsx` — 2026-04-10):**
 ```
 Por você · 3 abr          ← registeredBy === currentUserId → "você"
 Editado por Ana · 4 abr   ← only shown when updatedBy ≠ registeredBy
@@ -633,6 +834,18 @@ Editado por Ana · 4 abr   ← only shown when updatedBy ≠ registeredBy
 - Font: Sora 400, 10px, `textGhost`
 - Data for display comes from `TimelineEvent.registeredByUser`, `updatedByUser` fields
 - `diaryEntryToEvent()` in `timelineTypes.ts` maps the DB join columns to these fields
+
+**Video thumbnails in timeline (2026-04-10):**
+- `VideoSubcard` renders `thumbnailUrl` from `media_analyses`
+- Thumbnail generated at upload time via `expo-video-thumbnails` (frame @1000ms, quality 0.3)
+- Falls back gracefully if thumbnail upload fails (video still displays)
+- Integration with new `MediaViewerModal` for full-screen media viewing
+
+**MediaViewerModal (`components/diary/MediaViewerModal.tsx` — NEW):**
+- Full-screen photo/video viewer triggered by tapping media in timeline
+- Supports pinch-zoom for photos, native video controls for videos
+- Handles multiple photos in carousel view
+- Integrated into TimelineCards rendering via `onMediaPress` callback
 
 **DIARY_MODULE_SELECT in `lib/api.ts`:**
 ```typescript
@@ -853,6 +1066,135 @@ function useDeletedRecords(petId: string) {
 
 ---
 
+## JWT Authentication Architecture (2026-04-11)
+
+### Problem: ES256 vs HS256 Mismatch
+
+**Root Cause:** Supabase uses ES256 (asymmetric) for JWT signing, but the gateway's `verify_jwt` option uses the legacy HS256 secret. This causes valid ES256 tokens to be rejected with `"Invalid JWT"` errors.
+
+**Symptom:** Edge Functions receive `401 Unauthorized` from background invocations (e.g., classification in background session).
+
+**Solution:** Disable gateway JWT validation via `supabase/config.toml` and enforce auth inside each function.
+
+### Configuration: `supabase/config.toml`
+
+```toml
+# classify-diary-entry: bypass gateway JWT validation
+# Reason: project uses ES256 (asymmetric) JWT signing; the gateway's verify_jwt
+# uses the legacy HS256 secret and rejects valid ES256 tokens with "Invalid JWT".
+# Auth is enforced inside the function via validateAuth() + supabase.auth.getUser()
+# which correctly validates ES256 tokens via the Auth server.
+[functions.classify-diary-entry]
+verify_jwt = false
+
+# analyze-pet-photo: same ES256/HS256 mismatch issue as above
+[functions.analyze-pet-photo]
+verify_jwt = false
+
+# generate-embedding: same ES256/HS256 mismatch — auth enforced via SERVICE_ROLE internally
+[functions.generate-embedding]
+verify_jwt = false
+
+# search-rag: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.search-rag]
+verify_jwt = false
+```
+
+### Internal Auth Enforcement: `validateAuth()` Pattern
+
+**File:** `supabase/functions/classify-diary-entry/modules/auth.ts`
+
+```typescript
+/**
+ * Validates JWT by checking Supabase Auth server directly.
+ * Handles both ES256 (asymmetric) tokens correctly.
+ */
+export async function validateAuth(req: Request): Promise<AuthUser | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;  // No token
+  }
+
+  const token = authHeader.substring(7);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+  // getUser() validates the token against Auth server
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    console.error('[validateAuth] rejected:', error?.message);
+    return null;
+  }
+
+  return user;
+}
+```
+
+**Usage in Edge Functions:**
+
+```typescript
+// supabase/functions/classify-diary-entry/index.ts
+Deno.serve(async (req: Request) => {
+  // 1. Authenticate — required
+  const user = await validateAuth(req);
+  if (!user) {
+    return errorResponse('Unauthorized', 401);
+  }
+
+  // 2. Process request with user context
+  // ...
+});
+```
+
+### Background Invocation (with ES256 token)
+
+**File:** `lib/ai.ts`
+
+When calling Edge Functions from background sessions (e.g., classification after diary entry save):
+
+```typescript
+// Extract ES256 token from session
+const session = await supabase.auth.getSession();
+const token = session.data.session?.access_token;
+
+if (!token) {
+  throw new Error('No session token available');
+}
+
+// Invoke function with explicit Authorization header
+const { data, error } = await supabase.functions.invoke(
+  'classify-diary-entry',
+  {
+    headers: {
+      'Authorization': `Bearer ${token}`,  // ES256 token passed to function
+    },
+    body: { /* ... */ },
+  }
+);
+
+// Detailed error logging for debugging
+if (error) {
+  const ctx = (error as Record<string, unknown>).context as Response | undefined;
+  console.log('[AI-ERR] status HTTP:', ctx?.status);
+  console.log('[AI-ERR] url:', ctx?.url);
+  try {
+    const errBody = await ctx?.json?.();
+    console.log('[AI-ERR] body:', JSON.stringify(errBody));
+  } catch {
+    console.log('[AI-ERR] body parse failed');
+  }
+}
+```
+
+### Key Takeaway
+
+- **Gateway verification disabled** (`verify_jwt = false`) to avoid HS256 validation
+- **Function-level validation** via `validateAuth()` ensures ES256 tokens are checked correctly
+- **Session tokens passed explicitly** in `Authorization: Bearer {token}` header
+- **Detailed HTTP error logging** helps diagnose future auth issues
+
+---
+
 ## Edge Functions (Supabase)
 
 **Deno serverless functions:**
@@ -895,6 +1237,45 @@ if (input.input_type === 'ocr_scan') {
   - `gallery`: slice(0,2) → up to two photos
 - Maintains backward compatibility for text-only entries
 
+### OCR Document Fallback Pattern (2026-04-11)
+
+**Problem:** When diary entry contains a scanned document + photos/video, the pipeline runs two classify calls:
+1. Main call (photos/video/text)
+2. Secondary OCR call (document only)
+
+When OCR classify returned 502 (timeout), the document was completely skipped from `media_analyses` table.
+
+**Solution:** Save document to database with empty OCR fields as fallback when OCR fails.
+
+**File:** `hooks/useDiaryEntry.ts` (line ~1571)
+
+```typescript
+// BEFORE (❌ would skip document on OCR failure)
+if (docMediaUrl && docOcrSource) {
+  // Save document only if OCR analysis succeeded
+  saveMediaAnalysis({ url: docMediaUrl, ocr: docOcrSource });
+}
+
+// AFTER (✅ save document even if OCR fails)
+if (docMediaUrl) {
+  // Save document regardless of OCR status
+  saveMediaAnalysis({ 
+    url: docMediaUrl, 
+    ocr_text: docOcrSource?.extracted_text ?? null,
+    ocr_json: docOcrSource?.structured_data ?? null,
+    analysis_status: docOcrError ? 'pending' : 'completed',
+  });
+}
+```
+
+**Fallback UI Strategy:**
+
+- If `ocr_text` is null but document exists: show thumbnail with "OCR pending" badge
+- Tutor can manually add OCR text or retry analysis
+- Document is never lost due to timeout
+
+---
+
 **analyze-pet-photo Enhancements (2026-04-06):**
 - **Content-aware:** Detecta se é pet direto, feces, plants, wounds, food, objects, environment
 - **Obrigatório `description`:** Nunca null — resumo clínico apropriado ao conteúdo
@@ -902,8 +1283,204 @@ if (input.input_type === 'ocr_scan') {
 - **Feces identification:** Color/consistency guide (yellow→rapid transit, black→bleeding, etc.)
 - **Species parameter:** Passado do app (`species: 'dog'|'cat'`) para IA usar contexto correto
 - **Language:** Responde sempre no idioma do tutor (`language: i18n.language`)
-- **Removed `--no-verify-jwt`:** Gateway já verifica, function recebe request autenticada
-- **JWT header:** App passa `bgAuthHeader` em background invocations (previne 401)
+- **Gateway JWT bypass:** See JWT Authentication Architecture (2026-04-11) — `verify_jwt = false` in config.toml
+- **Auth enforced internally:** validateAuth() + supabase.auth.getUser() check ES256 tokens correctly
+
+---
+
+## AI Model Configuration Pattern
+
+**Problem:** Different content types require different Claude models.
+- Text/photo classification: any capable model (e.g., `claude-sonnet-4-20250514`)
+- Audio content blocks: ONLY models 4.5+ (e.g., `claude-sonnet-4-6`)
+- Older models silently reject audio blocks with no error
+
+**Solution:** Model separation via configurable `app_config` table.
+
+### Configuration Layer (`supabase/functions/classify-diary-entry/modules/classifier.ts`)
+
+```typescript
+interface AIConfig {
+  model_classify:    string;  // Text classification (default: claude-sonnet-4-6)
+  model_vision:      string;  // Photo analysis (default: claude-sonnet-4-6)
+  model_chat:        string;  // Chat/insights (default: claude-sonnet-4-6)
+  model_narrate:     string;  // Pet narration (default: claude-sonnet-4-6)
+  model_insights:    string;  // Weekly summaries (default: claude-sonnet-4-6)
+  model_simple:      string;  // Simple tasks (default: claude-sonnet-4-6)
+  model_audio:       string;  // AUDIO ONLY — must support audio input (default: claude-sonnet-4-6)
+  timeout_ms:        number;
+  anthropic_version: string;
+}
+```
+
+**Database storage:** `app_config` table with keys:
+```sql
+ai_model_classify    → text
+ai_model_vision      → text
+ai_model_chat        → text
+ai_model_narrate     → text
+ai_model_insights    → text
+ai_model_simple      → text
+ai_model_audio       → text  -- NEW: audio support
+ai_timeout_ms        → text
+ai_anthropic_version → text
+```
+
+**Fetching:** 5-minute cache with fallback to defaults:
+```typescript
+async function getAIConfig(): Promise<AIConfig> {
+  // Check cache
+  if (_cachedAIConfig && now < _aiConfigExpiry) return _cachedAIConfig;
+  
+  // Fetch from DB
+  const { data } = await client.from('app_config')
+    .select('key, value')
+    .in('key', ['ai_model_classify', 'ai_model_audio', ...]);
+  
+  // Map to AIConfig, fallback to defaults
+  // Cache for 5 minutes (configurable)
+  return cachedConfig;
+}
+```
+
+### Model Override Pattern (`callClaude` function)
+
+```typescript
+async function callClaude(
+  systemPrompt: string,
+  messages: object[],
+  cfg: AIConfig,
+  modelOverride?: string,  // ← NEW: allows per-call model override
+): Promise<ContentBlock[]> {
+  const model = modelOverride ?? cfg.model_classify;  // Default to classify model
+  
+  // Call Claude API with specified model
+  return await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': cfg.anthropic_version,
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt,
+      messages,
+    }),
+  });
+}
+```
+
+### Audio Analysis Path
+
+When classifying audio content:
+
+```typescript
+// Fetch audio from Storage
+const audioData = await fetchAudioAsBase64(audioUrl);  // Returns { base64, mediaType }
+
+// Get AI config with audio-capable model
+const cfg = await getAIConfig();
+const audioModel = cfg.model_audio;  // e.g., 'claude-sonnet-4-6'
+
+// Build message with audio content block
+const messages = [{
+  role: 'user',
+  content: [
+    { type: 'text', text: 'Analyze this pet sound:' },
+    {
+      type: 'audio',
+      media_type: audioData.mediaType,  // Detected from magic bytes
+      data: audioData.base64,
+    },
+  ],
+}];
+
+// Call Claude with audio model override
+const response = await callClaude(
+  systemPrompt,
+  messages,
+  cfg,
+  audioModel,  // ← Override default model_classify with model_audio
+);
+```
+
+### Magic Bytes MIME Detection
+
+Problem: Supabase Storage reports all `.mp4` files as `video/mp4`, breaking Claude API audio content blocks.
+
+Solution: Detect actual format from first 8 bytes:
+
+```typescript
+function detectAudioMimeFromBytes(bytes: Uint8Array): string {
+  // MP3: ID3 tag (0x49 0x44 0x33) or MPEG sync (0xFF 0xEx)
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return 'audio/mp3';
+  if (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return 'audio/mp3';
+  
+  // WAV: RIFF header (0x52 0x49 0x46 0x46)
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46)
+    return 'audio/wav';
+  
+  // OGG: OggS header (0x4F 0x67 0x67 0x53)
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53)
+    return 'audio/ogg';
+  
+  // FLAC: fLaC header (0x66 0x4C 0x61 0x43)
+  if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43)
+    return 'audio/flac';
+  
+  // WebM: EBML header (0x1A 0x45 0xDF 0xA3)
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3)
+    return 'audio/webm';
+  
+  // MP4/M4A: ftyp at offset 4 (0x66 0x74 0x79 0x70)
+  if (bytes.length >= 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70)
+    return 'audio/mp4';
+  
+  // Default
+  return 'audio/mp4';
+}
+
+// Usage in fetchAudioAsBase64
+const bytes = new Uint8Array(buffer);
+const mediaType = detectAudioMimeFromBytes(bytes);  // ← Detect from magic bytes
+const base64 = btoa(String.fromCharCode(...bytes));
+return { base64, mediaType };
+```
+
+### Client-side Audio Format Restriction (`app/(app)/pet/[id]/diary/new.tsx`)
+
+DocumentPicker audio filter restricted to Anthropic-supported formats:
+
+```typescript
+const result = await DocumentPicker.getDocumentAsync({
+  type: [
+    'audio/mpeg',   // MP3
+    'audio/mp3',    // MP3 (alias)
+    'audio/mp4',    // M4A / AAC
+    'audio/aac',    // AAC
+    'audio/x-m4a',  // M4A (iOS)
+    'audio/wav',    // WAV
+    'audio/wave',   // WAV (alias)
+    'audio/ogg',    // OGG
+    'audio/flac',   // FLAC
+    'audio/webm',   // WebM audio
+  ],
+  multiple: false,
+  copyToCacheDirectory: false,
+});
+```
+
+This ensures users can only select formats that Claude API actually supports, preventing errors.
+
+### Benefits
+
+1. **No redeploy needed** — Change model via single DB UPDATE
+2. **Model-agnostic code** — Easy to swap to new models as they're released
+3. **Fallback safety** — Defaults embedded in code, DB failures don't break the app
+4. **Audit trail** — Which model was used for which classification visible in DB
+5. **A/B testing** — Can route different users to different models
+6. **Per-content-type models** — Audio uses audio-capable model, text uses efficient model
 
 ---
 
@@ -925,9 +1502,222 @@ if (input.input_type === 'ocr_scan') {
   "expo-camera": "^14.0.0",
   "expo-image-picker": "^15.0.0",
   "expo-speech-recognition": "^3.4.0",
+  "expo-video-thumbnails": "^7.0.0",
+  "expo-image-manipulator": "^12.0.0",
   "@react-native-community/netinfo": "^11.0.0"
 }
 ```
+
+## IA Tab — Insights + Chat (2026-04-19 refactor)
+
+**Status:** NEW — Complete redesign of "Assistente" tab to "Minha IA" with unified AI chat interface
+
+**Tab Location:** `app/(app)/pet/[id]/index.tsx` → `activeTab === 'ia'` → `<IATab />`
+
+**Components:**
+- `components/pet/IATab.tsx` — Main component with dual views
+- Chat interface (primary): message history + input field with STT
+- Previous content: insights summary, filterable insight cards (hidden behind chat)
+
+**Chat Features:**
+- Input field with mandatory STT (mic icon always visible + orange)
+- Send button (Paper Plane icon)
+- Full message history with timestamps
+- Background session integration (fire-and-forget processing)
+
+**Flow:**
+```
+User taps IATab → Chat interface loads
+  ↓
+User taps mic → STT captures speech
+  ↓
+Text appears in input field (editable)
+  ↓
+User taps Send → message saved to chat history
+  ↓
+usePetAssistant() hooks AI processing in background
+  ↓
+Response appears in chat when ready
+```
+
+**STT Configuration (2026-04-19 fix):**
+- Removed `continuous: true` (caused mic to stay on after first phrase)
+- Removed `iosCategory` with `categoryOptions: []`
+- Removed `androidIntentOptions`
+- Uses minimal config: `{ lang, interimResults: true, maxAlternatives: 1 }`
+- Pattern matches `voice.tsx` which works reliably
+
+**Removed Features:**
+- Static suggestion chips (SUGGESTIONS_KEYS, handleSuggestion)
+- AVAudioSessionCategory import
+- SpeechCategory variable
+
+**i18n keys:**
+- `ia.chatTitle` — "Minha IA"
+- `ia.inputPlaceholder` — "Pergunte algo..."
+- `ia.sending` — "Enviando..."
+- `ia.noMessages` — "Comece uma conversa com a IA do seu pet"
+
+**PDF Export:**
+- New button in header (when `activeTab === 'ia'`): FileText icon (orange)
+- Navigates to: `/(app)/pet/[id]/ia-pdf`
+- Exports full chat history as PDF with pet name, date, footer
+
+**Related Screens:**
+- `app/(app)/pet/[id]/ia-pdf.tsx` — NEW: PDF preview screen
+- `lib/iaChatPdf.ts` — NEW: PDF generation logic
+
+---
+
+## AI Chat PDF Export (2026-04-19 NEW)
+
+**Screens:**
+- `app/(app)/pet/[id]/ia-pdf.tsx` — PDF preview screen (184 lines)
+- `lib/iaChatPdf.ts` — PDF generation (80 lines)
+
+**Template:**
+```
+┌─────────────────────────────────────────────────┐
+│ [Logo auExpert]  Conversa com a IA de Mana Data/Hora│
+│                  Histórico de perguntas e respostas   │
+├─────────────────────────────────────────────────┤
+│                    CHAT HTML                    │
+│   Q: "Como melhorar a saúde do Mana?"         │
+│   A: "Baseado no histórico, recomendo..."     │
+├─────────────────────────────────────────────────┤
+│  Multiverso Digital © 2026 — auExpert          │
+└─────────────────────────────────────────────────┘
+```
+
+**i18n keys:**
+- `ia.pdfTitle` — "Conversa com a IA"
+- `ia.pdfSubtitle` — "Histórico de perguntas e respostas"
+- `ia.exportChat` — "Exportar conversa"
+
+---
+
+## Partnerships System (2026-04-19 NEW)
+
+**Status:** Placeholder screen for future partner integrations
+
+**Screen:** `app/(app)/partnerships.tsx`
+- Simple welcome screen
+- Prepare for partner network (vets, pet shops, groomers, walkers, hotels, trainers, ONGs)
+- Button in bottom nav (Handshake icon) removed from PetCard, now link in hub
+
+**PetCard Changes:**
+- Removed entire XP/gamification system (Proof of Love, badges)
+- Replaced with simple Partnership link
+- First stat box now AI Chat shortcut (navigates to `/pet/{id}?initialTab=ia`)
+- Stat boxes redesigned with solid accent backgrounds + white icons
+
+**i18n keys:**
+- `partnerships.title` — "Parcerias"
+- `partnerships.subtitle` — "Conecte com profissionais e ONGs"
+- `partnerships.comingSoon` — "Em breve..."
+
+**TutorCard Changes:**
+- Removed entire XP/gamification system
+- Replaced with Partnership icon
+- Navigates to `/partnerships`
+
+---
+
+## Atualizações Recentes (2026-04-19)
+
+### AI Chat Redesign (2026-04-19)
+**Renaming:** "Assistente" tab → "Minha IA" (better brand alignment)
+**Interface:** Full conversation view with STT input
+**Changes:**
+- Chat history shows all messages with timestamps
+- Input field with mandatory microphone (orange icon)
+- Send button (Paper Plane) triggers AI response
+- Fixed STT hang by removing `continuous: true`
+- Uses minimal speech config matching working patterns in `voice.tsx`
+
+**Removed:**
+- Static suggestion chips
+- iOS audio session category overrides
+- Android intent options
+
+**PDF Export:**
+- New header button when `activeTab === 'ia'`
+- Exports chat history as PDF
+- Uses standard template with chat transcript
+
+### Partnerships System Placeholder (2026-04-19)
+**New Screen:** `app/(app)/partnerships.tsx`
+**Purpose:** Prepare for future partner network
+**Integration:**
+- TutorCard Handshake button navigates here
+- PetCard removed XP/gamification
+- Button in bottom nav (future expansion)
+
+**Removed from UI:**
+- Proof of Love score
+- XP badges
+- Gamification cards
+- Level progression
+
+---
+
+### iOS Font Fixes
+**Problema:** TextInput com `fontFamily` excessivo causava crashes em iOS
+**Solução:** Removidos `fontFamily` hardcoded de:
+- `components/ui/Input.tsx` — TextInput limpo (deixa sistema escolher)
+- `components/diary/CapturePreview.tsx`
+- `components/pet/IATab.tsx`
+- `components/diary/voice.tsx`
+- `components/diary/DiaryModuleCard.tsx`
+- `app/(app)/pet/[id]/diary/[entryId]/edit.tsx`
+- `components/diary/TimelineCards.tsx` — narração sem Caveat hardcoded
+- `components/diary/DiaryNarration.tsx` — sem fontFamily
+- `components/diary/NarrationBubble.tsx` — sem fontFamily
+
+**Padrão correto:** Usar `fontFamily` apenas via `StyleSheet` quando absolutamente necessário
+**Lição:** iOS pode ser finicky com fonts; deixar sistema gerenciar é mais seguro.
+
+### STT Improvements
+**Mudança em Input.tsx line 92:**
+```typescript
+// ANTES
+SpeechModule.start({
+  lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+  interimResults: false,  // ❌ Não mostrava transcription em tempo real
+  maxAlternatives: 1,
+});
+
+// DEPOIS
+SpeechModule.start({
+  lang: getLocales()[0]?.languageTag ?? 'pt-BR',
+  interimResults: true,   // ✅ Agora mostra texto sendo digitado
+  maxAlternatives: 1,
+});
+```
+**Impacto:** Usuário vê transcription parcial enquanto fala, melhor feedback
+
+### Invite System & Co-Tutores (2026-04-03 implementation)
+
+**Nova tabela:** `pet_invites` — convites para co-tutores
+```sql
+CREATE TABLE pet_invites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
+  invited_email TEXT NOT NULL,
+  invited_by_id UUID REFERENCES users(id),
+  status 'pending' | 'accepted' | 'rejected' DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  accepted_at TIMESTAMPTZ
+);
+```
+
+**Edge Function:** `invite-web`
+- Gera deep link: `auexpert://invite?token={jwt}&pet_id={id}&email={email}`
+- Envia email com link
+- Ao abrir: redireciona para tela de aceitar
+- Auto-accept no login se email matcheia
+
+**RLS:** Permitir tutor criar invite para seu pet; auto-aceitar em auth callback
 
 ---
 

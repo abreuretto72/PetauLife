@@ -4,6 +4,7 @@ import * as api from '../lib/api';
 import { generateEmbedding } from '../lib/rag';
 import { addToQueue } from '../lib/offlineQueue';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
 import i18n from '../i18n';
 import type { Vaccine, Allergy } from '../types/database';
 
@@ -56,9 +57,13 @@ export function useVaccines(petId: string) {
 
         // Bridge: create emotional diary entry from health event
         const summary = `${newVaccine.name}${newVaccine.veterinarian ? `, ${newVaccine.veterinarian}` : ''}${newVaccine.clinic ? `, ${newVaccine.clinic}` : ''}`;
-        supabase.functions.invoke('bridge-health-to-diary', {
-          body: { pet_id: petId, user_id: newVaccine.user_id, event_type: 'vaccine', event_summary: summary, language: i18n.language },
-        }).then(() => {
+        withTimeout(
+          supabase.functions.invoke('bridge-health-to-diary', {
+            body: { pet_id: petId, user_id: newVaccine.user_id, event_type: 'vaccine', event_summary: summary, language: i18n.language },
+          }),
+          15_000,
+          'bridge-health-to-diary:vaccine',
+        ).then(() => {
           qc.invalidateQueries({ queryKey: ['pets', petId, 'diary'] });
         }).catch((err) => console.warn('[useHealth] bridge diary failed:', err));
       }
@@ -146,10 +151,12 @@ export function useMedications(petId: string) {
 // CONSULTATIONS
 // ══════════════════════════════════════
 
+const CONSULTATIONS_FETCH_LIMIT = 16; // fetch 16 to detect if there are more than 15
+
 export function useConsultations(petId: string) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const qc = useQueryClient();
-  const query = useQuery({ queryKey: ['pets', petId, 'consultations'], queryFn: () => api.fetchConsultations(petId), enabled: isAuthenticated && !!petId });
+  const query = useQuery({ queryKey: ['pets', petId, 'consultations'], queryFn: () => api.fetchConsultations(petId, CONSULTATIONS_FETCH_LIMIT), enabled: isAuthenticated && !!petId });
   const addMutation = useMutation({
     mutationFn: async (cons: Record<string, unknown>) => {
       if (!onlineManager.isOnline()) {
@@ -166,7 +173,10 @@ export function useConsultations(petId: string) {
       }
     },
   });
-  return { consultations: (query.data ?? []) as Record<string, unknown>[], isLoading: query.isLoading, refetch: query.refetch, addConsultation: addMutation.mutateAsync, isAdding: addMutation.isPending };
+  const raw = (query.data ?? []) as Record<string, unknown>[];
+  const hasMore = raw.length >= CONSULTATIONS_FETCH_LIMIT;
+  const consultations = hasMore ? raw.slice(0, 15) : raw;
+  return { consultations, hasMore, isLoading: query.isLoading, refetch: query.refetch, addConsultation: addMutation.mutateAsync, isAdding: addMutation.isPending };
 }
 
 // ══════════════════════════════════════
@@ -206,7 +216,18 @@ export function useAllergies(petId: string) {
 
   const query = useQuery({
     queryKey: ['pets', petId, 'allergies'],
-    queryFn: () => api.fetchAllergies(petId),
+    queryFn: async () => {
+      const allergies = await api.fetchAllergies(petId);
+      // If none found, try to backfill from diary classifications (best-effort)
+      if (allergies.length === 0 && onlineManager.isOnline()) {
+        const { data: inserted } = await supabase.rpc('sync_allergies_from_diary', { p_pet_id: petId });
+        if (inserted && inserted > 0) {
+          console.log('[useAllergies] backfilled', inserted, 'allergies from diary for pet:', petId);
+          return api.fetchAllergies(petId);
+        }
+      }
+      return allergies;
+    },
     enabled: isAuthenticated && !!petId,
   });
 
@@ -233,9 +254,13 @@ export function useAllergies(petId: string) {
         generateEmbedding(petId, 'allergy', newAllergy.id, text, 0.9).catch(() => {});
 
         const summary = `${newAllergy.allergen}${newAllergy.reaction ? ` — ${newAllergy.reaction}` : ''}${newAllergy.severity ? ` (${newAllergy.severity})` : ''}`;
-        supabase.functions.invoke('bridge-health-to-diary', {
-          body: { pet_id: petId, user_id: newAllergy.user_id, event_type: 'allergy', event_summary: summary, language: i18n.language },
-        }).then(() => {
+        withTimeout(
+          supabase.functions.invoke('bridge-health-to-diary', {
+            body: { pet_id: petId, user_id: newAllergy.user_id, event_type: 'allergy', event_summary: summary, language: i18n.language },
+          }),
+          15_000,
+          'bridge-health-to-diary:allergy',
+        ).then(() => {
           qc.invalidateQueries({ queryKey: ['pets', petId, 'diary'] });
         }).catch((err) => console.warn('[useHealth] bridge diary failed:', err));
       }
@@ -268,5 +293,92 @@ export function useMoodLogs(petId: string) {
     moodLogs: query.data ?? [],
     isLoading: query.isLoading,
     refetch: query.refetch,
+  };
+}
+
+// ══════════════════════════════════════
+// METRICS (clinical_metrics)
+// ══════════════════════════════════════
+
+export function useMetrics(petId: string) {
+  const qc = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: async (data: {
+      pet_id: string;
+      user_id: string;
+      metric_type: string;
+      value: number;
+      unit: string;
+      measured_at: string;
+      notes?: string | null;
+    }) => {
+      const { data: result, error } = await supabase
+        .from('clinical_metrics')
+        .insert({ ...data, source: 'manual', is_active: true })
+        .select('id')
+        .single();
+      if (error) throw error;
+      // Sync current weight to pets table to keep cached value up to date
+      if (data.metric_type === 'weight') {
+        await supabase
+          .from('pets')
+          .update({ weight_kg: data.value })
+          .eq('id', data.pet_id)
+          .eq('is_active', true);
+      }
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['pets', petId, 'clinical_metrics'] });
+      qc.invalidateQueries({ queryKey: ['pets'] });
+      qc.invalidateQueries({ queryKey: ['pet', petId] });
+      if (variables.metric_type === 'weight') {
+        qc.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'metrics'] });
+        qc.invalidateQueries({ queryKey: ['nutricao', petId] });
+      }
+    },
+  });
+
+  return {
+    addMetric: addMutation.mutateAsync,
+    isAdding: addMutation.isPending,
+  };
+}
+
+// ══════════════════════════════════════
+// EXPENSES
+// ══════════════════════════════════════
+
+export function useExpensesMutations(petId: string) {
+  const qc = useQueryClient();
+
+  const addMutation = useMutation({
+    mutationFn: async (data: {
+      pet_id: string;
+      user_id: string;
+      date: string;
+      vendor?: string | null;
+      category: string;
+      total: number;
+      currency: string;
+      notes?: string | null;
+    }) => {
+      const { data: result, error } = await supabase
+        .from('expenses')
+        .insert({ ...data, source: 'manual', is_active: true })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pets', petId, 'lens', 'expenses'] });
+    },
+  });
+
+  return {
+    addExpense: addMutation.mutateAsync,
+    isAdding: addMutation.isPending,
   };
 }

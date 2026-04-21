@@ -94,11 +94,9 @@ const styles = StyleSheet.create({
     padding: rs(2),
   },
   narrationText: {
-    fontFamily: 'Caveat_400Regular',
     fontSize: fs(15),
     color: colors.textSec,
     lineHeight: rs(27),
-    fontStyle: 'italic',
   },
 });
 

@@ -38,6 +38,8 @@ import { Input } from './ui/Input';
 import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface ExamData {
   name: string;
@@ -99,6 +101,7 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>(0);
   const [analyzing, setAnalyzing] = useState(false);
@@ -190,13 +193,17 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const { data, error } = await supabase.functions.invoke('ocr-document', {
-        body: {
-          photo_base64: base64,
-          document_type: 'exam',
-          language: i18n.language,
-        },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('ocr-document', {
+          body: {
+            photo_base64: base64,
+            document_type: 'exam',
+            language: i18n.language,
+          },
+        }),
+        15_000,
+        'ocr-document:exam',
+      );
 
       if (error) throw error;
 
@@ -304,9 +311,19 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.examMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.examNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
+
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
         <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
           <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
         </View>
@@ -338,8 +355,9 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         </View>
         <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
       </TouchableOpacity>
-    </View>
-  );
+    </ScrollView>
+  </View>
+);
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
@@ -466,7 +484,7 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]} pointerEvents={visible ? 'auto' : 'none'}>
       <Animated.View style={[styles.overlay, { opacity: overlayAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
@@ -475,7 +493,7 @@ const AddExamModal: React.FC<AddExamModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.sheet, { paddingBottom: rs(16) + insets.bottom, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>
@@ -503,7 +521,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     maxHeight: '92%',
-    paddingBottom: rs(16),
   },
   handleWrap: {
     alignItems: 'center',
@@ -606,8 +623,18 @@ const styles = StyleSheet.create({
     fontSize: fs(11),
     color: colors.purple,
   },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(12),
+    color: colors.textSec,
+    textAlign: 'center',
+    marginVertical: spacing.sm,
+  },
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

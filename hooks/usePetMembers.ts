@@ -32,7 +32,7 @@ export interface PetMember {
 
 export interface InviteParams {
   email?: string;
-  role: 'co_parent' | 'caregiver' | 'viewer';
+  role: MemberRole;          // includes 'owner' — only existing owners can grant this
   nickname?: string;
   can_see_finances?: boolean;
   expires_days?: number;
@@ -75,18 +75,30 @@ export function usePetMembers(petId: string) {
   const inviteMember = async (params: InviteParams): Promise<string> => {
     const { email, role, nickname, can_see_finances, expires_days } = params;
 
-    if (role === 'co_parent' && !email?.trim()) {
+    if ((role === 'co_parent' || role === 'owner') && !email?.trim()) {
       throw new Error('email_required_for_co_parent');
     }
 
-    // Co-tutor não pode convidar outros co-tutores — validação server-side
-    if (role === 'co_parent') {
-      const { data: pet } = await supabase
-        .from('pets')
-        .select('user_id')
-        .eq('id', petId)
-        .single();
-      if (pet?.user_id !== user?.id) {
+    // Permission check: only root can grant owner; any owner can invite co-parents
+    if (role === 'owner' || role === 'co_parent') {
+      const [petResult, memberResult] = await Promise.all([
+        supabase.from('pets').select('user_id').eq('id', petId).single(),
+        supabase.from('pet_members')
+          .select('role')
+          .eq('pet_id', petId)
+          .eq('user_id', user!.id)
+          .eq('is_active', true)
+          .not('accepted_at', 'is', null)
+          .maybeSingle(),
+      ]);
+      const isRoot  = petResult.data?.user_id === user?.id;
+      const isOwner = isRoot || memberResult.data?.role === 'owner';
+
+      if (role === 'owner' && !isRoot) {
+        // Only the founding owner (root) can promote others to owner
+        throw new Error('only_root_can_invite_owner');
+      }
+      if (role === 'co_parent' && !isOwner) {
         throw new Error('only_owner_can_invite_coparent');
       }
     }
@@ -103,7 +115,7 @@ export function usePetMembers(petId: string) {
 
     const expires_at = expires_days
       ? new Date(Date.now() + expires_days * 24 * 60 * 60 * 1000).toISOString()
-      : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(); // 48h padrão
+      : null; // null = sem expiração
 
     const [petResult, sessionResult] = await Promise.all([
       supabase.from('pets').select('name').eq('id', petId).single(),
@@ -130,11 +142,34 @@ export function usePetMembers(petId: string) {
     });
     if (error) throw error;
 
-    const qs = new URLSearchParams({ from: inviterName, pet: petName, role });
-    const inviteLink = `https://invite.auexpert.multiversodigital.com.br/${token}?${qs}`;
+    // Try immediate delegation: if the invitee already has an account, link now
+    let immediatelyGranted = false;
+    if (email?.trim()) {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingUser?.id) {
+        const { error: grantErr } = await supabase
+          .from('pet_members')
+          .update({
+            user_id:      existingUser.id,
+            accepted_at:  new Date().toISOString(),
+            invite_token: null,
+          })
+          .eq('pet_id', petId)
+          .eq('email', email.trim())
+          .is('accepted_at', null)
+          .eq('is_active', true);
+
+        if (!grantErr) immediatelyGranted = true;
+      }
+    }
 
     qc.invalidateQueries({ queryKey: ['pets', petId, 'members'] });
-    return inviteLink;
+    return immediatelyGranted ? 'granted' : 'pending';
   };
 
   const removeMember = async (memberId: string): Promise<void> => {
@@ -165,15 +200,34 @@ export function usePetMembers(petId: string) {
 // ── useMyPetRole ───────────────────────────────────────────────────────────────
 
 export interface MyPetRole {
+  /**
+   * role = 'owner' for both root and co-owners.
+   * Use isRoot to distinguish: root = pets.user_id (founding owner).
+   */
   role: MemberRole;
+  /**
+   * True when this user is the ROOT of the pet (pets.user_id).
+   * Root is the founding owner. Only root can promote/demote other owners.
+   * Scoped to this specific pet — being root of pet A grants no privilege on pet B.
+   */
+  isRoot: boolean;
+  /**
+   * True when this user has owner-level access to this pet
+   * (either root OR a designated co-owner via pet_members.role = 'owner').
+   * Scoped to this specific pet.
+   */
   isOwner: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canSeeFinances: boolean;
   canManageMembers: boolean;
+  /** Only root can invite/promote other owners. */
+  canInviteOwner: boolean;
   canInviteCoParent: boolean;
   canInviteCaregiver: boolean;
   canInviteViewer: boolean;
+  /** Only root can remove owners. */
+  canRemoveOwner: boolean;
   canRemoveCoParent: boolean;
   canRemoveCaregiver: boolean;
   canRemoveViewer: boolean;
@@ -211,19 +265,27 @@ export function useMyPetRole(petId: string): MyPetRole {
     enabled: !!petId && !!userId,
   });
 
-  const isOwner = pet?.user_id === userId;
+  // ROOT = founding owner (pets.user_id). Immovable. Only root promotes/demotes owners.
+  // Scoped to this specific pet — being root of pet A grants zero privilege on pet B.
+  const isRoot  = pet?.user_id === userId;
+  // CO-OWNER = designated by root via pet_members.role = 'owner'. Same operational powers,
+  // but cannot promote/demote other owners.
+  const isOwner = isRoot || member?.role === 'owner';
   const role: MemberRole = isOwner ? 'owner' : (member?.role as MemberRole) ?? 'viewer';
 
   return {
     role,
+    isRoot,
     isOwner,
     canEdit:             isOwner || ['co_parent', 'caregiver'].includes(role),
     canDelete:           isOwner || role === 'co_parent',
     canSeeFinances:      isOwner || (member?.can_see_finances === true),
-    canManageMembers:    isOwner || role === 'co_parent',
+    canManageMembers:    isOwner,
+    canInviteOwner:      isRoot,           // ONLY root can grant owner role
     canInviteCoParent:   isOwner,
     canInviteCaregiver:  isOwner || role === 'co_parent',
     canInviteViewer:     isOwner || role === 'co_parent',
+    canRemoveOwner:      isRoot,           // ONLY root can remove owners
     canRemoveCoParent:   isOwner,
     canRemoveCaregiver:  isOwner || role === 'co_parent',
     canRemoveViewer:     isOwner || role === 'co_parent',

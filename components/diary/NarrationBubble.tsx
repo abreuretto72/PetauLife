@@ -258,10 +258,8 @@ const styles = StyleSheet.create({
     color: colors.textDim,
   },
   narrationText: {
-    fontFamily: 'Sora',
     fontWeight: '400',
     fontSize: fs(14),
-    fontStyle: 'italic',
     color: colors.text,
     lineHeight: fs(14) * 1.7,
     marginBottom: spacing.sm,
@@ -281,7 +279,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: fs(11),
     color: colors.textDim,
-    fontStyle: 'italic',
   },
   regenerateBtn: {
     flexDirection: 'row',
@@ -297,10 +294,8 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
   editInput: {
-    fontFamily: 'Sora',
     fontWeight: '400',
     fontSize: fs(14),
-    fontStyle: 'italic',
     color: colors.text,
     lineHeight: fs(14) * 1.7,
     backgroundColor: colors.bgCard,

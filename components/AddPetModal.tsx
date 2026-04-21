@@ -33,8 +33,6 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
 import { rs, fs } from '../hooks/useResponsive';
 import { colors } from '../constants/colors';
@@ -44,6 +42,8 @@ import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { formatDateInput, parseDateInput, getDatePlaceholder, calcAgeMonths } from '../utils/format';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
+import { compressImageForAI } from '../lib/imageCompression';
 import type { PhotoAnalysisResponse } from '../types/ai';
 
 type Species = 'dog' | 'cat';
@@ -53,6 +53,7 @@ export interface AddPetData {
   name: string;
   species: Species;
   sex: 'male' | 'female';
+  neutered: boolean;
   birth_date: string;
   breed?: string | null;
   estimated_age_months?: number | null;
@@ -92,6 +93,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
   const [editSize, setEditSize] = useState<'small' | 'medium' | 'large' | ''>('');
   const [editColor, setEditColor] = useState('');
   const [editSex, setEditSex] = useState<'male' | 'female' | ''>('');
+  const [editNeutered, setEditNeutered] = useState(false);
   const [editMood, setEditMood] = useState('');
   const [editHealth, setEditHealth] = useState('');
   const { t, i18n } = useTranslation();
@@ -100,6 +102,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
   const slideAnim = useRef(new Animated.Value(400)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const submitGuard = useRef(false);
 
   useEffect(() => {
     if (visible) {
@@ -132,6 +135,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
   }, [analyzing]);
 
   const handleClose = useCallback(() => {
+    submitGuard.current = false;
     setStep(0);
     setSpecies(null);
     setPetName('');
@@ -144,6 +148,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
     setEditSize('');
     setEditColor('');
     setEditSex('');
+    setEditNeutered(false);
     setEditMood('');
     setEditHealth('');
     onClose();
@@ -181,17 +186,25 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
 
   const handlePickFromGallery = useCallback(async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['image/*'],
-        copyToCacheDirectory: true,
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        toast(t('toast.galleryPermission'), 'warning');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.4,
+        allowsMultipleSelection: false,
       });
-      if (!result.canceled && result.assets?.[0]) {
+      if (!result.canceled && result.assets[0]) {
         handlePhotoTaken(result.assets[0].uri);
       }
     } catch (err) {
       toast(getErrorMessage(err), 'error');
     }
-  }, [toast, handlePhotoTaken]);
+  }, [toast, t, handlePhotoTaken]);
 
   const handleSelectSpecies = useCallback((s: Species) => {
     setSpecies(s);
@@ -218,17 +231,23 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
     (async () => {
       setAnalyzing(true);
       try {
-        const base64 = await FileSystem.readAsStringAsync(photoUri, {
-          encoding: 'base64',
-        });
+        // Comprime e redimensiona antes do base64 (1568px max, quality 0.75 —
+        // recomendação oficial Anthropic). Sem isso, uma foto 3000x3000 @ 0.4
+        // vira ~1.2MB base64 no JSON body → 3-6s só de upload em 4G. Com o
+        // helper, cai para ~200-300KB e upload fica em ~1s.
+        const compressed = await compressImageForAI(photoUri);
 
-        const { data, error } = await supabase.functions.invoke('analyze-pet-photo', {
-          body: {
-            photo_base64: base64,
-            species,
-            language: i18n.language,
-          },
-        });
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke('analyze-pet-photo', {
+            body: {
+              photo_base64: compressed.base64,
+              species,
+              language: i18n.language,
+            },
+          }),
+          30_000,
+          'analyze-pet-photo:addPet',
+        );
 
         if (cancelled) return;
 
@@ -319,6 +338,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
 
   const handleSubmit = useCallback(() => {
     if (!species || !petName.trim()) return;
+    if (submitGuard.current) return;
     // Validate required fields
     if (!editSex) {
       toast(t('addPet.sexRequired'), 'warning');
@@ -329,6 +349,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
       toast(t('addPet.birthDateRequired'), 'warning');
       return;
     }
+    submitGuard.current = true;
     const ageMonths = calcAgeMonths(birthDateIso);
     const weightNum = editWeight ? parseFloat(editWeight) : null;
     const healthObs = editHealth.trim()
@@ -338,6 +359,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
       name: petName.trim(),
       species,
       sex: editSex as 'male' | 'female',
+      neutered: editNeutered,
       birth_date: birthDateIso,
       breed: editBreed.trim() || null,
       estimated_age_months: ageMonths,
@@ -350,7 +372,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
       full_analysis: analysis,
     };
     onSubmit(submitData);
-  }, [species, petName, editSex, editBirthDate, editBreed, editWeight, editSize, editColor, editMood, editHealth, photoUri, onSubmit, toast, t]);
+  }, [species, petName, editSex, editNeutered, editBirthDate, editBreed, editWeight, editSize, editColor, editMood, editHealth, photoUri, onSubmit, toast, t]);
 
   if (!visible) return null;
 
@@ -558,6 +580,23 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                         >
                           <Text style={[styles.sizeChipText, editSex === s && { color: petColor }]}>
                             {s === 'male' ? '♂ ' : '♀ '}{t(`addPet.sex${s.charAt(0).toUpperCase() + s.slice(1)}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Castrado */}
+                    <Text style={styles.fieldLabel}>{t('addPet.neuteredLabel')}</Text>
+                    <View style={styles.sizeChips}>
+                      {([false, true] as const).map((val) => (
+                        <TouchableOpacity
+                          key={String(val)}
+                          style={[styles.sizeChip, editNeutered === val && { backgroundColor: petColor + '20', borderColor: petColor }]}
+                          onPress={() => setEditNeutered(val)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.sizeChipText, editNeutered === val && { color: petColor }]}>
+                            {val ? t('addPet.neuteredYes') : t('addPet.neuteredNo')}
                           </Text>
                         </TouchableOpacity>
                       ))}

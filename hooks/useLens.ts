@@ -250,28 +250,28 @@ export interface AchievementsData {
 }
 
 async function fetchAchievementsData(petId: string): Promise<AchievementsData> {
-  const [achRes, petRes] = await Promise.all([
-    supabase
-      .from('achievements')
-      .select('id, achievement_key, title, description, category, xp_reward, rarity, icon_name, unlocked_at')
-      .eq('pet_id', petId)
-      .eq('is_active', true)
-      .order('unlocked_at', { ascending: false }),
-    supabase
-      .from('pets')
-      .select('xp_total, level')
-      .eq('id', petId)
-      .single(),
-  ]);
+  // XP/level são DERIVADOS dos próprios achievements — a tabela `pets` não tem
+  // colunas `xp_total`/`level` em produção (migration 019 nunca foi aplicada).
+  // Fonte de verdade: soma dos `xp_reward` das conquistas desbloqueadas do pet.
+  const achRes = await supabase
+    .from('achievements')
+    .select('id, achievement_key, title, description, category, xp_reward, rarity, icon_name, unlocked_at')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('unlocked_at', { ascending: false });
 
   if (achRes.error) throw achRes.error;
 
   const achievements = (achRes.data ?? []) as Achievement[];
-  const level = petRes.data?.level ?? 1;
-  const xpTotal = petRes.data?.xp_total ?? 0;
+  const xpTotal = achievements.reduce((sum, a) => sum + (a.xp_reward ?? 0), 0);
 
-  // XP thresholds for current and next level
+  // Thresholds: índice = nível atingido. Level começa em 1 (0 XP).
   const XP_THRESHOLDS = [0, 80, 200, 400, 700, 1000, 1500, 2000, 3000, 5000];
+  // Level = maior índice cujo threshold <= xpTotal, +1 (para começar em 1).
+  let level = 1;
+  for (let i = 1; i < XP_THRESHOLDS.length; i++) {
+    if (xpTotal >= XP_THRESHOLDS[i]) level = i + 1;
+  }
   const currentThreshold = XP_THRESHOLDS[Math.min(level - 1, 9)] ?? 0;
   const nextThreshold = XP_THRESHOLDS[Math.min(level, 9)] ?? 5000;
   const xpInLevel = xpTotal - currentThreshold;
@@ -547,7 +547,7 @@ export const CAT_COLORS: Record<AgendaCategory, string> = {
   agendado:   '#185FA5',
 };
 
-// Returns: { 'YYYY-MM-DD': AgendaCategory[] } — max 4 dots per day
+// Returns: { 'YYYY-MM-DD': AgendaCategory[] } — max 4 dots per day (only scheduled_events)
 export async function fetchMonthDots(
   petId: string,
   year: number,
@@ -556,34 +556,22 @@ export async function fetchMonthDots(
   const start = new Date(year, month, 1).toISOString();
   const end   = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
-  const [diaryRes, eventsRes] = await Promise.all([
-    supabase
-      .from('diary_entries')
-      .select('entry_date, primary_type')
-      .eq('pet_id', petId)
-      .gte('entry_date', start.slice(0, 10))
-      .lte('entry_date', end.slice(0, 10))
-      .eq('is_active', true),
-    supabase
-      .from('scheduled_events')
-      .select('scheduled_for, event_type, status')
-      .eq('pet_id', petId)
-      .gte('scheduled_for', start)
-      .lte('scheduled_for', end)
-      .eq('is_active', true),
-  ]);
+  const eventsRes = await supabase
+    .from('scheduled_events')
+    .select('scheduled_for, event_type, status')
+    .eq('pet_id', petId)
+    .gte('scheduled_for', start)
+    .lte('scheduled_for', end)
+    .eq('is_active', true);
 
   const map: Record<string, Set<AgendaCategory>> = {};
 
-  (diaryRes.data ?? []).forEach((e: { entry_date: string; primary_type: string }) => {
-    const key = e.entry_date.slice(0, 10);
-    if (!map[key]) map[key] = new Set();
-    const cat = PRIMARY_TO_CAT[e.primary_type] ?? 'momento';
-    map[key].add(cat);
-  });
-
   (eventsRes.data ?? []).forEach((e: { scheduled_for: string; event_type: string; status: string }) => {
-    const key = e.scheduled_for.slice(0, 10);
+    // Converte UTC → horário local do dispositivo pra chave do dia.
+    // Se o tutor marca um compromisso 23h BRT (02h UTC do dia seguinte), o ponto
+    // precisa aparecer no dia local (hoje), não no dia UTC (amanhã).
+    const d = new Date(e.scheduled_for);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     if (!map[key]) map[key] = new Set();
     const isUpcoming = e.status === 'scheduled' || e.status === 'confirmed';
     const cat: AgendaCategory = isUpcoming ? 'agendado' : (EVENT_TO_CAT[e.event_type] ?? 'momento');
@@ -602,8 +590,11 @@ export async function fetchDayItems(
   petId: string,
   dateStr: string,   // YYYY-MM-DD
 ): Promise<AgendaItem[]> {
-  const dayStart = `${dateStr}T00:00:00.000Z`;
-  const dayEnd   = `${dateStr}T23:59:59.999Z`;
+  // Boundaries em HORA LOCAL convertidas pra UTC — senão um evento marcado
+  // 23h BRT (02h UTC do dia seguinte) vazaria do dia local que o tutor abriu.
+  const [y, m, day] = dateStr.split('-').map(Number);
+  const dayStart = new Date(y, m - 1, day, 0, 0, 0, 0).toISOString();
+  const dayEnd   = new Date(y, m - 1, day, 23, 59, 59, 999).toISOString();
 
   const [diaryRes, eventsRes] = await Promise.all([
     supabase
@@ -693,7 +684,12 @@ export async function fetchDayItems(
       event_type: e.event_type,
       title: e.title,
       sub: sub || '—',
-      time: e.all_day ? null : e.scheduled_for.slice(11, 16),
+      time: e.all_day ? null : (() => {
+        // scheduled_for vem em UTC (ex.: '2026-05-06T16:00:00+00:00' = 13:00 BRT).
+        // .slice(11,16) pegaria '16:00' — errado. Converte pro fuso do dispositivo.
+        const d = new Date(e.scheduled_for);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      })(),
       all_day: e.all_day,
       status: e.status,
       is_recurring: e.is_recurring,

@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
 import { getLocales } from 'expo-localization';
 
 export interface ChatMessage {
@@ -50,20 +51,30 @@ export function usePetAssistant(petId: string) {
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
+      const payload = {
+        pet_id:               petId,
+        message:              trimmed,
+        language,
+        conversation_history: toAnthropicHistory(messagesRef.current),
+      };
+      console.log('[usePetAssistant] invoking pet-assistant', payload);
+
+      const { data, error: fnError } = await withTimeout(
+        supabase.functions.invoke('pet-assistant', { body: payload }),
+        30_000,
         'pet-assistant',
-        {
-          body: {
-            pet_id:               petId,
-            message:              trimmed,
-            language,
-            conversation_history: toAnthropicHistory(messagesRef.current),
-          },
-        },
       );
 
-      if (fnError) throw fnError;
-      if (!data?.reply) throw new Error('Empty reply from assistant');
+      console.log('[usePetAssistant] response →', { data, fnError });
+
+      if (fnError) {
+        console.error('[usePetAssistant] fnError:', JSON.stringify(fnError));
+        throw fnError;
+      }
+      if (!data?.reply) {
+        console.error('[usePetAssistant] empty reply, data:', JSON.stringify(data));
+        throw new Error('Empty reply from assistant');
+      }
 
       const assistantMessage: ChatMessage = {
         id:        `assistant-${Date.now()}`,
@@ -74,6 +85,7 @@ export function usePetAssistant(petId: string) {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
+      console.error('[usePetAssistant] catch:', err);
       setError(String(err));
     } finally {
       setIsLoading(false);

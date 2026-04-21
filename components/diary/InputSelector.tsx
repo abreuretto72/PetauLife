@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { useToast } from '../Toast';
+import { sexContext, type PetSex } from '../../utils/petGender';
 
 // ══════════════════════════════════════
 // TYPES
@@ -44,6 +45,7 @@ interface InputSelectorProps {
   onSelectVideo: () => void;
   onSelectListen: () => void;
   petName: string;
+  petSex?: PetSex;
 }
 
 interface EntryMethod {
@@ -86,7 +88,7 @@ const AI_TIP_KEYS = [
 
 const TIP_INTERVAL_MS = 5000;
 
-function useRotatingTip(petName: string): string {
+function useRotatingTip(petName: string, petSex?: PetSex): string {
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
 
@@ -97,7 +99,7 @@ function useRotatingTip(petName: string): string {
     return () => clearInterval(timer);
   }, []);
 
-  return t(AI_TIP_KEYS[index], { name: petName });
+  return t(AI_TIP_KEYS[index], { name: petName, context: sexContext(petSex) });
 }
 
 // ══════════════════════════════════════
@@ -159,10 +161,12 @@ function HelpModal({
   visible,
   onClose,
   petName,
+  petSex,
 }: {
   visible: boolean;
   onClose: () => void;
   petName: string;
+  petSex?: PetSex;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -187,7 +191,7 @@ function HelpModal({
             <View style={styles.headerLeft}>
               <Text style={styles.headerTitle}>{t('diary.helpModalTitle')}</Text>
               <Text style={styles.headerSub}>
-                {t('diary.helpModalSub', { name: petName })}
+                {t('diary.helpModalSub', { name: petName, context: sexContext(petSex) })}
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
@@ -251,12 +255,13 @@ export default function InputSelector({
   onSelectVideo,
   onSelectListen,
   petName,
+  petSex,
 }: InputSelectorProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const tip = useRotatingTip(petName);
+  const tip = useRotatingTip(petName, petSex);
   const [helpVisible, setHelpVisible] = useState(false);
 
   useEffect(() => {
@@ -397,7 +402,7 @@ export default function InputSelector({
               <View style={styles.header}>
                 <View style={styles.headerLeft}>
                   <Text style={styles.headerTitle}>
-                    {t('diary.inputSelectorTitle', { name: petName })}
+                    {t('diary.inputSelectorTitle', { name: petName, context: sexContext(petSex) })}
                   </Text>
                   <Text style={styles.headerSub}>{t('diary.inputSelectorSub')}</Text>
                 </View>
@@ -457,6 +462,7 @@ export default function InputSelector({
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
         petName={petName}
+        petSex={petSex}
       />
     </>
   );

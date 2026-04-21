@@ -41,3 +41,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Build artifacts & binaries
+*.apk
+*.ipa
+*.aab
+
+# Test coverage output
+coverage/
+
+# Generated site / docs export
+site/

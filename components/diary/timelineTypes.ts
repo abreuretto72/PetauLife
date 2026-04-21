@@ -10,6 +10,7 @@ import {
 } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import type { DiaryEntry } from '../../types/database';
+import type { ScheduledEvent } from '../../lib/api';
 
 // ── MediaAnalysisItem ──
 
@@ -34,7 +35,8 @@ export interface MediaAnalysisItem {
   } | null;
   ocrData?: {
     fields: Array<{ key: string; value: string; confidence?: number }>;
-    document_type: string;
+    document_type?: string;
+    items?: Array<{ name: string; qty: number; unit_price: number }>;
   } | null;
 }
 
@@ -48,7 +50,8 @@ export type TimelineEventType =
   | 'photo_analysis'
   | 'video_analysis'
   | 'capsule'
-  | 'connection';
+  | 'connection'
+  | 'scheduled_event';
 
 export interface TimelineEvent {
   id: string;
@@ -83,6 +86,8 @@ export interface TimelineEvent {
   monthStats?: { walks: number; photos: number; vet: number; mood: string };
   // Video-specific
   videoUrl?: string | null;
+  /** Local thumbnail for optimistic temp entries (M4) — not persisted to DB. */
+  videoThumbUrl?: string | null;
   videoDuration?: number | null;
   videoAnalysis?: {
     locomotion_score: number;
@@ -110,6 +115,14 @@ export interface TimelineEvent {
   inputType?: string | null;
   // Photo analysis result from analyze-pet-photo (stored as JSONB in photo_analysis_data)
   photoAnalysisData?: Record<string, unknown> | null;
+  // Scheduled event fields (type === 'scheduled_event')
+  scheduledFor?: string | null;
+  scheduledEventType?: string | null;
+  scheduledStatus?: 'scheduled' | 'confirmed' | 'done' | 'cancelled' | 'missed' | null;
+  scheduledProfessional?: string | null;
+  scheduledLocation?: string | null;
+  scheduledAllDay?: boolean;
+  scheduledSource?: 'manual' | 'ai' | 'system' | null;
   // Optimistic UI processing state
   processingStatus?: 'pending' | 'processing' | 'done' | 'error';
   // Per-media analyses — one item per photo/video/audio/document
@@ -150,14 +163,15 @@ export const FILTER_TABS: FilterTab[] = [
 // ── Event type visual config ──
 
 export const EVENT_TYPE_CONFIG: Record<TimelineEventType, { color: string; icon: React.ElementType }> = {
-  month_summary: { color: colors.accent, icon: Calendar },
-  diary: { color: colors.accent, icon: BookOpen },
-  milestone: { color: colors.gold, icon: Trophy },
-  audio_analysis: { color: colors.rose, icon: Mic },
-  photo_analysis: { color: colors.success, icon: Camera },
-  video_analysis: { color: colors.sky, icon: Video },
-  capsule: { color: colors.purple, icon: Gift },
-  connection: { color: colors.petrol, icon: Heart },
+  month_summary:   { color: colors.accent,  icon: Calendar },
+  diary:           { color: colors.accent,  icon: BookOpen },
+  milestone:       { color: colors.gold,   icon: Trophy },
+  audio_analysis:  { color: colors.rose,   icon: Mic },
+  photo_analysis:  { color: colors.success, icon: Camera },
+  video_analysis:  { color: colors.sky,    icon: Video },
+  capsule:         { color: colors.purple, icon: Gift },
+  connection:      { color: colors.petrol, icon: Heart },
+  scheduled_event: { color: colors.petrol, icon: Calendar },
 };
 
 // ── Conversion helpers ──
@@ -237,12 +251,13 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
     detail: entry.entry_type !== 'manual' ? entry.narration ?? undefined : undefined,
     score: entry.mood_score ?? undefined,
     videoUrl: entry.video_url ?? null,
+    videoThumbUrl: (entry as unknown as { video_thumb_url?: string | null }).video_thumb_url ?? null,
     videoDuration: entry.video_duration ?? null,
     videoAnalysis: entry.video_analysis ?? null,
     audioUrl: entry.audio_url ?? null,
     audioDuration: entry.audio_duration ?? null,
     petAudioAnalysis: entry.pet_audio_analysis ?? null,
-    registeredBy:     entry.registered_by ?? null,
+    registeredBy:     entry.user_id ?? null,      // diary_entries FK is user_id, not registered_by
     registeredByUser: entry.registered_by_user ?? null,
     updatedBy:        entry.updated_by ?? null,
     updatedByUser:    entry.updated_by_user ?? null,
@@ -265,6 +280,24 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
           medications:     entry.medications ?? undefined,
         }
       : null,
+  };
+}
+
+export function scheduledEventToTimelineEvent(ev: ScheduledEvent): TimelineEvent {
+  return {
+    id: `sched-${ev.id}`,
+    type: 'scheduled_event',
+    date: ev.scheduled_for,
+    sortDate: new Date(ev.scheduled_for).getTime(),
+    title: ev.title,
+    detail: ev.description ?? undefined,
+    scheduledFor: ev.scheduled_for,
+    scheduledEventType: ev.event_type,
+    scheduledStatus: ev.status,
+    scheduledProfessional: ev.professional,
+    scheduledLocation: ev.location,
+    scheduledAllDay: ev.all_day,
+    scheduledSource: ev.source,
   };
 }
 

@@ -37,6 +37,8 @@ import { Input } from './ui/Input';
 import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type MedicationType = 'antibiotic' | 'anti-inflammatory' | 'supplement' | 'antiparasitic' | 'vermifuge' | 'other';
 
@@ -102,6 +104,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>(0);
   const [analyzing, setAnalyzing] = useState(false);
@@ -196,13 +199,17 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const { data, error } = await supabase.functions.invoke('ocr-document', {
-        body: {
-          photo_base64: base64,
-          document_type: 'prescription',
-          language: i18n.language,
-        },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('ocr-document', {
+          body: {
+            photo_base64: base64,
+            document_type: 'prescription',
+            language: i18n.language,
+          },
+        }),
+        15_000,
+        'ocr-document:medication',
+      );
 
       if (error) throw error;
 
@@ -323,40 +330,52 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.medMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.medNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          showMic
+        />
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
-          <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.photoPrescription')}</Text>
-          <Text style={styles.methodDesc}>{t('health.photoPrescriptionDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
 
-      <TouchableOpacity style={styles.methodCard} onPress={handlePickFromGallery} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.petrolSoft }]}>
-          <ImageIcon size={rs(28)} color={colors.petrol} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.galleryPrescription')}</Text>
-          <Text style={styles.methodDesc}>{t('health.galleryPrescriptionDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
+            <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.photoPrescription')}</Text>
+            <Text style={styles.methodDesc}>{t('health.photoPrescriptionDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.methodCard} onPress={handleManualEntry} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.accentGlow }]}>
-          <PenLine size={rs(28)} color={colors.accent} strokeWidth={1.8} />
-        </View>
-        <View style={styles.methodTextWrap}>
-          <Text style={styles.methodTitle}>{t('health.manualMedEntry')}</Text>
-          <Text style={styles.methodDesc}>{t('health.manualMedEntryDesc')}</Text>
-        </View>
-        <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.methodCard} onPress={handlePickFromGallery} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.petrolSoft }]}>
+            <ImageIcon size={rs(28)} color={colors.petrol} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.galleryPrescription')}</Text>
+            <Text style={styles.methodDesc}>{t('health.galleryPrescriptionDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.methodCard} onPress={handleManualEntry} activeOpacity={0.7}>
+          <View style={[styles.methodIconWrap, { backgroundColor: colors.accentGlow }]}>
+            <PenLine size={rs(28)} color={colors.accent} strokeWidth={1.8} />
+          </View>
+          <View style={styles.methodTextWrap}>
+            <Text style={styles.methodTitle}>{t('health.manualMedEntry')}</Text>
+            <Text style={styles.methodDesc}>{t('health.manualMedEntryDesc')}</Text>
+          </View>
+          <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 
@@ -497,7 +516,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]} pointerEvents={visible ? 'auto' : 'none'}>
       <Animated.View style={[styles.overlay, { opacity: overlayAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
       </Animated.View>
@@ -506,7 +525,7 @@ const AddMedicationModal: React.FC<AddMedicationModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.sheet, { paddingBottom: rs(16) + insets.bottom, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
           </View>
@@ -534,7 +553,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     maxHeight: '92%',
-    paddingBottom: rs(16),
   },
   handleWrap: {
     alignItems: 'center',
@@ -637,8 +655,18 @@ const styles = StyleSheet.create({
     fontSize: fs(11),
     color: colors.purple,
   },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(12),
+    color: colors.textSec,
+    textAlign: 'center',
+    marginVertical: spacing.sm,
+  },
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { memo, useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { rs, fs } from '../hooks/useResponsive';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Pencil,
-  Syringe,
+  Sparkles,
   BookOpen,
   CalendarDays,
   Users,
@@ -42,7 +42,7 @@ interface PetCardProps {
   pet: PetCardData;
   onPress?: () => void;
   onEdit?: () => void;
-  onPressVaccine?: () => void;
+  onPressIA?: () => void;
   onPressDiary?: () => void;
   onPressAgenda?: () => void;
   onPressMembers?: () => void;
@@ -50,10 +50,26 @@ interface PetCardProps {
 
 const PetCard: React.FC<PetCardProps> = ({
   pet, onPress, onEdit,
-  onPressVaccine, onPressDiary, onPressAgenda, onPressMembers,
+  onPressIA, onPressDiary, onPressAgenda, onPressMembers,
 }) => {
   const { t } = useTranslation();
   const isDog = pet.species === 'dog';
+
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const diaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (diaryTimerRef.current) clearTimeout(diaryTimerRef.current);
+  }, []);
+
+  const handlePressDiary = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    if (diaryLoading) return;
+    setDiaryLoading(true);
+    onPressDiary?.();
+    // Fallback: reset if screen never hides this component (e.g. navigation error)
+    diaryTimerRef.current = setTimeout(() => setDiaryLoading(false), 4000);
+  };
   const petColor = isDog ? colors.accent : colors.purple;
   const mood = pet.current_mood
     ? moods.find((m) => m.id === pet.current_mood)
@@ -135,27 +151,30 @@ const PetCard: React.FC<PetCardProps> = ({
       {/* Stats: Vacinas · Diário · Agenda */}
       <View style={styles.statsRow}>
 
-        {/* Box 1 — Vacinas */}
+        {/* Box 1 — Minha IA */}
         <TouchableOpacity
           style={styles.statBox}
-          onPress={(e) => { e.stopPropagation(); onPressVaccine?.(); }}
-          activeOpacity={0.7}
+          onPress={(e) => { e.stopPropagation(); onPressIA?.(); }}
+          activeOpacity={0.75}
         >
-          <Syringe size={rs(16)} color={vaccineColor} strokeWidth={1.8} />
-          <Text style={[styles.statValue, { color: vaccineColor }]}>
-            {vaccineOverdue ? t('pets.boxVaccineOverdue') : t('pets.boxVaccineOk')}
+          <Sparkles size={rs(16)} color="#fff" strokeWidth={2} />
+          <Text style={styles.statValue} numberOfLines={1}>
+            {t('pets.boxIAValue')}
           </Text>
-          <Text style={styles.statLabel}>{t('pets.boxVaccineLabel')}</Text>
+          <Text style={styles.statLabel}>{t('pets.boxIALabel')}</Text>
         </TouchableOpacity>
 
         {/* Box 2 — Diário */}
         <TouchableOpacity
           style={styles.statBox}
-          onPress={(e) => { e.stopPropagation(); onPressDiary?.(); }}
-          activeOpacity={0.7}
+          onPress={handlePressDiary}
+          activeOpacity={0.75}
+          disabled={diaryLoading}
         >
-          <BookOpen size={rs(16)} color={colors.accent} strokeWidth={1.8} />
-          <Text style={[styles.statValue, { color: colors.accent }]} numberOfLines={1}>
+          {diaryLoading
+            ? <ActivityIndicator size={rs(16)} color="#fff" />
+            : <BookOpen size={rs(16)} color="#fff" strokeWidth={2} />}
+          <Text style={styles.statValue} numberOfLines={1}>
             {pet.last_diary_entry
               ? formatRelativeDate(pet.last_diary_entry)
               : t('pets.boxDiaryEmpty')}
@@ -167,10 +186,10 @@ const PetCard: React.FC<PetCardProps> = ({
         <TouchableOpacity
           style={styles.statBox}
           onPress={(e) => { e.stopPropagation(); onPressAgenda?.(); }}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <CalendarDays size={rs(16)} color={colors.petrol} strokeWidth={1.8} />
-          <Text style={[styles.statValue, { color: colors.petrol }]} numberOfLines={1}>
+          <CalendarDays size={rs(16)} color="#fff" strokeWidth={2} />
+          <Text style={styles.statValue} numberOfLines={1}>
             {pet.agenda_count != null && pet.agenda_count > 0
               ? t('pets.boxAgendaCount', { count: pet.agenda_count })
               : t('pets.boxAgendaEmpty')}
@@ -327,9 +346,7 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: colors.bgCard,
-    borderWidth: rs(1),
-    borderColor: colors.border,
+    backgroundColor: colors.accent,
     borderRadius: rs(radii.lg),
     paddingVertical: rs(10),
     alignItems: 'center',
@@ -338,12 +355,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: 'JetBrainsMono_700Bold',
     fontSize: fs(11),
+    color: '#fff',
     textAlign: 'center',
   },
   statLabel: {
-    fontFamily: 'Sora_500Medium',
+    fontFamily: 'Sora_600SemiBold',
     fontSize: fs(10),
-    color: colors.textDim,
+    color: 'rgba(255,255,255,0.75)',
     letterSpacing: rs(0.3),
   },
   bottomRow: {

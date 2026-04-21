@@ -1,0 +1,42 @@
+# Supabase project configuration
+# https://supabase.com/docs/guides/functions/config
+
+# classify-diary-entry: bypass gateway JWT validation
+# Reason: project uses ES256 (asymmetric) JWT signing; the gateway's verify_jwt
+# uses the legacy HS256 secret and rejects valid ES256 tokens with "Invalid JWT".
+# Auth is enforced inside the function via validateAuth() + supabase.auth.getUser()
+# which correctly validates ES256 tokens via the Auth server.
+[functions.classify-diary-entry]
+verify_jwt = false
+
+# analyze-pet-photo: same ES256/HS256 mismatch issue as above
+[functions.analyze-pet-photo]
+verify_jwt = false
+
+# generate-embedding: same ES256/HS256 mismatch — auth enforced via SERVICE_ROLE internally
+[functions.generate-embedding]
+verify_jwt = false
+
+# search-rag: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.search-rag]
+verify_jwt = false
+
+# generate-prontuario: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.generate-prontuario]
+verify_jwt = false
+
+# get-nutricao: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.get-nutricao]
+verify_jwt = false
+
+# generate-cardapio: same ES256/HS256 mismatch — auth enforced via validateAuth() internally
+[functions.generate-cardapio]
+verify_jwt = false
+
+# evaluate-nutrition: same ES256/HS256 mismatch — auth enforced manually via getUser()
+[functions.evaluate-nutrition]
+verify_jwt = false
+
+# invite-web: public landing page — no JWT needed, token in query param acts as capability
+[functions.invite-web]
+verify_jwt = false

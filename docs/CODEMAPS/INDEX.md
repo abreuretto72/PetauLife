@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-04
-**Scope:** MVP Phase (Diário Inteligente + Co-Tutores + Auditoria + Registros Excluídos)
+**Last Updated:** 2026-04-19
+**Scope:** MVP Phase (+ Nutrition Module + Prontuário PDF + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships)
 
 ---
 
@@ -13,6 +13,34 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ---
 
+## Latest Changes (2026-04-19)
+
+### AI Chat Redesign
+- "Assistente" tab renamed to "Minha IA"
+- Full conversation interface with STT input
+- Fixed microphone hang (removed `continuous: true`)
+- PDF export for chat history
+- See [ARCHITECTURE.md § IA Tab](./ARCHITECTURE.md#IA-tab--insights--chat-2026-04-19-refactor)
+
+### PDF Export Expansion
+- **Diário PDF:** Full diary export with all entries + narration
+- **IA Chat PDF:** Conversation history export
+- New *-pdf.tsx screen pattern for all exports
+- See [ARCHITECTURE.md § PDF Export System](./ARCHITECTURE.md#pdf-export-system)
+
+### Partnerships System
+- Placeholder screen for future partner network
+- TutorCard now links to `/partnerships` (Handshake icon)
+- Removed XP/gamification system
+- See [ARCHITECTURE.md § Partnerships System](./ARCHITECTURE.md#partnerships-system-2026-04-19-new)
+
+### PetCard Redesign
+- First stat box is now AI Chat shortcut
+- Stat boxes use solid accent background + white icons
+- Cleaner, more action-oriented layout
+
+---
+
 ## Codemaps
 
 ### 1. [ARCHITECTURE.md](./ARCHITECTURE.md)
@@ -20,11 +48,13 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 - System architecture (Telas > Hooks > Stores > API > Lib)
 - Data flow (queries, mutations, state management)
-- Module responsibilities (useAuth, usePets, useDiary, useHealth)
+- Module responsibilities (useAuth, usePets, useDiary, useHealth, usePetAssistant, useInsights)
 - React Query setup (cache, retry, staleTime, gcTime)
 - Zustand stores (authStore, uiStore)
 - Resiliency patterns (ErrorBoundary, try/catch, retry, offline)
-- PDF export system
+- **AI Chat system** (2026-04-19) — IATab with STT + conversation history
+- **PDF export system** — Master template + 4 report types (diary, IA chat, prontuário, cardápio)
+- **Partnerships** (2026-04-19) — Placeholder for future partner network
 - Push notifications
 - Database schema (13 tables MVP)
 - Edge Functions (Deno serverless)
@@ -79,6 +109,27 @@ This directory contains comprehensive architectural documentation for the auExpe
 - Debugging "looks fine on my phone, broken on iPad" issues
 
 **Key Rule:** NEVER hardcode pixels. **NEVER.** Always use `rs()`.
+
+---
+
+### 4. [EDGE_FUNCTIONS.md](./EDGE_FUNCTIONS.md) — NEW (2026-04-11)
+**Serverless function architecture and JWT authentication.**
+
+- Core functions: classify-diary-entry, analyze-pet-photo, generate-embedding, search-rag
+- ES256/HS256 JWT authentication pattern
+- validateAuth() internal enforcement via config.toml
+- Error handling, logging conventions, performance tuning
+- Background invocation with Bearer token
+- Detailed logging for debugging auth issues
+
+**When to read:**
+- Calling Edge Functions from mobile app
+- Debugging "Unauthorized 401" errors
+- Understanding AI pipeline (classification, photo analysis)
+- Adding new serverless function
+- Configuring JWT validation
+
+**Key Pattern:** `verify_jwt = false` in config.toml + `validateAuth()` in function code.
 
 ---
 
@@ -140,11 +191,12 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ```
 docs/CODEMAPS/
-├── INDEX.md              (this file)
-├── ARCHITECTURE.md       (system design + modules)
+├── INDEX.md              (this file — navigation hub)
+├── ARCHITECTURE.md       (system design + modules + JWT auth)
+├── EDGE_FUNCTIONS.md     (serverless functions + auth patterns)
 ├── I18N.md               (translations + tone)
 ├── RESPONSIVENESS.md     (screen scaling)
-└── (future: DATABASE.md, PERFORMANCE.md, TESTING.md)
+└── (future: DATABASE.md, PERFORMANCE.md, TESTING.md, OFFLINE.md, SECURITY.md)
 ```
 
 ---

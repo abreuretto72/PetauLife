@@ -39,6 +39,8 @@ import { Input } from './ui/Input';
 import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/withTimeout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface VaccineData {
   name: string;
@@ -114,6 +116,7 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
 
   // Step: 0 = choose method, 1 = form
   const [step, setStep] = useState<Step>(0);
@@ -216,13 +219,17 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      const { data, error } = await supabase.functions.invoke('ocr-document', {
-        body: {
-          photo_base64: base64,
-          document_type: 'vaccine',
-          language: i18n.language,
-        },
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('ocr-document', {
+          body: {
+            photo_base64: base64,
+            document_type: 'vaccine',
+            language: i18n.language,
+          },
+        }),
+        15_000,
+        'ocr-document:vaccine',
+      );
 
       if (error) throw error;
 
@@ -333,10 +340,20 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>{t('health.vaccineMethodQuestion')}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={styles.step0Scroll}>
+        <Input
+          label={t('health.notes')}
+          placeholder={t('health.vaccineNotesPlaceholder')}
+          icon={<FileText size={rs(18)} color={colors.petrol} strokeWidth={1.8} />}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+        />
 
-      {/* OCR — Camera */}
-      <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
+        <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
+
+        {/* OCR — Camera */}
+        <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
         <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
           <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
         </View>
@@ -370,6 +387,9 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         </View>
         <ArrowRight size={rs(18)} color={colors.accent} strokeWidth={1.8} />
       </TouchableOpacity>
+
+        <View style={{ height: rs(16) }} />
+      </ScrollView>
     </View>
   );
 
@@ -539,7 +559,7 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
   );
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents={visible ? 'auto' : 'none'}>
+    <View style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]} pointerEvents={visible ? 'auto' : 'none'}>
       {/* Overlay */}
       <Animated.View style={[styles.overlay, { opacity: overlayAnim }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
@@ -550,7 +570,7 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoid}
       >
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[styles.sheet, { paddingBottom: rs(16) + insets.bottom, transform: [{ translateY: slideAnim }] }]}>
           {/* Handle bar */}
           <View style={styles.handleWrap}>
             <View style={styles.handle} />
@@ -579,7 +599,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radii.modal,
     borderTopRightRadius: radii.modal,
     maxHeight: '92%',
-    paddingBottom: rs(16),
   },
   handleWrap: {
     alignItems: 'center',
@@ -616,6 +635,18 @@ const styles = StyleSheet.create({
     fontSize: fs(14),
     color: colors.textSec,
     marginBottom: spacing.lg,
+  },
+  step0Scroll: {
+    maxHeight: rs(520),
+  },
+  orLabel: {
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(11),
+    color: colors.textDim,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   // Method cards (step 0)
   methodCard: {
@@ -687,7 +718,7 @@ const styles = StyleSheet.create({
   },
   // Form
   formScroll: {
-    maxHeight: rs(480),
+    maxHeight: rs(560),
   },
   formContent: {
     paddingBottom: spacing.md,

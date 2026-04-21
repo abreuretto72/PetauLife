@@ -89,7 +89,7 @@ export function Input(props: InputProps) {
 
       SpeechModule.start({
         lang: getLocales()[0]?.languageTag ?? 'pt-BR',
-        interimResults: false,
+        interimResults: true,
         maxAlternatives: 1,
       });
     } catch {
@@ -193,7 +193,6 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontFamily: 'Sora_400Regular',
     fontSize: fs(15),
     color: colors.text,
     height: '100%' as unknown as number,
