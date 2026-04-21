@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-20
-**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships)
+**Last Updated:** 2026-04-21
+**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships + Professional Module Fase 1)
 
 ---
 
@@ -13,7 +13,22 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ---
 
-## Latest Changes (2026-04-20)
+## Latest Changes (2026-04-21)
+
+### Professional Module — Fase 1 (Core Infrastructure)
+- **New Tables:** `professionals`, `access_grants`, `role_permissions`, `professional_signatures`, `access_audit_log`
+- **New Screens:** `/pro/index` (Meus Pacientes), `/pro/onboarding`, `/pro/pet/[id]` (clinical view), `/invite/[token]` (accept invite), `/partnerships` (tutor side)
+- **New Hooks:** `useProfessional()`, `useMyPatients()`, `useProClinicalBundle()`, `useProDiaryBundle()`, `useTutorPartnerships()`
+- **New Component:** `PatientCard.tsx` (read-only clinical view)
+- **New Edge Functions:** `professional-invite-{create,accept,cancel,expire}` + `accept-pet-invite`, `invite-pet-member`, `invite-web`
+- **New i18n Keys:** `pro.*` (20+ keys), `roles.*` (10 AccessRole labels), `partnerships.*` (56 keys)
+- **RLS & Auth:** Centralized `has_pet_access(pet_id, permission)` function, ES256/HS256 JWT validation in Edge Functions
+- See [ARCHITECTURE.md § Professional Module](./ARCHITECTURE.md#professional-module-fase-1-2026-04-21-new) for complete architecture
+- See [screens-catalog.md § Professional Module](#professional-module-fase-1) for UI breakdown
+
+---
+
+## Previous Changes (2026-04-20)
 
 ### Prontuário Vet-Grade PDF System
 - **Redesigned `lib/prontuarioPdf.ts`** — 7-section report with colored cover + clinical B&W body

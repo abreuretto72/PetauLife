@@ -1,6 +1,6 @@
 # auExpert — Catálogo de Telas
 
-> Documento gerado em 2026-04-20. Lista todas as telas do app com rota, propósito e descrição funcional.
+> Documento gerado em 2026-04-21. Lista todas as telas do app com rota, propósito e descrição funcional.
 
 ---
 
@@ -29,9 +29,10 @@
 21. [Configurações](#configurações)
 22. [Notificações](#notificações)
 23. [Parcerias](#parcerias)
-24. [Ajuda](#ajuda)
-25. [Privacidade e Termos](#privacidade-e-termos)
-26. [Exportações PDF](#exportações-pdf)
+24. [Módulo Profissional — Fase 1](#módulo-profissional--fase-1)
+25. [Ajuda](#ajuda)
+26. [Privacidade e Termos](#privacidade-e-termos)
+27. [Exportações PDF](#exportações-pdf)
 
 ---
 
@@ -397,6 +398,93 @@ Ações: exportar PDF vet-grade (capa colorida + 7 páginas B&W), gerar QR Code 
 
 ---
 
+## Módulo Profissional — Fase 1
+
+> Sistema de acesso controlado para veterinários, vet techs e outros profissionais. Tutores convidam profissionais por pet, definem role-based permissions, e podem revogar acesso a qualquer momento.
+
+### `app/(app)/pro/index.tsx`
+**Rota:** `/pro`
+**Propósito:** Landing page do profissional — lista de pacientes.
+**Descrição:** Tela de entrada para profissionais logados com `professionals.is_active = true`. Exibe header com logo auExpert + "Olá, {display_name}" + refresh icon. Lista de pacientes via `useMyPatients()` (RPC `get_my_patients`) com PatientCards mostrando pet_id, name, species, breed, last_access_time. Empty state se não há grants ativos. Pull-to-refresh, offline banner, skeleton loading. Tap no card navega pra `/pro/pet/[id]`. Guard: sem profissional → redireciona pra `/pro/onboarding`.
+
+---
+
+### `app/(app)/pro/onboarding.tsx`
+**Rota:** `/pro/onboarding`
+**Propósito:** Criar perfil profissional.
+**Descrição:** Fluxo multi-step para criar `professionals` entry. Passo 1: selecionar tipo (picker: Veterinário, Vet Tech, Groomer, Trainer, Walker, Sitter, Boarding, Shop Employee, ONG Member, Breeder). Passo 2: país (country_code). Passo 3: nome para exibição. Passo 4 (opcional): conselho profissional (council_name, council_number — p/ Vets = CRMV). Passo 5 (opcional): especialidades (text array picker). Validação Zod em cada step. Salva INSERT professionals, audit_log: CREATE. Redireciona pra `/pro/index` ao finalizar.
+
+---
+
+### `app/(app)/pro/pet/[id].tsx`
+**Rota:** `/pro/pet/[id]`
+**Propósito:** Visão clínica do paciente (read-only).
+**Descrição:** Tela multi-aba em modo READ-ONLY via `PatientCard.tsx`. Header: pet name, species, breed, mostra qual profissional está vendo ("Você está vendo dados do Rex"). 6 abas:
+
+1. **Geral** — Nome, espécie, raça, sexo, peso, idade, alergias críticas, tipo sanguíneo, microchip (masked).
+2. **Saúde** — Vacinas (status, datas, próximas), exames (lista com datas, upload if authorized), medicações (ativas com dosagem e frequência).
+3. **Prevenção** — Calendário preventivo (próximos eventos), parasitas (tipos: internos/externos, frequência, produto usado, última data).
+4. **Sinais** — Últimas entradas clínicas extraídas do diário (peso trend, vitais, comportamento, sintomas).
+5. **Raça** — Predisposições genéticas da raça, drug interactions, exam abnormalities esperadas, comorbidities.
+6. **Emergência** — Cartão de emergência: contatos de vets confiáveis, alergias críticas, medicações de risco, procedimentos em cascata, tipo sanguíneo.
+
+Botão "Exportar Prontuário PDF" → gera relatório com assinatura digital do prof. Logout automático após 5 min inatividade. Auditado: cada read registrado em access_audit_log.
+
+---
+
+### `app/(app)/invite/[token].tsx`
+**Rota:** `/invite/[token]`
+**Propósito:** Aceitar convite de acesso (Web + Deep Link).
+**Descrição:** Tela de aceitação de convite via JWT token. Valida `invite_token` == hash, `expires_at` > NOW. Mostra informações do convite: "Dr. João te convidou pra acessar a saúde do Rex", com foto/ícone do pet, nome do tutor, role (ex: "Acesso completo"). Botão "Aceitar Acesso" grande em destaque + botão "Agora não" em cinza. Flow:
+- Se não logado → redireciona pra login
+- Se logado com email matching → auto-accept via `professional-invite-accept`
+- Se logado com email diferente → pede switch account ou logout
+Após accept → navega pra `/pro/pet/[id]`. Erro de token expirado mostra mensagem amigável + botão de voltar.
+
+---
+
+### `app/(app)/partnerships/index.tsx`
+**Rota:** `/partnerships`
+**Propósito:** Gerenciar acesso de profissionais a pets (tutor side).
+**Descrição:** Tela para tutores compartilharem acesso de dados clínicos com profissionais. Exibe:
+- Header: "Parcerias e Acesso Profissional"
+- Lista de pets com dropdown/collapse mostrando profissionais com acesso
+- Para cada pet:
+  - Botão [+] "Adicionar profissional" → abre modal de convite
+  - Lista de profissionais ativos com role badge, expiration date, botão [❌] para revogar
+- Cada profissional card mostra: nome, tipo (Vet, Groomer, etc.), data aceito, data expiration (se houver)
+
+Pull-to-refresh, offline banner, skeleton loading.
+
+---
+
+### `app/(app)/partnerships/invite.tsx`
+**Rota:** `/partnerships/invite`
+**Propósito:** Modal/screen para convidar profissional (acessível de partnerships/index).
+**Descrição:** Formulário de convite:
+1. Campo "E-mail do profissional" (email, com validation)
+2. Picker "Qual o acesso?" (role selector: vet_full, vet_read, vet_tech, groomer, trainer, walker, sitter, boarding, shop_employee, ong_member)
+3. Botão "Pet associado" (selector: mostra pets do tutor, permite convidar pra múltiplos pets)
+4. Campo "Notas" (opcional, text area)
+5. Botão "Enviar convite" (submits via `professional-invite-create`)
+
+Ao enviar: mostra loading + success toast "Convite enviado para {email}". Edge Function envia email com deep link ao profissional. Redireciona de volta pra partnerships/index.
+
+---
+
+### `components/PatientCard.tsx`
+**Propósito:** Card read-only de dados clínicos (profissional view).
+**Descrição:** Componente que renderiza dados clínicos em cards configuráveis READ-ONLY. NUNCA permite edição. Exibe:
+- Cada campo com label + valor + timestamp de quando foi registrado
+- Badge de "Auditado" next to timestamp
+- Ícones Lucide para contexto visual
+- Alergias críticas em destaque com badge danger
+- Medicações ativas com dosagem clara
+
+Props: `pet_id`, `bundle` (clinical|diary), `compact` (boolean). Importado em `/pro/pet/[id]`.
+
+---
+
 ## Ajuda
 
 ### `app/(app)/help.tsx`
@@ -484,6 +572,7 @@ Ações: exportar PDF vet-grade (capa colorida + 7 páginas B&W), gerar QR Code 
 | Análise de Foto IA | 1 |
 | Notificações | 1 |
 | Parcerias | 1 |
+| Módulo Profissional | 5 |
 | Ajuda / Privacidade / Termos | 3 |
 | PDFs e Registros Excluídos | 20 |
 | **TOTAL** | **68** |

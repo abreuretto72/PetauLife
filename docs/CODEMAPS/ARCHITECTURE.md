@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-20
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships
+**Last Updated:** 2026-04-21
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships + Professional Module Fase 1
 
 ---
 
@@ -1718,6 +1718,369 @@ CREATE TABLE pet_invites (
 - Auto-accept no login se email matcheia
 
 **RLS:** Permitir tutor criar invite para seu pet; auto-aceitar em auth callback
+
+---
+
+## Professional Module — Fase 1 (2026-04-21 New)
+
+### Visão Geral
+
+O módulo profissional permite que veterinários, vet techs, grooming, treinadores e outros profissionais tenham acesso à dados clínicos de pets específicos de forma controlada pelo tutor.
+
+**Pilares:**
+1. **Tutor controla tudo** — convites por pet, pode revogar acesso a qualquer momento
+2. **Role-based access** — 10 tipos de role (vet_full, vet_read, vet_tech, etc.) com permissions granulares
+3. **Audit trail completo** — `access_audit_log` registra toda ação (create, accept, read, revoke, expire)
+4. **JWT auth** — Edge Functions usam ES256/HS256 para validar tokens de profissionais
+5. **Soft delete** — `is_active` = false, nunca deleta dados
+
+### Tabelas Novas
+
+| Tabela | Propósito | Chave Primária | RLS |
+|--------|-----------|----------------|-----|
+| `professionals` | Perfil profissional declarativo | `id` (UUID) | Sim |
+| `access_grants` | Acesso de profissional a pet específico | `id` (UUID) | Sim |
+| `role_permissions` | Matrix: role × permission → allowed/denied | `id` (UUID) | Sim |
+| `professional_signatures` | Assinatura digital em PDFs clínicos | `id` (UUID) | Sim |
+| `access_audit_log` | Log de toda ação (read, create, revoke, expire) | `id` (UUID) | Sim |
+
+**Índices importantes:**
+```sql
+-- access_grants
+UNIQUE (pet_id, professional_id) WHERE is_active = true
+INDEX (pet_id) WHERE is_active AND accepted_at IS NOT NULL
+INDEX (professional_id) WHERE is_active AND accepted_at IS NOT NULL
+INDEX (invite_token) WHERE invite_token IS NOT NULL
+
+-- professionals
+INDEX (user_id) WHERE is_active = true
+INDEX (professional_type, country_code) WHERE is_active = true
+```
+
+### Fluxo de Acesso (Invite → Accept → Access)
+
+```
+1. TUTOR — Abre /partnerships
+   ├─ Toca em PetCard → "Compartilhar Acesso"
+   └─ Seleciona profissional via email + escolhe role
+       ↓
+2. INVITE SENT — Edge Function cria access_grant
+   ├─ invite_token gerado (JWT random)
+   ├─ Email enviado via Resend: "Dr. João te convidou pra acessar a saúde do Rex"
+   ├─ Deep link: auexpert://invite?token={jwt}&pet_id={id}
+   └─ audit_log: CREATE, granted_by={tutor_id}, role={selecionado}
+       ↓
+3. PROFISSIONAL — Clica no link (web ou app)
+   ├─ Deep link abre /invite/[token]
+   ├─ Valida JWT: token_id == invite_token && expires_at > NOW
+   ├─ Se logado com email matching: auto-accept
+   ├─ Se não logado: redireciona pra login
+   └─ Toca "Aceitar Acesso"
+       ↓
+4. ACCEPT FLOW — Edge Function professional-invite-accept
+   ├─ UPDATE access_grants SET accepted_at = NOW WHERE invite_token = token
+   ├─ INSERT user_device_grant (para rastrear qual device aceitou)
+   ├─ audit_log: ACCEPT, accepted_by={prof_id}
+   └─ Redireciona pra /pro/pet/[id] (clinical view)
+       ↓
+5. PROFISSIONAL AGORA VÊ — /pro/pet/[id]
+   ├─ Tabs: Geral (resumo), Saúde (vacinas, exames), Prevenção, Sinais, Raça, Emergência
+   ├─ Tudo em modo LEITURA (PatientCard.tsx)
+   ├─ Pode exportar prontuário PDF (com sua assinatura digital)
+   ├─ Auditado: cada read, each export → access_audit_log
+       ↓
+6. REVOGAÇÃO — Tutor volta em /partnerships
+   ├─ Toca "❌ Remover" no profissional
+   ├─ UPDATE access_grants SET is_active = false
+   ├─ audit_log: REVOKE, revoked_by={tutor_id}, revoked_reason="{motivo}"
+   └─ Prof perde acesso imediatamente
+```
+
+### Screens Profissionais
+
+#### `/pro/index` — Meus Pacientes (landing)
+**Quem vê:**
+- User autenticado COM `professionals.is_active = true`
+- Sem linha em professionals → redireciona pra `/pro/onboarding`
+
+**O que mostra:**
+- Header: logo auExpert + "Olá, {display_name}"
+- Lista de pacientes via `useMyPatients()` (RPC `get_my_patients`)
+- PatientCards: pet_id, name, species, breed, last_access_time
+- Tap → navega pra `/pro/pet/[id]`
+- Pull-to-refresh, skeleton loading, offline banner
+
+#### `/pro/onboarding` — Criar Perfil Profissional
+**Fluxo:**
+1. Preenche `professional_type` (picker: Vet, Vet Tech, Groomer, Trainer, Walker, Sitter, etc.)
+2. País (country_code)
+3. Nome para exibição
+4. (Opcional) Conselho profissional (council_name, council_number) — p/ Vets no Brasil = CRMV
+5. (Opcional) Especialidades (Text array: ["cirurgia", "oftalmologia"])
+6. Salva → INSERT professionals, audit_log: CREATE
+
+#### `/pro/pet/[id]` — Clinical View Profissional (Read-Only)
+**Tabs:**
+1. **Geral** — Nome, espécie, raça, sexo, peso, idade, alergias críticas, tipo sanguíneo
+2. **Saúde** — Vacinas (status, datas), exames (upload, resultado), medicações (ativas)
+3. **Prevenção** — Calendário (próximos eventos), parasitas (tipos, controle)
+4. **Sinais** — Últimas entradas clínicas (peso, vitais, comportamento)
+5. **Raça** — Predisposições genéticas, drug interactions, exam abnormalities
+6. **Emergência** — Contatos de vets confiáveis, alergias críticas, procedures em cascata
+
+**Componente:** `PatientCard.tsx` — renderiza dados clínicos em cards READ-ONLY
+- NUNCA permite edição
+- Mostra audit_timestamp de cada campo
+- Botão "Exportar Prontuário PDF" → gera com assinatura digital do prof
+- Logout automático após 5 min inatividade
+
+#### `/invite/[token]` — Accept Invite (Web + Deep Link)
+**Fluxo:**
+1. Valida JWT (`invite_token` == hash, `expires_at` > NOW)
+2. Mostra: "Dr. João te convidou pra acessar a saúde do Rex"
+   - Pet name, species
+   - Tutor name
+   - Role (ex: "Acesso completo")
+3. Botão "Aceitar Acesso"
+   - Se não logado → redireciona pra login
+   - Se logado → auto-accept via `professional-invite-accept`
+4. Após accept → navega pra `/pro/pet/[id]`
+
+#### `/partnerships` — Tutor Side (Share Access)
+**Quem vê:** Tutores logados
+**O que mostra:**
+- Lista de profissionais com acesso a cada pet
+- PetCards com dropdown de profissionais ativos + expiration dates
+- Botão [+] para adicionar novo profissional
+  - Modal: email do profissional, role picker, notas opcionais
+  - Gera invite_token, envia email, salva em access_grants
+- Botão [❌] para revogar acesso (soft delete)
+  - Pede confirmação, registra revoked_reason
+
+**i18n:**
+```json
+{
+  "partnerships": {
+    "title": "Parcerias",
+    "tabPartners": "Profissionais ({{count}})",
+    "addPartner": "Adicionar profissional",
+    "inviteEmail": "E-mail do profissional",
+    "selectRole": "Qual o acesso?",
+    "notes": "Notas (opcional)",
+    "sendInvite": "Enviar convite",
+    "revokeConfirm": "Remover {{name}} do acesso ao {{petName}}?",
+    "revoked": "{{name}} não tem mais acesso ao {{petName}}"
+  },
+  "roles": {
+    "vet_full": "Vet — acesso completo",
+    "vet_read": "Vet — somente leitura",
+    "vet_tech": "Auxiliar veterinário",
+    "groomer": "Grooming",
+    "trainer": "Treinador",
+    "walker": "Passeador",
+    "sitter": "Pet sitter",
+    "boarding": "Hospedagem",
+    "shop_employee": "Funcionário loja",
+    "ong_member": "Membro ONG"
+  }
+}
+```
+
+### Edge Functions
+
+#### `professional-invite-create`
+**Trigger:** POST `/api/invite/professional`
+**Payload:**
+```json
+{
+  "pet_id": "uuid",
+  "professional_email": "string",
+  "role": "vet_full | vet_read | ...",
+  "notes": "string (optional)"
+}
+```
+**Steps:**
+1. Valida auth (tutor logado, owner de pet)
+2. Procura profissional por email
+3. INSERT access_grants (invite_token, invite_sent_at, is_active=true)
+4. INSERT access_audit_log (event: CREATE, by: tutor_id)
+5. Gera JWT com `invite_token` + `pet_id` + `expires_at = 7 dias`
+6. Envia email via Resend com deep link
+7. Retorna { success, grant_id, expires_at }
+
+#### `professional-invite-accept`
+**Trigger:** POST `/api/invite/accept`
+**Payload:**
+```json
+{
+  "token": "jwt",
+  "pet_id": "uuid"
+}
+```
+**Steps:**
+1. Valida JWT
+2. UPDATE access_grants SET accepted_at = NOW WHERE invite_token = hash(token)
+3. INSERT access_audit_log (event: ACCEPT, by: prof_id)
+4. INSERT user_device_grant (prof_id, pet_id, device_info)
+5. Retorna { success, pet_id, role }
+
+#### `professional-invite-expire`
+**Trigger:** CRON job diário (08:00)
+**Steps:**
+1. UPDATE access_grants SET is_active = false WHERE expires_at < NOW AND is_active = true
+2. INSERT access_audit_log (event: EXPIRE, by: 'system')
+3. Opcional: notifica prof via email "Seu acesso expirou"
+
+#### `professional-invite-cancel`
+**Trigger:** POST `/api/invite/cancel`
+**Payload:**
+```json
+{
+  "grant_id": "uuid"
+}
+```
+**Steps:**
+1. Valida auth (tutor logado, owner de pet)
+2. UPDATE access_grants SET is_active = false WHERE id = grant_id
+3. INSERT access_audit_log (event: REVOKE, by: tutor_id, reason: "Revoked by tutor")
+4. Retorna { success }
+
+### RLS & Autorização
+
+**Função central:**
+```sql
+CREATE OR REPLACE FUNCTION has_pet_access(
+  pet_id UUID,
+  permission TEXT
+) RETURNS BOOLEAN AS $$
+DECLARE
+  current_user_id UUID := auth.uid();
+  is_owner BOOLEAN;
+  user_role TEXT;
+BEGIN
+  -- 1. É dono do pet?
+  SELECT EXISTS(SELECT 1 FROM pets WHERE id = pet_id AND user_id = current_user_id)
+  INTO is_owner;
+  IF is_owner THEN RETURN true; END IF;
+  
+  -- 2. É profissional com grant válido?
+  SELECT role INTO user_role FROM access_grants
+  WHERE pet_id = pet_id 
+    AND professional_id IN (
+      SELECT id FROM professionals WHERE user_id = current_user_id
+    )
+    AND is_active = true
+    AND accepted_at IS NOT NULL
+    AND revoked_at IS NULL
+    AND (expires_at IS NULL OR expires_at > NOW)
+  LIMIT 1;
+  
+  IF user_role IS NULL THEN RETURN false; END IF;
+  
+  -- 3. Role tem permissão?
+  SELECT allowed INTO STRICT allowed
+  FROM role_permissions
+  WHERE role = user_role AND permission = permission;
+  
+  RETURN allowed;
+END;
+$$ LANGUAGE plpgsql STABLE;
+```
+
+**Policies:**
+```sql
+-- professionals
+CREATE POLICY "own profile" ON professionals
+  USING (user_id = auth.uid());
+
+-- access_grants
+CREATE POLICY "tutor can create/revoke" ON access_grants
+  USING (granted_by = auth.uid())
+  WITH CHECK (granted_by = auth.uid());
+
+CREATE POLICY "prof can read own" ON access_grants
+  USING (
+    professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+  );
+
+-- access_audit_log (append-only)
+CREATE POLICY "readonly" ON access_audit_log
+  FOR SELECT USING (
+    pet_id IN (SELECT id FROM pets WHERE user_id = auth.uid())
+    OR professional_id IN (SELECT id FROM professionals WHERE user_id = auth.uid())
+  );
+```
+
+### Hooks
+
+#### `useProfessional()`
+**Returns:** `{ professional, isLoading, error }`
+```typescript
+// Busca professionals.* do user logado
+// Cache 10 min (raro muda)
+// Guard: /pro/ redireciona pra onboarding se null
+```
+
+#### `useMyPatients()`
+**Returns:** `{ patients, isLoading, isFetching, error, refetch }`
+```typescript
+// RPC: get_my_patients()
+// Retorna lista de access_grants aceitos + validos
+// Com pet_id, pet_name, species, breed, last_access_time
+// Cache 2 min, refetch on reconnect
+```
+
+#### `useProClinicalBundle(pet_id)`
+**Returns:** `{ health, vaccines, exams, medications, isLoading }`
+```typescript
+// Agrupa dados clínicos do pet para prof
+// Filtrado por has_pet_access('read_health')
+// Cache 5 min (dados clínicos mudam pouco)
+```
+
+#### `useProDiaryBundle(pet_id)`
+**Returns:** `{ diary_entries, analytics, mood_trends, isLoading }`
+```typescript
+// Agrupa entradas clínicas (peso, vitais, comportamento)
+// Filtrado por has_pet_access('read_diary_clinical')
+// Cache 5 min, refetch on manual refresh
+```
+
+#### `useTutorPartnerships(pet_id?)`
+**Returns:** `{ partnerships, addPartnership, revokePartnership, isPending }`
+```typescript
+// Tutor side: lista professionals com acesso a seus pets
+// Se pet_id: filtra pra um pet específico
+// Mutations: create, revoke (soft delete)
+```
+
+### Validação & Security
+
+**RLS Enforcement:**
+- ALL queries em professionals, access_grants, etc. passam por RLS
+- Edge Functions NUNCA contornam RLS (usam service role apenas pra inserts de audit)
+- Profissionais só veem dados que têm grant válido
+
+**Token Security:**
+```typescript
+// Inside professional-invite-create:
+const jwt = sign({
+  invite_token: hash(crypto.randomUUID()),
+  pet_id,
+  aud: 'professional',
+  iss: 'auexpert',
+  exp: now + 7*24*60*60,
+}, process.env.JWT_SECRET, { algorithm: 'HS256' });
+
+// Inside professional-invite-accept:
+const { invite_token, pet_id } = verify(token, process.env.JWT_SECRET);
+// Hash matching ensures token not replayed
+```
+
+**Audit Trail:**
+- Todo CREATE, ACCEPT, READ (opt-in), REVOKE, EXPIRE → access_audit_log
+- Timestamp, event_type, actor_id, actor_type (tutor|prof|system), grant_id, reason (se apply)
+- Nunca deletado (append-only table)
 
 ---
 
