@@ -226,8 +226,16 @@
 
 ### `app/(app)/pet/[id]/prontuario.tsx`
 **Rota:** `/pet/[id]/prontuario`
-**Propósito:** Prontuário médico completo gerado e mantido pela IA.
-**Descrição:** Documento médico estruturado com: identidade do pet, resumo de saúde gerado pela IA, alertas ativos, vacinas em dia e atrasadas, medicações ativas, alergias, condições crônicas, última consulta. Ações: exportar PDF, gerar QR Code de emergência, regenerar resumo IA. Exibe data da última atualização.
+**Propósito:** Prontuário médico completo gerado e mantido pela IA (7 seções, 6 abas).
+**Descrição:** Documento médico estruturado em 6 abas:
+- **Geral:** Identidade do pet (foto, nome, espécie, raça, microchip, tutor), resumo de saúde pela IA, alertas críticos/avisos/informativos
+- **Saúde:** Vacinas (status em dia/atrasadas), medicações ativas, alergias, condições crônicas com registro de diagnóstico, história de cirurgias, última consulta com hora/diagnóstico, métricas vitais
+- **Prevenção:** Calendário preventivo (próximos eventos), controle de parasitas (tipos: internos/externos, frequência, produto usado)
+- **Sinais:** Body Condition Score WSAVA (1-9 com imagem), revisão de sistemas corporais (respiratório, digestivo, cardiovascular, neurológico, musculoesquelético, pele/pelo, sensorial, comportamental), sinais anormais no exame
+- **Raça:** Predisposições genéticas da raça, interações medicamentosas importantes, sinais clínicos predispostos, recomendações de screening
+- **Emergência:** Cartão de emergência (contatos de vets confiáveis, alergias críticas, medicações de risco, procedimento em cascata de contato)
+
+Ações: exportar PDF vet-grade (capa colorida + 7 páginas B&W), gerar QR Code de emergência, regenerar resumo IA. Exibe data da última atualização.
 
 ---
 

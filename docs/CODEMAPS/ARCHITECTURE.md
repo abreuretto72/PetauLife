@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-19
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário PDF + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships
+**Last Updated:** 2026-04-20
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships
 
 ---
 

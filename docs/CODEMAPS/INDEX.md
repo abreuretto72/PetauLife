@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-19
-**Scope:** MVP Phase (+ Nutrition Module + Prontuário PDF + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships)
+**Last Updated:** 2026-04-20
+**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships)
 
 ---
 
@@ -13,7 +13,19 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ---
 
-## Latest Changes (2026-04-19)
+## Latest Changes (2026-04-20)
+
+### Prontuário Vet-Grade PDF System
+- **Redesigned `lib/prontuarioPdf.ts`** — 7-section report with colored cover + clinical B&W body
+- **6-tab prontuário screen** — Geral, Saúde, Prevenção, Sinais, Raça, Emergência
+- **Cover page:** Pet photo, identity pills, vaccine status, tutor contact info
+- **Clinical body (pages 2-7):** AI summary + alerts, vitals, vaccines + active meds, allergies + chronic + surgeries, BCS (WSAVA 1-9) + parasite control + preventive calendar, body-system review + breed predispositions + drug interactions + exam abnormal flags, emergency card + trusted vets
+- **New i18n keys:** ~81 keys per language for tabs, BCS scale, parasite types, chronic records, body systems, breed predispositions, drug interactions, exam flags, preventive calendar
+- See [screens-catalog.md § Prontuário](../screens-catalog.md#appapppetidprontuariotsx) for tab breakdown
+
+---
+
+## Previous Changes (2026-04-19)
 
 ### AI Chat Redesign
 - "Assistente" tab renamed to "Minha IA"
