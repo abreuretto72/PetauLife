@@ -53,7 +53,7 @@ const MOCK_CHECKLIST: ChecklistItem[] = [
 
 const MOCK_CRITICAL: CriticalCard[] = [
   { id: '1', labelKey: 'testament.allergiesLabel', valueKey: 'testament.allergiesValue', icon: AlertTriangle, color: colors.danger },
-  { id: '2', labelKey: 'testament.medicationLabel', valueKey: 'testament.medicationValue', icon: Pill, color: colors.purple },
+  { id: '2', labelKey: 'testament.medicationLabel', valueKey: 'testament.medicationValue', icon: Pill, color: colors.click },
   { id: '3', labelKey: 'testament.feedingLabel', valueKey: 'testament.feedingValue', icon: Apple, color: colors.success },
   { id: '4', labelKey: 'testament.fearsLabel', valueKey: 'testament.fearsValue', icon: ShieldAlert, color: colors.warning },
 ];

@@ -92,6 +92,7 @@ export interface ClassifyInput {
   input_type: string;
   language: string;
   petContext: PetContext;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 // ── Internal ──

@@ -40,7 +40,7 @@ const cfg = await getAIConfig(supabase);
 cfg.ai_model_classify   // classificação de texto/entrada
 cfg.ai_model_vision     // análise de foto/imagem (supports vision)
 cfg.ai_model_chat       // conversa/resposta ao tutor
-cfg.ai_model_narrate    // narração na voz do pet (Caveat font)
+cfg.ai_model_narrate    // narração literária 3ª pessoa (registro Elite — ver pt-BR.json)
 cfg.ai_model_insights   // análise de padrões, tendências
 cfg.ai_model_simple     // tarefas simples (haiku — mais barato)
 cfg.ai_model_audio      // análise de áudio (modelos 4.5+ apenas)
@@ -166,11 +166,11 @@ const SUPPORTED_AUDIO_MIMES = [
 
 ---
 
-## Narração na voz do pet
+## Narração literária (registro Elite)
 
 ```typescript
 // Modelo: cfg.ai_model_narrate
-// Sistema de narração: 3ª pessoa, voz do pet
+// Sistema de narração: 3ª pessoa literária, registro Elite (Clarice em "Laços de Família")
 // SEMPRE em 3ª pessoa: "O Rex foi ao parque" — nunca "Fui ao parque"
 // Exibição: fonte Caveat (cursiva) — diferencia da UI normal
 
@@ -178,7 +178,7 @@ const narrateEntry = async (entryText: string, petInfo: PetInfo, cfg: AIConfig) 
   const response = await callClaude(
     [{
       role: 'user',
-      content: `Narra em 3ª pessoa, na voz do pet ${petInfo.name}
+      content: `Narra em 3ª pessoa literária (registro Elite) sobre ${petInfo.name}
                 (${petInfo.species}, ${petInfo.breed}): "${entryText}"`,
     }],
     cfg,

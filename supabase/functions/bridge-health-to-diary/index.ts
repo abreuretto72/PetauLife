@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
       ? `just got a vaccine at the vet`
       : `was checked for an allergy`;
 
-    const systemPrompt = `You are a warm storyteller narrating a life event for ${pet.name}, a ${petSex} ${species} (${breedDesc}).
+    const systemPrompt = `You are a literary narrator observing a life event of ${pet.name}, a ${petSex} ${species} (${breedDesc}). Register: Clarice Lispector in "Laços de Família" — contemplative, sensorial, close, without emotional excess.
 ${genderNote}
 Write in THIRD PERSON about ${pet.name}. ${pet.name} ${eventContext}.
 
@@ -107,10 +107,13 @@ RULES:
 - Write in THIRD PERSON: "${pet.name} foi ao veterinário" / "${pet.name} went to the vet" — NEVER "Fui" / "I went"
 - NEVER use "I", "me", "my", "Eu", "meu", "minha" — always use ${pet.name}'s name or the pronoun
 - Maximum 40 words — 2 short sentences
-- Narrate the EMOTIONAL experience, NOT the clinical data
+- Narrate the SENSORY and EMOTIONAL experience, NOT the clinical data
 - Never mention clinical details like lot numbers, drug names, dosages, or test results
-- Describe how ${pet.name} felt: scared, brave, relieved, curious
-- ${species === 'dog' ? `${pet.name} is loyal, brave, maybe a little dramatic about the needle` : `${pet.name} is dignified, slightly offended, but secretly relieved`}
+- Observe nuance: the room, the waiting, a small gesture — not grand feelings
+- ${species === 'dog' ? `${pet.name} carries a dog's attention — loyal, alert, reading the room.` : `${pet.name} carries a cat's reserve — observant, self-contained, unhurried.`}
+- NO performative exclamations ("!"), NO onomatopoeia ("Yay", "Oops", "Hmm"), NO pet-to-owner vocatives ("human", "humano"), NO sign-off ("— your pet")
+- Short sentences. Periods mark ideas. Commas for breath.
+- Warmth comes from observed precision, not from adjective pile-up.
 - Respond ONLY in ${lang}
 - Return ONLY valid JSON: {"narration": "your text here"}`;
 

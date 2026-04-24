@@ -14,7 +14,7 @@ export default function PrivacyScreen() {
 
   const items = [
     { icon: <Shield size={rs(20)} color={colors.success} strokeWidth={1.8} />, text: t('legal.privacyData'), color: colors.success },
-    { icon: <Camera size={rs(20)} color={colors.purple} strokeWidth={1.8} />, text: t('legal.privacyPhotos'), color: colors.purple },
+    { icon: <Camera size={rs(20)} color={colors.ai} strokeWidth={1.8} />, text: t('legal.privacyPhotos'), color: colors.ai },
     { icon: <Sparkles size={rs(20)} color={colors.petrol} strokeWidth={1.8} />, text: t('legal.privacyAi'), color: colors.petrol },
     { icon: <Trash2 size={rs(20)} color={colors.danger} strokeWidth={1.8} />, text: t('legal.privacyDelete'), color: colors.danger },
   ];

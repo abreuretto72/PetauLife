@@ -315,11 +315,11 @@ export default function ProntuarioScreen() {
         </View>
         <View style={s.loadingCenter}>
           <View style={s.aiSpinner}>
-            <Sparkles size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+            <Sparkles size={rs(28)} color={colors.ai} strokeWidth={1.8} />
           </View>
           <Text style={s.loadingTitle}>{t('prontuario.generating')}</Text>
           <Text style={s.loadingSubtitle}>{t('prontuario.generatingSubtitle', { name: pet?.name ?? '...', context: sexContext(pet?.sex) })}</Text>
-          <ActivityIndicator color={colors.purple} style={{ marginTop: rs(16) }} />
+          <ActivityIndicator color={colors.click} style={{ marginTop: rs(16) }} />
         </View>
       </SafeAreaView>
     );
@@ -438,7 +438,7 @@ export default function ProntuarioScreen() {
             ) : (
               <View style={s.identityIconWrap}>
                 {pet?.species === 'cat'
-                  ? <Cat size={rs(24)} color={colors.purple} strokeWidth={1.8} />
+                  ? <Cat size={rs(24)} color={colors.click} strokeWidth={1.8} />
                   : <Dog size={rs(24)} color={colors.click} strokeWidth={1.8} />
                 }
               </View>
@@ -507,9 +507,9 @@ export default function ProntuarioScreen() {
               </Text>
             </View>
             {prontuario.active_medications.length > 0 && (
-              <View style={[s.badge, { backgroundColor: colors.purpleSoft }]}>
-                <Pill size={rs(11)} color={colors.purple} strokeWidth={2} />
-                <Text style={[s.badgeText, { color: colors.purple }]}>
+              <View style={[s.badge, { backgroundColor: colors.clickSoft }]}>
+                <Pill size={rs(11)} color={colors.click} strokeWidth={2} />
+                <Text style={[s.badgeText, { color: colors.click }]}>
                   {prontuario.active_medications.length} {t('prontuario.activeMeds')}
                 </Text>
               </View>
@@ -684,7 +684,7 @@ export default function ProntuarioScreen() {
             <Text style={s.sectionTitle}>{t('prontuario.summary').toUpperCase()}</Text>
             <View style={s.aiSummaryCard}>
               <View style={s.aiSummaryHeader}>
-                <Sparkles size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+                <Sparkles size={rs(14)} color={colors.ai} strokeWidth={1.8} />
                 <Text style={s.aiSummaryLabel}>{t('prontuario.aiAnalysis')}</Text>
               </View>
               <Text style={s.aiSummaryText}>{prontuario.ai_summary}</Text>
@@ -811,7 +811,7 @@ export default function ProntuarioScreen() {
             {prontuario.active_medications.map((m) => (
               <View key={m.id} style={s.listItem}>
                 <View style={s.listIconWrap}>
-                  <Pill size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+                  <Pill size={rs(16)} color={colors.click} strokeWidth={1.8} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={s.titleRow}>
@@ -842,7 +842,7 @@ export default function ProntuarioScreen() {
                       {t('health.to')}: {formatDate(m.end_date)}
                     </Text>
                   ) : (
-                    <Text style={[s.listItemDate, { color: colors.purple }]}>
+                    <Text style={[s.listItemDate, { color: colors.click }]}>
                       {t('prontuario.ongoing')}
                     </Text>
                   )}
@@ -1062,8 +1062,8 @@ export default function ProntuarioScreen() {
             <Text style={s.sectionTitle}>{t('prontuario.surgeriesTitle').toUpperCase()}</Text>
             {prontuario.surgeries.map((surg: ProntuarioSurgery) => (
               <View key={surg.id} style={s.listItem}>
-                <View style={[s.listIconWrap, { backgroundColor: colors.purpleSoft }]}>
-                  <Scissors size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+                <View style={[s.listIconWrap, { backgroundColor: colors.clickSoft }]}>
+                  <Scissors size={rs(16)} color={colors.click} strokeWidth={1.8} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={s.titleRow}>
@@ -1403,7 +1403,7 @@ const s = StyleSheet.create({
   scrollContent: { padding: rs(16), paddingBottom: rs(32) },
 
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: rs(32), gap: rs(12) },
-  aiSpinner: { width: rs(64), height: rs(64), borderRadius: rs(20), backgroundColor: colors.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  aiSpinner: { width: rs(64), height: rs(64), borderRadius: rs(20), backgroundColor: colors.clickSoft, alignItems: 'center', justifyContent: 'center' },
   loadingTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(17), color: colors.text, textAlign: 'center' },
   loadingSubtitle: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textDim, textAlign: 'center' },
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: rs(8), backgroundColor: colors.card, borderRadius: rs(12), paddingHorizontal: rs(20), paddingVertical: rs(12), borderWidth: 1, borderColor: colors.border, marginTop: rs(8) },
@@ -1467,9 +1467,9 @@ const s = StyleSheet.create({
   alertMessage: { flex: 1, fontFamily: 'Sora_600SemiBold', fontSize: fs(13) },
   alertAction: { fontFamily: 'Sora_400Regular', fontSize: fs(11), color: colors.textDim, marginTop: rs(4), marginLeft: rs(22) },
 
-  aiSummaryCard: { backgroundColor: colors.purpleSoft, borderRadius: rs(14), padding: rs(14), borderWidth: 1, borderColor: colors.purple + '30' },
+  aiSummaryCard: { backgroundColor: colors.clickSoft, borderRadius: rs(14), padding: rs(14), borderWidth: 1, borderColor: colors.click + '30' },
   aiSummaryHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginBottom: rs(8) },
-  aiSummaryLabel: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.purple },
+  aiSummaryLabel: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.click },
   aiSummaryText: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.text, lineHeight: fs(13) * 1.6 },
 
   listItem: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.card, borderRadius: rs(12), padding: rs(12), marginBottom: rs(8), gap: rs(10), borderWidth: 1, borderColor: colors.border },
@@ -1479,8 +1479,8 @@ const s = StyleSheet.create({
   listItemDate: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textDim, marginTop: rs(2) },
 
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: rs(6), flexWrap: 'wrap' },
-  typeChip: { backgroundColor: colors.purpleSoft, borderRadius: rs(6), paddingHorizontal: rs(6), paddingVertical: rs(2) },
-  typeChipText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(9), color: colors.purple, letterSpacing: 0.2 },
+  typeChip: { backgroundColor: colors.clickSoft, borderRadius: rs(6), paddingHorizontal: rs(6), paddingVertical: rs(2) },
+  typeChipText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(9), color: colors.click, letterSpacing: 0.2 },
   confirmChip: { borderRadius: rs(6), paddingHorizontal: rs(6), paddingVertical: rs(2) },
   confirmChipText: { fontFamily: 'Sora_700Bold', fontSize: fs(9), letterSpacing: 0.2 },
 
@@ -1559,7 +1559,7 @@ const s = StyleSheet.create({
   preventiveTypeTag: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: fs(10),
-    color: colors.purple,
+    color: colors.click,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },

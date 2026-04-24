@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Convite · auExpert</title>
+<meta name="description" content="Você foi convidado para cuidar de um pet no auExpert." />
+
+<meta property="og:title" content="Convite auExpert" />
+<meta property="og:description" content="Você foi convidado para cuidar de um pet." />
+<meta property="og:image" content="https://auexpert.com.br/logotipotrans.png" />
+<meta property="og:url" content="https://auexpert.com.br/invite/" />
+<meta property="og:type" content="website" />
+
+<meta name="theme-color" content="#0D0E16" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+:root {
+  --bg: #0D0E16;
+  --bg-card: #161826;
+  --bg-deep: #08090F;
+  --border: #232538;
+  --border-light: #2E314A;
+  --click: #8F7FA8;
+  --click-light: #A89BC0;
+  --click-dark: #6F6088;
+  --click-soft: rgba(143,127,168,0.1);
+  --click-border: rgba(143,127,168,0.3);
+  --ai: #4FA89E;
+  --ai-soft: rgba(79,168,158,0.08);
+  --ai-border: rgba(79,168,158,0.28);
+  --ai-text: #7CC5BA;
+  --success: #7FA886;
+  --warning: #D4A574;
+  --danger: #C2645E;
+  --danger-soft: rgba(194,100,94,0.12);
+  --danger-border: rgba(194,100,94,0.3);
+  --text: #F0EDF5;
+  --text-sec: #A89FB5;
+  --text-dim: #6B6478;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, 'SF Pro Text', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow: hidden;
+}
+body::before {
+  content: '';
+  position: fixed;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  width: 600px; height: 400px;
+  background: radial-gradient(ellipse, rgba(143,127,168,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  animation: fadeUp 0.6s ease both;
+  position: relative;
+  z-index: 1;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+.logo .au { font-style: italic; color: var(--text); }
+.logo .expert { color: var(--text-sec); }
+
+.card {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px 28px;
+  text-align: center;
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 40px; height: 3px;
+  background: var(--ai);
+  border-radius: 0 0 3px 3px;
+}
+.paw-badge {
+  width: 72px; height: 72px;
+  background: var(--click-soft);
+  border: 0.5px solid var(--click-border);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto 24px;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+.paw-badge svg { width: 36px; height: 36px; stroke: var(--click); fill: none; stroke-width: 1.4; }
+@keyframes pulse {
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(143,127,168,0.25); }
+  50%     { transform: scale(1.04); box-shadow: 0 0 0 14px rgba(143,127,168,0); }
+}
+.invite-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.invite-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+.pet-name { color: var(--click-light); }
+.invite-sub {
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ai-soft);
+  border: 0.5px solid var(--ai-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin-bottom: 24px;
+}
+.role-badge span {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai-text);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.narration {
+  background: var(--ai-soft);
+  border: 0.5px solid var(--ai-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 26px;
+  text-align: left;
+}
+.narration-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.narration-head span {
+  font-size: 9px;
+  color: var(--ai);
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.narration-text {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.65;
+  opacity: 0.92;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .15s ease;
+  border: 0.5px solid transparent;
+}
+.btn-primary {
+  background: var(--click);
+  color: var(--bg);
+  margin-bottom: 10px;
+}
+.btn-primary:hover { background: var(--click-light); transform: translateY(-1px); }
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border-light);
+  color: var(--text-sec);
+}
+.btn-secondary:hover { border-color: var(--click); color: var(--click-light); }
+.security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 16px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.expired-icon {
+  width: 64px; height: 64px;
+  background: var(--danger-soft);
+  border: 0.5px solid var(--danger-border);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+.expired-icon svg { stroke: var(--danger); fill: none; stroke-width: 1.6; }
+.expired-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--danger);
+  margin-bottom: 10px;
+}
+.expired-sub {
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.6;
+}
+.footer-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+}
+.footer-text a { color: var(--click-light); text-decoration: none; }
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 0;
+}
+.spinner {
+  width: 38px; height: 38px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--click);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo"><span class="au">au</span><span class="expert">Expert</span></div>
+
+  <div class="card" id="invite-card">
+    <div class="loading">
+      <div class="spinner"></div>
+      <span style="font-size:13px;color:var(--text-sec)">Carregando convite...</span>
+    </div>
+  </div>
+
+  <div class="footer-text">
+    Multiverso Digital © 2026 · <a href="/">auExpert</a>
+  </div>
+</div>
+
+<script>
+const path = window.location.pathname;
+const search = new URLSearchParams(window.location.search);
+
+let token = search.get('token');
+if (!token) {
+  const parts = path.split('/').filter(Boolean);
+  token = parts[parts.length - 1];
+  if (token === 'invite') token = null;
+}
+
+const inviterName = search.get('from') || 'Alguém';
+const petName     = search.get('pet')  || 'seu pet';
+const role        = search.get('role') || 'co_parent';
+const lang        = navigator.language?.startsWith('en') ? 'en' : 'pt';
+
+const ROLE_LABELS = {
+  pt: { co_parent: 'Co-tutor', caregiver: 'Cuidador', viewer: 'Visualizador', tutor_owner: 'Tutor' },
+  en: { co_parent: 'Co-parent', caregiver: 'Caregiver', viewer: 'Viewer', tutor_owner: 'Tutor' },
+};
+
+const TEXTS = {
+  pt: {
+    label:     'Você foi convidado',
+    title:     (inv, pet) => `${inv} te convidou para cuidar de <span class="pet-name">${pet}</span>`,
+    sub:       'Baixe o auExpert e comece a acompanhar a vida e a saúde do pet com quem você ama.',
+    narration: () => 'Agora vou ter mais alguém cuidando de mim. Fica de olho no meu diário!',
+    narrLbl:   'Palavra do pet',
+    role:      'Seu papel:',
+    downloadAndroid: 'Baixar para Android',
+    downloadIOS:     'Baixar para iPhone',
+    noToken:    'Convite inválido',
+    noTokenSub: 'Este link de convite não é válido ou já foi utilizado.',
+    expired:    'Convite expirado',
+    expiredSub: 'Este convite não é mais válido. Peça ao tutor que gere um novo link.',
+    security:   'Link de uso único · Expira em 48h',
+  },
+  en: {
+    label:     'You were invited',
+    title:     (inv, pet) => `${inv} invited you to care for <span class="pet-name">${pet}</span>`,
+    sub:       'Download auExpert and start following the life and health of the pet with those you love.',
+    narration: () => "I'll have someone else looking after me now. Keep an eye on my diary!",
+    narrLbl:   'From the pet',
+    role:      'Your role:',
+    downloadAndroid: 'Download for Android',
+    downloadIOS:     'Download for iPhone',
+    noToken:    'Invalid invite',
+    noTokenSub: 'This invite link is not valid or has already been used.',
+    expired:    'Invite expired',
+    expiredSub: 'This invite is no longer valid. Ask the tutor to generate a new link.',
+    security:   'Single-use link · Expires in 48h',
+  },
+};
+
+const t = TEXTS[lang];
+const card = document.getElementById('invite-card');
+
+function renderExpired(titleKey, subKey) {
+  card.innerHTML = `
+    <div class="expired-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="8" y1="8" x2="16" y2="16"/><line x1="16" y1="8" x2="8" y2="16"/></svg>
+    </div>
+    <div class="expired-title">${t[titleKey]}</div>
+    <div class="expired-sub">${t[subKey]}</div>
+  `;
+}
+
+if (!token) {
+  renderExpired('noToken', 'noTokenSub');
+} else {
+  const roleLabel = ROLE_LABELS[lang][role] || role;
+  // Deep link — tenta abrir o app; se não instalado, cai em links da loja
+  const appLink = `auexpert://invite/${encodeURIComponent(token)}`;
+  // TODO: substituir pelos links reais da Play Store e App Store quando o app estiver publicado
+  const androidStore = 'https://play.google.com/store/apps/details?id=br.com.multiversodigital.auexpert';
+  const iosStore     = 'https://apps.apple.com/app/auexpert/id000000000';
+
+  const isIOS     = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const storeLink = isIOS ? iosStore : androidStore;
+
+  card.innerHTML = `
+    <div class="paw-badge">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="17" r="4.5"/><circle cx="7" cy="10.5" r="2.2"/><circle cx="17" cy="10.5" r="2.2"/><circle cx="9.5" cy="6.5" r="1.8"/><circle cx="14.5" cy="6.5" r="1.8"/></svg>
+    </div>
+    <div class="invite-label">${t.label}</div>
+    <div class="invite-title">${t.title(inviterName, petName)}</div>
+    <div class="role-badge"><span>${t.role} ${roleLabel}</span></div>
+    <div class="invite-sub">${t.sub}</div>
+
+    <div class="narration">
+      <div class="narration-head">
+        <svg width="10" height="10" viewBox="0 0 12 12"><path d="M6 1l1.5 3L10 5l-2.5 1L6 9 4.5 6 2 5l2.5-1z" fill="#4FA89E"/></svg>
+        <span>${t.narrLbl}</span>
+      </div>
+      <div class="narration-text">"${t.narration(petName)}"</div>
+    </div>
+
+    <a href="${appLink}" class="btn btn-primary" id="open-app">
+      Abrir no auExpert →
+    </a>
+    <a href="${storeLink}" class="btn btn-secondary" target="_blank" rel="noopener">
+      ${isIOS ? t.downloadIOS : t.downloadAndroid}
+    </a>
+
+    <div class="security-note">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>
+      ${t.security}
+    </div>
+  `;
+
+  // Auto-tenta abrir o app (deep link). Se falhar, o tutor usa o botão da loja.
+  setTimeout(() => {
+    window.location.href = appLink;
+  }, 400);
+}
+</script>
+</body>
+</html>

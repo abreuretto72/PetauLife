@@ -3,7 +3,7 @@ import { withTimeout } from './withTimeout';
 
 // RAG search / embedding são chamadas de IA leves (1 round-trip ao Claude
 // embeddings endpoint) — 15s é suficiente e alinhado com DEFAULT_TIMEOUT_MS.
-const RAG_TIMEOUT_MS = 15_000;
+const RAG_TIMEOUT_MS = 140000;
 
 // ── Importance per classification type ────────────────────────────────────
 

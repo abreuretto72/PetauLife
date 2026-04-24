@@ -114,7 +114,7 @@ export default function HealthScreen() {
   }, [vaccines]);
 
   const isDog = pet?.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   const healthLabel = useMemo(() => {
     const s = pet?.health_score;

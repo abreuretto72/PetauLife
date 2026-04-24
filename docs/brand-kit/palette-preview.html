@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>auExpert Elite — Paleta de Cores</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:ital,wght@0,500;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0D0E16;
+      color: #F0EDF5;
+      font-family: 'Inter', -apple-system, sans-serif;
+      padding: 40px;
+      line-height: 1.5;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 500;
+      font-size: 48px;
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+    h1 .au { font-style: italic; color: #F0EDF5; }
+    h1 .expert { color: #A89FB5; }
+    .subtitle { color: #A89FB5; margin-bottom: 40px; font-size: 14px; }
+    h2 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #6B6478;
+      margin: 32px 0 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .swatch {
+      border: 1px solid #2A2D3E;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #161826;
+    }
+    .swatch .color {
+      height: 80px;
+      border-bottom: 1px solid #2A2D3E;
+    }
+    .swatch .info {
+      padding: 12px 14px;
+    }
+    .swatch .name {
+      font-weight: 500;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .swatch .hex {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #A89FB5;
+    }
+    .swatch .desc {
+      font-size: 11px;
+      color: #6B6478;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .type-sample {
+      border: 1px solid #2A2D3E;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      background: #161826;
+    }
+    .type-sample .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #6B6478;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1><span class="au">au</span><span class="expert">Expert</span></h1>
+  <p class="subtitle">Elite — paleta Ametista & Jade, tipografia Playfair + Inter + JetBrains Mono</p>
+
+  <h2>Brand Primary — Ametista (ação)</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="color" style="background:#8F7FA8"></div>
+      <div class="info"><div class="name">click</div><div class="hex">#8F7FA8</div><div class="desc">Botões, links, ícones clicáveis</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#A89AC2"></div>
+      <div class="info"><div class="name">clickLight</div><div class="hex">#A89AC2</div><div class="desc">Hover, destaques leves</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#6B5A8A"></div>
+      <div class="info"><div class="name">clickDark</div><div class="hex">#6B5A8A</div><div class="desc">Pressed, gradiente</div></div>
+    </div>
+  </div>
+
+  <h2>Brand Secondary — Jade (IA)</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="color" style="background:#4FA89E"></div>
+      <div class="info"><div class="name">ai</div><div class="hex">#4FA89E</div><div class="desc">Análises, insights, Sparkles</div></div>
+    </div>
+  </div>
+
+  <h2>Backgrounds</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="color" style="background:#0D0E16"></div>
+      <div class="info"><div class="name">bg</div><div class="hex">#0D0E16</div><div class="desc">Fundo da tela</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#161826"></div>
+      <div class="info"><div class="name">bgCard</div><div class="hex">#161826</div><div class="desc">Cards elevados</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#08090F"></div>
+      <div class="info"><div class="name">bgDeep</div><div class="hex">#08090F</div><div class="desc">Modal backdrop</div></div>
+    </div>
+  </div>
+
+  <h2>Texto</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="color" style="background:#F0EDF5"></div>
+      <div class="info"><div class="name">text</div><div class="hex">#F0EDF5</div><div class="desc">Títulos, principal</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#A89FB5"></div>
+      <div class="info"><div class="name">textSec</div><div class="hex">#A89FB5</div><div class="desc">Corpo, descrições</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#6B6478"></div>
+      <div class="info"><div class="name">textDim</div><div class="hex">#6B6478</div><div class="desc">Labels, hints</div></div>
+    </div>
+  </div>
+
+  <h2>Semânticas</h2>
+  <div class="grid">
+    <div class="swatch">
+      <div class="color" style="background:#7FA886"></div>
+      <div class="info"><div class="name">success</div><div class="hex">#7FA886</div><div class="desc">Saúde OK, sucesso</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#D4A574"></div>
+      <div class="info"><div class="name">warning</div><div class="hex">#D4A574</div><div class="desc">Aviso, conquistas</div></div>
+    </div>
+    <div class="swatch">
+      <div class="color" style="background:#C2645E"></div>
+      <div class="info"><div class="name">danger</div><div class="hex">#C2645E</div><div class="desc">Erro, lixeira</div></div>
+    </div>
+  </div>
+
+  <h2>Tipografia</h2>
+  <div class="type-sample">
+    <div class="label">Display — Playfair Display (logo + títulos)</div>
+    <div style="font-family: 'Playfair Display'; font-weight: 500; font-size: 44px;">
+      <span style="font-style: italic;">au</span><span style="color: #A89FB5;">Expert</span>
+    </div>
+  </div>
+  <div class="type-sample">
+    <div class="label">Body — Inter 400/500 (UI, narração, texto corrido)</div>
+    <div style="font-family: 'Inter'; font-weight: 400; font-size: 16px; line-height: 1.6;">
+      A tela central do app usa Inter regular para texto de interface, com peso medium (500) em labels e botões.
+      A narração da IA aparece em Inter 400 dentro de um container jade, sem itálico.
+    </div>
+  </div>
+  <div class="type-sample">
+    <div class="label">Mono — JetBrains Mono (scores, timestamps, confidence)</div>
+    <div style="font-family: 'JetBrains Mono'; font-weight: 500; font-size: 18px; color: #4FA89E;">
+      Health Score: 94/100 · Confidence: 87% · Last sync: 2026-04-23T18:50Z
+    </div>
+  </div>
+
+  <p style="margin-top: 40px; font-size: 11px; color: #6B6478;">
+    Paleta canônica em <code style="font-family: 'JetBrains Mono'; color: #A89FB5;">constants/colors.ts</code> ·
+    Tokens em <code style="font-family: 'JetBrains Mono'; color: #A89FB5;">docs/brand-kit/tokens.json</code>
+  </p>
+</body>
+</html>

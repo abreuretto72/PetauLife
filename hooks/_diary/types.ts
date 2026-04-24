@@ -115,6 +115,8 @@ export interface SubmitEntryParams {
   skipAI?: boolean;           // when true, skip AI classification/narration — just save text + upload media
   /** Per-routine AI analysis flags. When absent, defaults to all-enabled (backward compat). */
   aiFlags?: AIAnalysisFlags;
+  /** Nível de profundidade da análise IA (off/fast/balanced/deep). Default 'fast' quando omitido. */
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 export interface PDFImportParams {

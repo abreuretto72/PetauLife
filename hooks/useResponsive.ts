@@ -55,16 +55,53 @@ export function rs(size: number): number {
 
 /**
  * fs — Font Size
- * Escala tamanho de fonte com limite para não ficar muito grande/pequeno.
- * Respeita configuração de acessibilidade do dispositivo.
- * fs(16) em 390px = 16, em 320px = ~14, em 428px = ~17
+ * Escala tamanho de fonte com limite de responsividade + multiplicador
+ * de acessibilidade controlado pelo tutor (preferência no Settings).
+ *
+ * Pipeline:
+ *   1. size x widthScale (responsividade do dispositivo)
+ *   2. cap entre 80% e 120% do size original (evita extremos por tela)
+ *   3. x fontScale do store (preferência de acessibilidade, 0.90 a 1.30)
+ *
+ * fs(16) em 390px com fontScale 1.0 = 16
+ * fs(16) em 390px com fontScale 1.30 = ~21
+ *
+ * NOTA: fs() e chamado em StyleSheet.create() (uma vez no import do modulo).
+ * Mudar fontScale NAO atualiza estilos dinamicamente — o app precisa re-montar.
+ * O _layout.tsx aplica key=fontScale no Stack pra forcar re-mount quando
+ * o tutor muda a preferencia.
  */
 export function fs(size: number): number {
   const scaled = size * widthScale;
-  // Limitar: nunca menor que 80% nem maior que 120% do original
   const min = size * 0.8;
   const max = size * 1.2;
-  return PixelRatio.roundToNearestPixel(Math.max(min, Math.min(max, scaled)));
+  const responsive = Math.max(min, Math.min(max, scaled));
+  // Lazy-read do store pra evitar dependencia circular no import
+  let fontScale = 1.0;
+  try {
+    const store = require('../stores/usePreferencesStore');
+    fontScale = store.usePreferencesStore.getState().fontScale ?? 1.0;
+  } catch {
+    // Store ainda nao inicializado ou teste — usar 1.0
+  }
+  return PixelRatio.roundToNearestPixel(responsive * fontScale);
+}
+
+/**
+ * fsWithScale — como fs(), mas aceita o fontScale como parametro explicito.
+ * Util para previews reativos na UI (Settings de tamanho de fonte, por exemplo)
+ * onde o valor precisa atualizar instantaneamente sem re-mount do StyleSheet.
+ *
+ * Regra: fs() le o fontScale do store em tempo de chamada (uma vez por
+ * StyleSheet.create()). fsWithScale() recebe o scale de fora, permitindo
+ * que um componente React re-renderize com um scale diferente do persistido.
+ */
+export function fsWithScale(size: number, scale: number): number {
+  const scaled = size * widthScale;
+  const min = size * 0.8;
+  const max = size * 1.2;
+  const responsive = Math.max(min, Math.min(max, scaled));
+  return PixelRatio.roundToNearestPixel(responsive * scale);
 }
 
 /**

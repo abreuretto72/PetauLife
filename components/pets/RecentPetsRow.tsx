@@ -84,7 +84,7 @@ const RecentPetsRow: React.FC<RecentPetsRowProps> = ({ recent, onSelectPet }) =>
                   isDog ? (
                     <Dog size={rs(12)} color={colors.click} strokeWidth={1.8} />
                   ) : (
-                    <Cat size={rs(12)} color={colors.purple} strokeWidth={1.8} />
+                    <Cat size={rs(12)} color={colors.click} strokeWidth={1.8} />
                   )
                 )}
               </View>

@@ -56,7 +56,7 @@ const TYPE_META: Record<NotificationQueueType, {
 }> = {
   vaccine_reminder: { Icon: Syringe,   color: colors.danger,  labelKey: 'notifications.typeVaccineReminder' },
   diary_reminder:   { Icon: BookOpen,  color: colors.click,  labelKey: 'notifications.typeDiaryReminder' },
-  ai_insight:       { Icon: Sparkles,  color: colors.purple,  labelKey: 'notifications.typeAiInsight' },
+  ai_insight:       { Icon: Sparkles,  color: colors.ai,  labelKey: 'notifications.typeAiInsight' },
   welcome:          { Icon: Heart,     color: colors.rose,    labelKey: 'notifications.typeWelcome' },
 };
 

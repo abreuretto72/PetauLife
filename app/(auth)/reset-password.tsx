@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Lock, Check, ArrowRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -84,13 +83,10 @@ export default function ResetPasswordScreen() {
             activeOpacity={0.8}
             style={styles.btnWrap}
           >
-            <LinearGradient
-              colors={[colors.click, colors.clickDark]}
-              style={styles.btn}
-            >
+            <View style={[styles.btn, { backgroundColor: colors.click }]}>
               <Text style={styles.btnText}>{t('auth.goToLogin')}</Text>
               <ArrowRight size={rs(18)} color="#fff" strokeWidth={2} />
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -156,10 +152,7 @@ export default function ResetPasswordScreen() {
           activeOpacity={0.8}
           style={styles.btnWrap}
         >
-          <LinearGradient
-            colors={[colors.click, colors.clickDark]}
-            style={styles.btn}
-          >
+          <View style={[styles.btn, { backgroundColor: colors.click }]}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
@@ -168,7 +161,7 @@ export default function ResetPasswordScreen() {
                 <ArrowRight size={rs(18)} color="#fff" strokeWidth={2} />
               </>
             )}
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

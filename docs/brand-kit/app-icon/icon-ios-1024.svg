@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  auExpert app icon — iOS / universal (1024×1024)
+  Design: wordmark "au" em Playfair italic sobre gradiente ametista.
+  iOS faz mask automático dos cantos (superellipse ≈ 22% radius) — design full-bleed.
+  Visual: Elite, sóbrio, distingue de outros apps pet que usam mascote cartoon.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#9C8BB8"/>
+      <stop offset="55%"  stop-color="#8F7FA8"/>
+      <stop offset="100%" stop-color="#5C4A78"/>
+    </linearGradient>
+    <filter id="innerShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="4"/>
+      <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.25 0"/>
+    </filter>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500&display=swap');
+      .au { font-family: 'Playfair Display', Didot, Georgia, serif; font-weight: 500; font-style: italic; }
+    ]]></style>
+  </defs>
+
+  <!-- Background gradient -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)"/>
+
+  <!-- Inner shadow pra profundidade sutil -->
+  <rect width="1024" height="1024" fill="url(#bgGrad)" filter="url(#innerShadow)"/>
+
+  <!-- Wordmark "au" centralizado. Ligeiro deslocamento vertical pra compensar
+       o baixo pendular do `u` (optical centering). Letter-spacing levemente aberto. -->
+  <text x="512" y="680"
+        text-anchor="middle"
+        class="au"
+        font-size="640"
+        fill="#F5F1F8"
+        letter-spacing="-8">au</text>
+
+  <!-- Accent jade sutil — pequeno traço sob o wordmark, como assinatura.
+       Centraliza na mesma largura visual do "au" (aprox 280px). -->
+  <rect x="437" y="730" width="150" height="8" rx="4" fill="#4FA89E" opacity="0.85"/>
+</svg>

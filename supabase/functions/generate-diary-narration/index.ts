@@ -40,7 +40,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pet_id, content, mood_id, language = 'pt-BR', context = 'diary' } = await req.json();
+    const { pet_id, content, mood_id, language = 'pt-BR', context = 'diary', analysis_depth = 'balanced' } = await req.json();
     console.log('[generate-diary-narration] pet_id:', pet_id, 'mood:', mood_id, 'lang:', language, 'context:', context, 'content length:', content?.length);
 
     if (!pet_id || !content) {
@@ -109,16 +109,19 @@ Deno.serve(async (req: Request) => {
     if (context === 'pet_registration') {
       // System prompt — 100% estático (zero interpolação). Cacheado pela Anthropic
       // via cache_control. Tudo que varia por pet/tutor foi pro user prompt.
-      const registrationSystemPrompt = `You are a warm storyteller writing the first diary entry for a newly registered pet.
+      const registrationSystemPrompt = `You are a literary narrator writing the first diary entry for a newly registered pet.
+Register: Clarice Lispector in "Laços de Família" — contemplative, sensorial, close, without emotional excess.
 Write in THIRD PERSON about the pet, using the pet's name provided in the user message.
 
-FORMAT: "Hoje [PET_NAME] foi cadastrado no auExpert. [description of the pet based on the provided analysis, max 60 words, 3rd person, warm tone]"
+FORMAT: "Hoje [PET_NAME] foi cadastrado no auExpert. [description of the pet based on the provided analysis, max 60 words, 3rd person, literary tone]"
 
 RULES:
 - Start with "Hoje [PET_NAME] foi cadastrado no auExpert." (replace [PET_NAME] with the actual name)
 - Use the analysis data provided to describe the pet (breed, mood, appearance, health highlights)
 - Maximum 60 words total
-- Warm, celebratory tone — this is a special moment
+- Literary, attentive tone — warmth through observed precision, not through adjective pile-up
+- NO performative exclamations ("!"), NO onomatopoeia ("Yay", "Oops", "Hmm", "Eba", "Xi"), NO pet-to-owner vocatives ("human", "humano", "hein"), NO sign-off ("— your pet")
+- Short sentences. Periods mark ideas. Commas for breath.
 - Respond ONLY in the language specified in the user message
 - Return ONLY valid JSON, no markdown wrapping
 
@@ -161,7 +164,7 @@ ${content}`;
           functionName: 'generate-diary-narration:registration',
           buildPayload: (model) => ({
             model,
-            max_tokens: 400,
+            max_tokens: 600,  // pet_registration sempre deep (onboarding único merece narração rica)
             temperature: 0.7,
             system: [
               { type: 'text', text: registrationSystemPrompt, cache_control: { type: 'ephemeral' } },
@@ -225,8 +228,14 @@ ${content}`;
     // System prompt — 100% estático (zero interpolação). Cacheado via cache_control
     // (ephemeral, 5 min). Tudo que varia por pet/tutor/humor foi pro user prompt,
     // então o cache hita entre TODAS as narrações dentro da janela.
-    const systemPrompt = `You are a warm, empathetic storyteller narrating the life of a pet (dog or cat).
-You write diary entries in THIRD PERSON, as if narrating a story about the pet to their tutor.
+    const systemPrompt = `You are a literary narrator observing the life of a pet (dog or cat).
+You write diary entries in THIRD PERSON, as if telling a small story about the pet to their tutor.
+
+REGISTER — ELITE LITERARY (non-negotiable):
+- Tradition: Clarice Lispector in "Laços de Família" and "Felicidade Clandestina" — contemplative, sensorial, close, without emotional excess.
+- NEVER Clarice of "A Hora da Estrela" (no heaviness, no despair, no metaphors of death or suffering).
+- Warmth comes from observed precision — a texture, a sound, a small gesture — never from adjective pile-up.
+- Short sentences. Periods mark ideas. Commas for breath, not decoration.
 
 The user message will provide: pet name, species, breed, age, sex, current mood, language, and the tutor's content.
 
@@ -234,11 +243,12 @@ UNIVERSAL RULES:
 - Write in THIRD PERSON using the pet's name: "[PET_NAME] foi ao parque" / "[PET_NAME] went to the park"
 - NEVER use "I", "me", "my", "Eu", "meu", "minha" — always use the pet's name or "ele/ela / he/she"
 - Maximum 50 words — be BRIEF, concise, punchy. 2-3 short sentences MAX
-- Tone must vary with the mood specified in the user message
-- Be authentic to the species — dogs: loyal, excited, loves attention; cats: independent, curious, a bit sassy
-- Include emotional nuances that reflect the mood
+- Tone must vary with the mood specified in the user message, but always within the Elite register
+- Be authentic to the species — dogs carry a dog's attention (alert, reading the room); cats carry a cat's reserve (observant, self-contained)
+- Include sensory nuance that reflects the mood, not emotional exclamation
 - Do NOT be generic — reference specific details from what the tutor said
 - Respect the grammatical gender note provided in the user message (masculine/feminine)
+- NO performative exclamations ("!"), NO onomatopoeia ("Yay", "Oops", "Hmm", "Eba", "Xi"), NO pet-to-owner vocatives ("human", "humano", "hein", "né"), NO sign-off ("— your pet"/"— seu pet")
 - Respond ONLY in the language specified in the user message
 - Return ONLY valid JSON, no markdown wrapping
 
@@ -267,8 +277,17 @@ The tutor wrote this about ${petName} today:
 
 "${content}"
 
-Narrate this in third person about ${petName}, reflecting their ${moodDesc} mood.`;
+Narrate this in third person about ${petName}, reflecting their ${moodDesc} mood.
+Length target: ${depthCfg.hint}`;
 
+    // ── Depth→(max_tokens, length hint) ──
+    // 'off' não chega aqui; se chegar, tratamos como fast.
+    const DEPTH_CFG: Record<string, { max: number; hint: string }> = {
+      fast:     { max: 500,  hint: '1 to 2 short factual sentences (max 30 words).' },
+      balanced: { max: 1000, hint: 'Contemplative narration of 80 to 120 words.' },
+      deep:     { max: 1500, hint: 'Rich narration of up to 150 words, integrating breed/age context when relevant.' },
+    };
+    const depthCfg = DEPTH_CFG[analysis_depth] ?? DEPTH_CFG.balanced;
     const cfg2 = await getAIConfig();
     const t1 = Date.now();
     const reqId2 = Math.random().toString(36).slice(2, 10);
@@ -285,7 +304,7 @@ Narrate this in third person about ${petName}, reflecting their ${moodDesc} mood
         functionName: 'generate-diary-narration:diary',
         buildPayload: (model) => ({
           model,
-          max_tokens: 400,
+          max_tokens: depthCfg.max,
           temperature: 0.7,
           system: [
             { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },

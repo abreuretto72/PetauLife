@@ -26,12 +26,11 @@ export async function callClaude(
   modelOverride?: string,
 ): Promise<{ text: string; tokensUsed: number }> {
   const cfg = await getAIConfig();
-  // Usa chain se disponível, senão cai pro single model do local ai-config.
-  // Se modelOverride vier, ele tem prioridade (caller sabe o que quer).
+  // modelOverride tem prioridade (caller sabe o que quer);
+  // senão usa a chain (array normalizado do ai-config).
   const chain: string[] = modelOverride
     ? [modelOverride]
-    // deno-lint-ignore no-explicit-any
-    : ((cfg as any).model_classify_chain as string[] | undefined) ?? [cfg.model_classify];
+    : cfg.model_classify_chain;
 
   const reqId = Math.random().toString(36).slice(2, 10);
   const diagClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -57,6 +56,29 @@ export async function callClaude(
   } catch (callErr) {
     const err = callErr as AnthropicCallError;
     console.error(`[classifier] [${reqId}] Claude call failed:`, err.message);
+    // DIAG: grava body completo do erro para podermos ler depois
+    try {
+      await diagClient.from('edge_function_diag_logs').insert({
+        function_name: 'classify-diary-entry',
+        request_id: reqId,
+        level: 'error',
+        message: '[callClaude] Claude call failed',
+        payload: {
+          status: err.status ?? null,
+          body: err.body ?? null,
+          parsed: err.parsed ?? null,
+          attempts: err.attempts ?? [],
+          exhausted: err.exhausted ?? false,
+          chain,
+          cfg_anthropic_version: cfg.anthropic_version,
+          max_tokens: maxTokens,
+          system_prompt_chars: systemPrompt?.length ?? 0,
+          messages_count: messages?.length ?? 0,
+        },
+      });
+    } catch (diagErr) {
+      console.error('[callClaude] error diag insert failed:', diagErr);
+    }
     throw new Error(`Claude API error: ${err.status ?? 'network'}`);
   }
 

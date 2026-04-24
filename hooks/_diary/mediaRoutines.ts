@@ -31,15 +31,15 @@ import type {
 
 // ── Timeouts por tipo (ms) ─────────────────────────────────────────────────────
 
-const TIMEOUT_TEXT_MS  = 30_000;
-const TIMEOUT_PHOTO_MS = 55_000;  // increased: 3 concurrent analyze-pet-photo calls need more time
+const TIMEOUT_TEXT_MS  = 140000;
+const TIMEOUT_PHOTO_MS = 140000;  // increased: 3 concurrent analyze-pet-photo calls need more time
 // Video + pet_audio rodam em Gemini (callGemini.ts usa AbortSignal.timeout(60_000)
 // como innermost). Para o OUTER (aqui) não abortar antes do Gemini responder e
 // descartar video_analysis/pet_audio_analysis, ele precisa ficar ACIMA de 60s.
 // Chain: Gemini 60s (innermost) < lib/ai.ts 70s (middle) < mediaRoutines 75s (outermost).
-const TIMEOUT_VIDEO_MS = 75_000;
-const TIMEOUT_AUDIO_MS = 75_000;
-const TIMEOUT_OCR_MS   = 55_000;
+const TIMEOUT_VIDEO_MS = 140000;
+const TIMEOUT_AUDIO_MS = 140000;
+const TIMEOUT_OCR_MS   = 140000;
 
 // ── runTextClassification ──────────────────────────────────────────────────────
 
@@ -52,6 +52,7 @@ export interface TextClassificationInput {
   photosBase64?: string[];
   language:    string;
   authHeader:  Record<string, string>;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 /**
@@ -71,8 +72,8 @@ export async function runTextClassification(
   }
   try {
     const classifyFn = hasText
-      ? classifyTextOnly(input.petId, input.text!, input.language, input.authHeader)
-      : classifyPhotoGallery(input.petId, input.photosBase64!, input.language, input.authHeader);
+      ? classifyTextOnly(input.petId, input.text!, input.language, input.authHeader, input.analysisDepth ?? 'fast')
+      : classifyPhotoGallery(input.petId, input.photosBase64!, input.language, input.authHeader, input.analysisDepth ?? 'fast');
 
     const value = await withTimeout(classifyFn, TIMEOUT_TEXT_MS, 'text');
     console.log('[ROUTINE-TEXT] OK | mode:', hasText ? 'text' : 'gallery', '| primary_type:', value.primary_type, '| narration:', !!value.narration);
@@ -108,6 +109,7 @@ export interface PhotoAnalysesInput {
    * Chamado UMA vez por frame, via `.finally()` em cada Promise individual — não no Promise.all.
    */
   onFrameComplete?: (idx: number) => void;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 /**
@@ -134,6 +136,7 @@ export async function runPhotoAnalyses(
             species:      input.species,
             pet_name:     input.petName,
             pet_breed:    input.petBreed,
+            analysis_depth: input.analysisDepth ?? 'fast',
             // Frames além das fotos do tutor são marcados como video_frame
             ...(input.tutorPhotoCount === 0 || idx >= input.tutorPhotoCount
               ? { context: 'video_frame' }
@@ -194,6 +197,7 @@ export interface VideoClassificationInput {
   thumbnailFrameBase64: string | null;
   language:            string;
   authHeader:          Record<string, string>;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 /**
@@ -241,6 +245,7 @@ export interface AudioClassificationInput {
   durationSeconds: number | null;
   language:        string;
   authHeader:      Record<string, string>;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 /**
@@ -285,6 +290,7 @@ export interface OCRClassificationInput {
   docBase64:  string;
   language:   string;
   authHeader: Record<string, string>;
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';
 }
 
 /**
@@ -302,7 +308,7 @@ export async function runOCRClassification(
   }
   try {
     const value = await withTimeout(
-      classifyOCR(input.petId, input.docBase64, input.language, input.authHeader),
+      classifyOCR(input.petId, input.docBase64, input.language, input.authHeader, input.analysisDepth ?? 'fast'),
       TIMEOUT_OCR_MS,
       'ocr',
     );

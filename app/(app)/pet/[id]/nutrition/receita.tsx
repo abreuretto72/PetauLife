@@ -157,7 +157,7 @@ export default function ReceitaScreen() {
           <>
             <SectionLabel label={t('nutrition.receitaAITip')} />
             <View style={s.aiTipCard}>
-              <Sparkles size={rs(16)} color={colors.purple} />
+              <Sparkles size={rs(16)} color={colors.ai} />
               <Text style={s.aiTipText}>{recipe.ai_tip}</Text>
             </View>
           </>
@@ -226,8 +226,8 @@ const s = StyleSheet.create({
   storageText: { fontSize: fs(14), color: colors.text },
   aiTipCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: rs(10),
-    backgroundColor: colors.purpleSoft, borderRadius: rs(12), padding: rs(14),
-    borderWidth: 1, borderColor: colors.purple + '30',
+    backgroundColor: colors.clickSoft, borderRadius: rs(12), padding: rs(14),
+    borderWidth: 1, borderColor: colors.click + '30',
   },
   aiTipText: { flex: 1, fontSize: fs(13), color: colors.textSec, lineHeight: rs(20) },
 });

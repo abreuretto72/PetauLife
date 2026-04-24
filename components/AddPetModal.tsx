@@ -44,6 +44,7 @@ import { formatDateInput, parseDateInput, getDatePlaceholder, calcAgeMonths } fr
 import { validatePetName, petNameErrorI18nKey } from '../utils/validatePetName';
 import { supabase } from '../lib/supabase';
 import { withTimeout } from '../lib/withTimeout';
+import { AIThinkingTicker } from './AIThinkingTicker';
 import { compressImageForAI } from '../lib/imageCompression';
 import type { PhotoAnalysisResponse } from '../types/ai';
 
@@ -290,7 +291,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
               language: i18n.language,
             },
           }),
-          30_000,
+          140000,
           'analyze-pet-photo:addPet',
         );
 
@@ -445,7 +446,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
   if (!visible) return null;
 
   const isDog = species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   const formatAge = (months: number) => {
     if (months >= 12) {
@@ -528,18 +529,18 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.speciesBtn, { borderColor: colors.purple + '30' }]}
+                  style={[styles.speciesBtn, { borderColor: colors.click + '30' }]}
                   activeOpacity={0.7}
                   onPress={() => handleSelectSpecies('cat')}
                 >
-                  <View style={[styles.speciesIcon, { backgroundColor: colors.purple + '12' }]}>
-                    <Cat size={rs(40)} color={colors.purple} strokeWidth={1.5} />
+                  <View style={[styles.speciesIcon, { backgroundColor: colors.click + '12' }]}>
+                    <Cat size={rs(40)} color={colors.click} strokeWidth={1.5} />
                   </View>
                   <View style={styles.speciesInfo}>
                     <Text style={styles.speciesLabel}>{t('pets.cat')}</Text>
                     <Text style={styles.speciesSub}>{t('addPet.allBreeds')}</Text>
                   </View>
-                  <ArrowRight size={rs(20)} color={colors.purple} strokeWidth={1.8} />
+                  <ArrowRight size={rs(20)} color={colors.click} strokeWidth={1.8} />
                 </TouchableOpacity>
 
                 <Text style={styles.onlyDogsAndCats}>{t('addPet.onlyDogsAndCats')}</Text>
@@ -550,7 +551,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
             {step === 1 && species && (
               <>
                 <View style={styles.aiBanner}>
-                  <Sparkles size={rs(18)} color={colors.purple} strokeWidth={1.8} />
+                  <Sparkles size={rs(18)} color={colors.ai} strokeWidth={1.8} />
                   <Text style={styles.aiBannerText}>{t('addPet.aiWillIdentify')}</Text>
                 </View>
 
@@ -590,14 +591,15 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                   <View style={styles.analyzingContainer}>
                     {photoUri && (
                       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                        <Image source={{ uri: photoUri }} style={[styles.analyzingPhoto, { borderColor: colors.purple + '50' }]} />
+                        <Image source={{ uri: photoUri }} style={[styles.analyzingPhoto, { borderColor: colors.click + '50' }]} />
                       </Animated.View>
                     )}
                     <View style={styles.analyzingRow}>
-                      <ActivityIndicator size="small" color={colors.purple} />
+                      <ActivityIndicator size="small" color={colors.click} />
                       <Text style={styles.analyzingText}>{t('addPet.analyzing')}</Text>
                     </View>
                     <Text style={styles.analyzingHint}>{t('addPet.analyzingHint')}</Text>
+                    {analyzing && <AIThinkingTicker species={species ?? 'both'} />}
                   </View>
                 )}
 
@@ -606,7 +608,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                   <>
                     {analysis && (
                       <View style={styles.aiResultsHeader}>
-                        <Sparkles size={rs(16)} color={colors.purple} strokeWidth={2} />
+                        <Sparkles size={rs(16)} color={colors.ai} strokeWidth={2} />
                         <Text style={styles.aiResultsTitle}>{t('addPet.analysisComplete')}</Text>
                         {analysis.breed && (
                           <View style={styles.confidenceBadge}>
@@ -623,7 +625,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                         <View style={styles.aiSummaryTop}>
                           {isDog ? <Dog size={rs(24)} color={petColor} strokeWidth={1.8} /> : <Cat size={rs(24)} color={petColor} strokeWidth={1.8} />}
                           <View style={styles.aiSummaryBadge}>
-                            <Sparkles size={rs(12)} color={colors.purple} strokeWidth={2} />
+                            <Sparkles size={rs(12)} color={colors.ai} strokeWidth={2} />
                             <Text style={styles.aiSummaryBadgeText}>{t('addPet.manualEntry')}</Text>
                           </View>
                         </View>
@@ -686,7 +688,7 @@ const AddPetModal: React.FC<AddPetModalProps> = ({
                       placeholder={t('addPet.breed')}
                       value={editBreed}
                       onChangeText={setEditBreed}
-                      icon={<ScanEye size={rs(20)} color={colors.purple} strokeWidth={1.8} />}
+                      icon={<ScanEye size={rs(20)} color={colors.click} strokeWidth={1.8} />}
                     />
 
                     {/* Data nascimento + Peso (lado a lado) */}
@@ -907,8 +909,8 @@ const styles = StyleSheet.create({
   onlyDogsAndCats: { fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textGhost, textAlign: 'center', marginTop: spacing.sm },
 
   // Step 1
-  aiBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.purpleSoft, borderWidth: 1, borderColor: colors.purple + '25', borderRadius: radii.lg, paddingVertical: rs(10), marginBottom: spacing.md },
-  aiBannerText: { fontFamily: 'Sora_700Bold', fontSize: fs(13), color: colors.purple },
+  aiBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.clickSoft, borderWidth: 1, borderColor: colors.click + '25', borderRadius: radii.lg, paddingVertical: rs(10), marginBottom: spacing.md },
+  aiBannerText: { fontFamily: 'Sora_700Bold', fontSize: fs(13), color: colors.click },
   photoInstructions: { fontFamily: 'Sora_400Regular', fontSize: fs(14), color: colors.textSec, textAlign: 'center', lineHeight: rs(22), marginBottom: spacing.lg },
   cameraBtn: { borderWidth: 1.5, borderStyle: 'dashed', borderRadius: radii.card, overflow: 'hidden', marginBottom: spacing.md },
   cameraBtnGradient: { alignItems: 'center', paddingVertical: rs(32), gap: rs(10) },
@@ -931,21 +933,21 @@ const styles = StyleSheet.create({
   analyzingContainer: { alignItems: 'center', paddingVertical: spacing.xl },
   analyzingPhoto: { width: rs(140), height: rs(140), borderRadius: radii.card, borderWidth: rs(3), marginBottom: spacing.lg },
   analyzingRow: { flexDirection: 'row', alignItems: 'center', gap: rs(10), marginBottom: spacing.sm },
-  analyzingText: { fontFamily: 'Sora_700Bold', fontSize: fs(16), color: colors.purple },
+  analyzingText: { fontFamily: 'Sora_700Bold', fontSize: fs(16), color: colors.click },
   analyzingHint: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textDim, textAlign: 'center' },
 
   // Step 2: AI Results header
   aiResultsHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginBottom: spacing.md },
-  aiResultsTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.purple, flex: 1 },
-  confidenceBadge: { backgroundColor: colors.purpleSoft, borderRadius: radii.sm, paddingHorizontal: rs(6), paddingVertical: 2 },
-  confidenceText: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(10), color: colors.purple },
+  aiResultsTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.ai, flex: 1 },
+  confidenceBadge: { backgroundColor: colors.aiSoft, borderRadius: radii.sm, paddingHorizontal: rs(6), paddingVertical: 2 },
+  confidenceText: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(10), color: colors.ai },
   aiDisclaimer: { fontFamily: 'Sora_400Regular', fontSize: fs(11), color: colors.textDim, textAlign: 'center', marginTop: rs(4), marginBottom: spacing.md, fontStyle: 'italic' },
 
   // Step 2: Manual
   aiSummary: { backgroundColor: colors.card, borderWidth: 1, borderRadius: radii.xxl, padding: spacing.md, marginBottom: spacing.lg },
   aiSummaryTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  aiSummaryBadge: { flexDirection: 'row', alignItems: 'center', gap: rs(4), backgroundColor: colors.purpleSoft, borderRadius: radii.sm, paddingHorizontal: rs(8), paddingVertical: rs(4) },
-  aiSummaryBadgeText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(10), color: colors.purple },
+  aiSummaryBadge: { flexDirection: 'row', alignItems: 'center', gap: rs(4), backgroundColor: colors.clickSoft, borderRadius: radii.sm, paddingHorizontal: rs(8), paddingVertical: rs(4) },
+  aiSummaryBadgeText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(10), color: colors.click },
   aiSummaryHint: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textSec, lineHeight: rs(20) },
 
   // Alerts + BCS

@@ -84,7 +84,7 @@ useFontScale()          // escala de acessibilidade
 const fonts = {
   sora: 'Sora',           // UI — títulos, labels, botões, corpo
   mono: 'JetBrainsMono',  // dados — datas, IDs, números, código
-  caveat: 'Caveat',       // narração IA — texto na voz do pet
+  caveat: 'Caveat',       // narração IA — texto literário 3ª pessoa (LEGADO — Caveat sai na migração Elite)
 };
 
 // Uso:
@@ -137,8 +137,8 @@ toast(t('errors.saveFailed'), 'error')
 toast(t('toast.warning'), 'warning')
 toast(t('toast.info'), 'info')
 
-// Tom: voz do pet — empático, nunca técnico
-// "Xi, algo deu errado. Tenta de novo?" ✅
+// Tom: registro Elite — 3ª pessoa literária, factual
+// "Algo não saiu como esperado. Tente novamente." ✅
 // "Error 500" ❌
 ```
 

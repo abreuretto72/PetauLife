@@ -40,7 +40,7 @@ const ROLE_CONFIG: Record<MemberRole, {
   Icon: React.ElementType;
 }> = {
   owner:     { labelKey: 'members.roles.owner',     descKey: 'members.roles.ownerDesc',     color: colors.click,  Icon: ShieldCheck },
-  co_parent: { labelKey: 'members.roles.co_parent', descKey: 'members.roles.coParentDesc',  color: colors.purple,  Icon: UserCheck },
+  co_parent: { labelKey: 'members.roles.co_parent', descKey: 'members.roles.coParentDesc',  color: colors.click,  Icon: UserCheck },
   caregiver: { labelKey: 'members.roles.caregiver', descKey: 'members.roles.caregiverDesc', color: colors.petrol,  Icon: Users },
   viewer:    { labelKey: 'members.roles.viewer',    descKey: 'members.roles.viewerDesc',    color: colors.textDim, Icon: Eye },
 };

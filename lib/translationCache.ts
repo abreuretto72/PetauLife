@@ -102,7 +102,7 @@ export async function fetchTranslation(targetLang: string): Promise<Record<strin
           targetLanguageName: getLanguageName(targetLang),
         },
       }),
-      15_000,
+      140_000,
       `translate-strings:${targetLang}`,
     );
 

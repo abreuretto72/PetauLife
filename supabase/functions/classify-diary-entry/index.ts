@@ -62,6 +62,7 @@ Deno.serve(async (req: Request) => {
       video_url,              // public URL of uploaded video for video input type
       input_type = 'text',
       language = 'pt-BR',
+      analysis_depth = 'balanced',
     } = body;
 
     const hasPhoto = !!photo_base64 || (Array.isArray(photos_base64) && photos_base64.length > 0);
@@ -102,6 +103,7 @@ Deno.serve(async (req: Request) => {
       input_type,
       language,
       petContext,
+      analysisDepth: analysis_depth,
     });
 
     // 6. Auto-save allergy classifications to the allergies table — fire-and-forget

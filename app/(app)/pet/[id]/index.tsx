@@ -200,7 +200,6 @@ export default function PetScreen() {
   }
 
   const isDog = pet.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
   const latestMood = moodLogs.length > 0 ? moods.find((m) => m.id === moodLogs[0].mood_id) : null;
 
 
@@ -211,13 +210,13 @@ export default function PetScreen() {
       {/* Avatar row */}
       <View style={s.heroRow}>
         <TouchableOpacity onPress={() => setShowPhotoOptions(!showPhotoOptions)} activeOpacity={0.8}>
-          <View style={[s.avatar, { borderColor: petColor + '25' }]}>
+          <View style={[s.avatar, { borderColor: colors.click + '25' }]}>
             {pet.avatar_url ? (
               <Image source={{ uri: pet.avatar_url }} style={s.avatarImg} />
             ) : (
               isDog
-                ? <Dog size={rs(48)} color={petColor} strokeWidth={1.5} />
-                : <Cat size={rs(48)} color={petColor} strokeWidth={1.5} />
+                ? <Dog size={rs(48)} color={colors.click} strokeWidth={1.5} />
+                : <Cat size={rs(48)} color={colors.click} strokeWidth={1.5} />
             )}
           </View>
           <View style={s.cameraBtn}>
@@ -292,7 +291,7 @@ export default function PetScreen() {
       {pet.ai_personality && (
         <View style={s.aiCard}>
           <View style={s.aiHeader}>
-            <Sparkles size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+            <Sparkles size={rs(14)} color={colors.ai} strokeWidth={1.8} />
             <Text style={s.aiLabel}>{t('pet.personality')}</Text>
           </View>
           <Text style={s.aiText}>{pet.ai_personality}</Text>
@@ -483,7 +482,7 @@ const s = StyleSheet.create({
   loadingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
   // Hero wrapper (passed as DiaryTimeline headerExtra)
-  heroWrapper: { paddingHorizontal: rs(16), paddingBottom: rs(8), gap: rs(12) },
+  heroWrapper: { paddingHorizontal: rs(16), paddingTop: rs(8), paddingBottom: rs(16), gap: rs(16) },
 
   // Avatar row
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: rs(18), paddingTop: rs(8) },
@@ -513,9 +512,9 @@ const s = StyleSheet.create({
   vaccineAlertText: { flex: 1, fontFamily: 'Sora_700Bold', fontSize: fs(12), color: colors.danger },
 
   // AI Personality
-  aiCard: { backgroundColor: colors.bgCard, borderRadius: rs(18), borderWidth: 1, borderColor: colors.purple + '20', padding: rs(16), gap: rs(8) },
+  aiCard: { backgroundColor: colors.bgCard, borderRadius: rs(18), borderWidth: 1, borderColor: colors.aiBorder, padding: rs(18), gap: rs(10) },
   aiHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },
-  aiLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(11), color: colors.purple, letterSpacing: 0.8 },
+  aiLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(11), color: colors.ai, letterSpacing: 0.8 },
   aiText: { fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textSec, lineHeight: fs(20) },
 
   // Allergies

@@ -216,7 +216,7 @@ export const styles = StyleSheet.create({
   scoreCardTitle: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(13),
-    color: colors.purple,
+    color: colors.click,
     flex: 1,
   },
   scoreCardSub: {

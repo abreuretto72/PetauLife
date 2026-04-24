@@ -34,7 +34,7 @@ interface QrType {
 const QUICK_ACTIONS: QuickAction[] = [
   { id: 'share', labelKey: 'idCard.share', icon: Share2, color: colors.click },
   { id: 'pdf', labelKey: 'idCard.downloadPdf', icon: FileText, color: colors.warning },
-  { id: 'print', labelKey: 'idCard.print', icon: Printer, color: colors.purple },
+  { id: 'print', labelKey: 'idCard.print', icon: Printer, color: colors.click },
   { id: 'nfc', labelKey: 'idCard.nfc', icon: Wifi, color: colors.petrol },
 ];
 
@@ -102,7 +102,7 @@ export default function IdCardScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const petColor = pet?.species === 'cat' ? colors.purple : colors.click;
+  const petColor = pet?.species === 'cat' ? colors.click : colors.click;
   const PetIcon = pet?.species === 'cat' ? Cat : Dog;
   const idNumber = pet?.microchip_id ?? 'PL-2024-00381';
 

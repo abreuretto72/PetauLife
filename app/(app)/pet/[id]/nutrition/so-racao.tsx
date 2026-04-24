@@ -71,7 +71,7 @@ export default function SoRacaoScreen() {
 
         {/* AI hint */}
         <View style={s.aiCard}>
-          <Sparkles size={rs(16)} color={colors.purple} />
+          <Sparkles size={rs(16)} color={colors.ai} />
           <Text style={s.aiText}>{t('nutrition.aiHintRecords', { name: petName, context: sexContext(pet?.sex) })}</Text>
         </View>
       </ScrollView>
@@ -128,8 +128,8 @@ const s = StyleSheet.create({
   enrichText: { flex: 1, fontSize: fs(14), color: colors.text, lineHeight: rs(20) },
   aiCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: rs(10),
-    backgroundColor: colors.purpleSoft, borderRadius: rs(12), padding: rs(14),
-    borderWidth: 1, borderColor: colors.purple + '30',
+    backgroundColor: colors.aiSoft, borderRadius: rs(12), padding: rs(14),
+    borderWidth: 1, borderColor: colors.ai + '30',
   },
   aiText: { flex: 1, fontSize: fs(13), color: colors.textSec, lineHeight: rs(20) },
 });

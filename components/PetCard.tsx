@@ -70,7 +70,6 @@ const PetCard: React.FC<PetCardProps> = ({
     // Fallback: reset if screen never hides this component (e.g. navigation error)
     diaryTimerRef.current = setTimeout(() => setDiaryLoading(false), 4000);
   };
-  const petColor = isDog ? colors.click : colors.purple;
   const mood = pet.current_mood
     ? moods.find((m) => m.id === pet.current_mood)
     : null;
@@ -81,20 +80,20 @@ const PetCard: React.FC<PetCardProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      style={[styles.card, { shadowColor: petColor }]}
+      style={styles.card}
     >
       {/* Top row: avatar + info + edit */}
       <View style={styles.topRow}>
-        <View style={[styles.avatarOuter, { borderColor: petColor + '40' }]}>
+        <View style={[styles.avatarOuter, { borderColor: colors.click + '40' }]}>
           {pet.avatar_url ? (
             <Image source={{ uri: pet.avatar_url }} style={styles.avatarImage} />
           ) : (
             <>
-              <View style={[styles.avatarGlow, { backgroundColor: petColor + '10' }]} />
+              <View style={[styles.avatarGlow, { backgroundColor: colors.clickSoft }]} />
               {isDog ? (
                 <Dog size={36} color={colors.click} strokeWidth={1.8} />
               ) : (
-                <Cat size={36} color={colors.purple} strokeWidth={1.8} />
+                <Cat size={36} color={colors.click} strokeWidth={1.8} />
               )}
             </>
           )}
@@ -151,13 +150,13 @@ const PetCard: React.FC<PetCardProps> = ({
       {/* Stats: Vacinas · Diário · Agenda */}
       <View style={styles.statsRow}>
 
-        {/* Box 1 — Minha IA */}
+        {/* Box 1 — Minha IA (ametista — regra: clicável = ametista sempre) */}
         <TouchableOpacity
           style={styles.statBox}
           onPress={(e) => { e.stopPropagation(); onPressIA?.(); }}
           activeOpacity={0.75}
         >
-          <Sparkles size={rs(16)} color="#fff" strokeWidth={2} />
+          <Sparkles size={rs(16)} color="#FFFFFF" strokeWidth={2} />
           <Text style={styles.statValue} numberOfLines={1}>
             {t('pets.boxIAValue')}
           </Text>
@@ -172,8 +171,8 @@ const PetCard: React.FC<PetCardProps> = ({
           disabled={diaryLoading}
         >
           {diaryLoading
-            ? <ActivityIndicator size={rs(16)} color="#fff" />
-            : <BookOpen size={rs(16)} color="#fff" strokeWidth={2} />}
+            ? <ActivityIndicator size={rs(16)} color="#FFFFFF" />
+            : <BookOpen size={rs(16)} color="#FFFFFF" strokeWidth={2} />}
           <Text style={styles.statValue} numberOfLines={1}>
             {pet.last_diary_entry
               ? formatRelativeDate(pet.last_diary_entry)
@@ -188,7 +187,7 @@ const PetCard: React.FC<PetCardProps> = ({
           onPress={(e) => { e.stopPropagation(); onPressAgenda?.(); }}
           activeOpacity={0.75}
         >
-          <CalendarDays size={rs(16)} color="#fff" strokeWidth={2} />
+          <CalendarDays size={rs(16)} color="#FFFFFF" strokeWidth={2} />
           <Text style={styles.statValue} numberOfLines={1}>
             {pet.agenda_count != null && pet.agenda_count > 0
               ? t('pets.boxAgendaCount', { count: pet.agenda_count })
@@ -240,12 +239,13 @@ const styles = StyleSheet.create({
     borderWidth: rs(1),
     borderColor: colors.border,
     borderRadius: rs(radii.card),
-    padding: rs(spacing.md),
-    marginBottom: rs(spacing.md),
+    padding: rs(18),
+    marginBottom: rs(24),
+    shadowColor: colors.click,
     shadowOffset: { width: 0, height: rs(4) },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.08,
     shadowRadius: rs(16),
-    elevation: 4,
+    elevation: 3,
   },
   topRow: {
     flexDirection: 'row',
@@ -255,15 +255,15 @@ const styles = StyleSheet.create({
     width: rs(36),
     height: rs(36),
     borderRadius: rs(10),
-    backgroundColor: colors.click + '12',
+    backgroundColor: colors.clickSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarOuter: {
-    width: rs(68),
-    height: rs(68),
-    borderRadius: rs(18),
-    borderWidth: rs(2.5),
+    width: rs(88),
+    height: rs(88),
+    borderRadius: rs(22),
+    borderWidth: rs(2),
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgCard,
@@ -272,15 +272,15 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: rs(16),
+    borderRadius: rs(20),
   },
   avatarGlow: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: rs(18),
+    borderRadius: rs(22),
   },
   topInfo: {
     flex: 1,
-    marginLeft: rs(14),
+    marginLeft: rs(16),
     marginRight: rs(8),
   },
   nameRow: {
@@ -290,9 +290,10 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: 'Sora_700Bold',
-    fontSize: fs(22),
+    fontSize: fs(24),
     color: colors.text,
     flexShrink: 1,
+    letterSpacing: rs(-0.3),
   },
   sexSymbol: {
     fontFamily: 'Sora_700Bold',
@@ -319,19 +320,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_400Regular',
     fontSize: fs(13),
     color: colors.textDim,
-    marginTop: rs(2),
+    marginTop: rs(4),
   },
   tagsRow: {
     flexDirection: 'row',
     gap: rs(6),
-    marginTop: rs(8),
+    marginTop: rs(10),
   },
   tag: {
-    backgroundColor: colors.bgCard,
+    backgroundColor: 'transparent',
     borderWidth: rs(1),
-    borderColor: colors.border,
+    borderColor: colors.borderLight,
     borderRadius: rs(radii.sm),
-    paddingHorizontal: rs(8),
+    paddingHorizontal: rs(9),
     paddingVertical: rs(3),
   },
   tagText: {
@@ -341,34 +342,35 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: rs(spacing.sm),
-    marginTop: rs(14),
+    gap: rs(10),
+    marginTop: rs(18),
   },
   statBox: {
     flex: 1,
     backgroundColor: colors.click,
     borderRadius: rs(radii.lg),
-    paddingVertical: rs(10),
+    paddingVertical: rs(12),
+    paddingHorizontal: rs(6),
     alignItems: 'center',
-    gap: rs(4),
+    gap: rs(5),
   },
   statValue: {
     fontFamily: 'JetBrainsMono_700Bold',
     fontSize: fs(11),
-    color: '#fff',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   statLabel: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: fs(10),
-    color: 'rgba(255,255,255,0.75)',
-    letterSpacing: rs(0.3),
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: rs(0.5),
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: rs(12),
+    marginTop: rs(16),
   },
   vaccineBar: {
     flexDirection: 'row',
@@ -386,7 +388,7 @@ const styles = StyleSheet.create({
     width: rs(32),
     height: rs(32),
     borderRadius: rs(10),
-    backgroundColor: colors.click + '12',
+    backgroundColor: colors.clickSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },

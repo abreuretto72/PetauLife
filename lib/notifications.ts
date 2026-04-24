@@ -185,30 +185,47 @@ export async function scheduleAgendaReminders(
       event.title + (sub ? ` — ${sub}` : ''),
     );
   } else {
-    // Timed events: 24 h + 1 h + at time
-    const ms24h = 24 * 60 * 60 * 1000;
-    const ms1h  =      60 * 60 * 1000;
+    // Timed events: 3 antecedências configuráveis + no horário.
+    // Valores vêm do usePreferencesStore (defaults 1d / 6h / 2h).
+    const { usePreferencesStore } = await import('../stores/usePreferencesStore');
+    const { notifAdvanceLong, notifAdvanceMid, notifAdvanceShort } = usePreferencesStore.getState();
+    const timeStr = eventDate.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
-    if (msUntilEvent > ms24h) {
-      const t24 = new Date(eventDate.getTime() - ms24h);
-      const timeStr = eventDate.toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
+    // Helper: agenda um aviso X minutos antes, se faltar tempo suficiente.
+    const scheduleAdvance = async (minutesBefore: number, label: string) => {
+      const msBefore = minutesBefore * 60 * 1000;
+      if (msUntilEvent <= msBefore) return;
+      const target = new Date(eventDate.getTime() - msBefore);
       await schedule(
-        t24,
-        i18n.t('notifications.tomorrow'),
+        target,
+        label,
         `${event.title} — ${timeStr}${sub ? ` — ${sub}` : ''}`,
       );
-    }
+    };
 
-    if (msUntilEvent > ms1h) {
-      const t1h = new Date(eventDate.getTime() - ms1h);
-      await schedule(
-        t1h,
-        i18n.t('notifications.inOneHour'),
-        event.title + (sub ? ` — ${sub}` : ''),
-      );
-    }
+    // 1º aviso (mais longo) — label "amanhã" se ≥24h, senão genérico
+    await scheduleAdvance(
+      notifAdvanceLong,
+      notifAdvanceLong >= 24 * 60
+        ? i18n.t('notifications.tomorrow')
+        : i18n.t('notifications.advanceHours', { hours: Math.round(notifAdvanceLong / 60) }),
+    );
+    // 2º aviso (médio)
+    await scheduleAdvance(
+      notifAdvanceMid,
+      i18n.t('notifications.advanceHours', { hours: Math.round(notifAdvanceMid / 60) }),
+    );
+    // 3º aviso (curto) — label especial se 1h
+    await scheduleAdvance(
+      notifAdvanceShort,
+      notifAdvanceShort === 60
+        ? i18n.t('notifications.inOneHour')
+        : notifAdvanceShort < 60
+          ? i18n.t('notifications.advanceMinutes', { mins: notifAdvanceShort })
+          : i18n.t('notifications.advanceHours', { hours: Math.round(notifAdvanceShort / 60) }),
+    );
 
-    // At event time
+    // No horário do evento
     await schedule(
       eventDate,
       i18n.t('notifications.now'),

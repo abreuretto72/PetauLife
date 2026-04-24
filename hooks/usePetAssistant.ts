@@ -77,7 +77,7 @@ export function usePetAssistant(petId: string) {
 
       const { data, error: fnError } = await withTimeout(
         supabase.functions.invoke('pet-assistant', { body: payload }),
-        30_000,
+        140000,
         'pet-assistant',
       );
 

@@ -1,4 +1,13 @@
 -- Migration 019: Achievements (Conquistas + XP + Nível)
+--
+-- DEPRECATED 2026-04-24 — gamificacao saiu do escopo Elite (Pilar 3 do plano).
+-- Schema preservado para:
+--   (a) nao quebrar deep links antigos em /pet/[id]/achievements
+--   (b) reuso futuro em retrospectiva anual (Pilar 6) como historico de marcos
+-- Client logic (lib/achievements.ts::checkAndAwardAchievements) virou no-op
+-- em 2026-04-24. Nenhuma nova row sera inserida. Rows existentes permanecem.
+-- NAO reverter esta migration sem plano explicito.
+--
 -- Unlocked automatically by client after each diary save, based on pet stats.
 -- Depends on: 012_diary_centric_phase1.sql (diary_entries)
 

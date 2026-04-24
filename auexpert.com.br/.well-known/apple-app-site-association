@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.br.com.multiversodigital.auexpert",
+        "paths": [
+          "/invite/*",
+          "/pet/*",
+          "/p/*",
+          "NOT /privacidade*",
+          "NOT /termos*",
+          "NOT /contato*",
+          "NOT /.well-known/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.br.com.multiversodigital.auexpert"]
+  }
+}

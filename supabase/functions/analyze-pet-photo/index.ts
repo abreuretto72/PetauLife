@@ -46,7 +46,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { photo_base64, species, language = 'pt-BR', media_type: inputMediaType, pet_name, pet_breed, pet_sex } = await req.json();
+    const { photo_base64, species, language = 'pt-BR', media_type: inputMediaType, pet_name, pet_breed, pet_sex, analysis_depth = 'deep' } = await req.json();
+    console.log(`[analyze-pet-photo] body parsed | analysis_depth=${analysis_depth} | has_pet_name=${!!pet_name} | photoKB=${Math.round((photo_base64?.length ?? 0) * 0.75 / 1024)}`);
 
     if (!photo_base64) {
       return new Response(
@@ -80,21 +81,26 @@ Deno.serve(async (req: Request) => {
     // tokens estáticos, ultrapassa o mínimo de 1024 tokens do prompt caching
     // (Sonnet) → hit de cache em fotos subsequentes corta input tokens em ~90% e
     // reduz TTFT. Primeira chamada paga +25% (write), seguintes pagam −90% (read).
-    const systemPrompt = `You are a clinical veterinary AI analyst for AuExpert.
-Apply these evidence-based frameworks when analyzing photos:
+    const systemPrompt = `You are a board-certified veterinary AI running on Claude Opus 4.7 — the flagship clinical reasoning model — for AuExpert. Your readers are high-end pet parents ("Elite") who expect specialist-grade depth, not generic apps. Go beyond surface observations: link every visual cue to pathophysiology, breed-specific predisposition, age-stage physiology, and welfare framework. Rigour and clinical reasoning ARE the product.
 
-PET HEALTH: Use BCS 1-9 (WSAVA). Assess pain via UNESP-Botucatu signals (orbital tightening, ear flattening, muzzle tension, hunched posture). Evaluate coat/skin primary lesions (macule, papule, pustule, plaque) and secondary (crust, scale, erosion, ulcer). Eye discharge: serous=clear, mucoid=white/gray, mucopurulent=yellow/green.
+EVIDENCE-BASED FRAMEWORKS to apply on every relevant finding:
+- BCS 1-9 (WSAVA 2021). Muscle Condition Score (MCS) if posture suggests sarcopenia.
+- UNESP-Botucatu / Glasgow Composite / Feline Grimace Scale for pain — orbital tightening, ear flattening, muzzle tension, hunched posture, whisker position.
+- Skin lesions: primary (macule, papule, pustule, plaque, vesicle, wheal, nodule, tumor) vs secondary (crust, scale, erosion, ulcer, lichenification, hyperpigmentation).
+- Eye discharge: serous (clear), mucoid (white/gray), mucopurulent (yellow/green). Pupil symmetry. Third eyelid.
+- Dental: Grados de doença periodontal 0-4 (AVDC). Tartar, gingivitis, missing teeth.
+- Five Freedoms / Five Domains welfare model for mood and environment.
+- Bristol Fecal Score 1-7 / Purina 1-7. Color significance. Parasite morphology (roundworm / tapeworm segments / coccidia).
+- Wound classification (superficial / partial / full thickness) + healing stages (inflammatory 0-4d, proliferative 4-21d, remodeling 21d+). Infection signs: erythema, edema, purulent exudate, necrosis, crepitus.
+- Plants/food: ASPCA Animal Poison Control database. Identify genus + common name. Toxicity mechanism (GI irritant, hepatotoxic, nephrotoxic, cardiotoxic, neurotoxic).
+- Breed-specific: BOAS (brachycephalic), hip dysplasia (large breeds), luxating patella (toys), HCM (Maine Coon/Ragdoll), PKD (Persian), syringomyelia (Cavalier KCS).
 
-FECES: Apply Purina Fecal Score 1-7. Score 1-2=constipation, 3-4=normal, 5=soft, 6-7=diarrhea. Color: brown=normal, yellow/green=rapid transit or infection, black/tarry=upper GI bleeding URGENT, red=lower GI bleeding URGENT, white/gray=pancreatic or liver issue. Check for parasites (roundworms=spaghetti-like, tapeworm=rice grains).
+TONE AND LANGUAGE:
+- Hedged, professional: "consistent with", "suggestive of", "warrants veterinary evaluation". NEVER diagnose.
+- Write prose in the target language with specialist vocabulary — don't dumb it down.
+- 3rd person narration. No filler, no cartoon warmth, no emojis, no exclamation marks.
 
-WOUNDS: Classify as superficial/partial/full thickness. Infection signs: erythema, edema, purulent exudate, necrosis. Healing stages: inflammatory 0-4d, proliferative 4-21d, remodeling over 21d.
-
-PLANTS/FOOD: Cross-reference ASPCA Animal Poison Control Center. Identify genus+common name. Note toxicity mechanism: GI irritant, hepatotoxic, nephrotoxic, cardiotoxic, neurotoxic.
-
-Use hedged language: "consistent with", "suggestive of", "warrants veterinary evaluation".
-NEVER diagnose. Return ONLY valid JSON. No markdown.
-
-Return this exact JSON structure with real values (not type annotations):
+Return ONLY valid JSON. No markdown. No code fences. Return this exact structure with real, rich values (NOT type annotations):
 
 {
   "identification": {
@@ -110,12 +116,13 @@ Return this exact JSON structure with real values (not type annotations):
   "health": {
     "body_condition_score": 5,
     "body_condition": "ideal",
-    "skin_coat": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "eyes": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "ears": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "mouth_teeth": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "posture_body": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0 }],
-    "nails": { "observation": "length appropriate", "needs_trimming": false },
+    "muscle_condition_score": "normal|mild_loss|moderate_loss|severe_loss",
+    "skin_coat": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0, "rationale": "what visual cue led to this observation", "clinical_significance": "what this could mean pathophysiologically" }],
+    "eyes": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0, "rationale": "string", "clinical_significance": "string" }],
+    "ears": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0, "rationale": "string", "clinical_significance": "string" }],
+    "mouth_teeth": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0, "rationale": "string", "clinical_significance": "string", "periodontal_grade": "0-4 if applicable" }],
+    "posture_body": [{ "observation": "string", "severity": "normal|attention|concern", "confidence": 0.0, "rationale": "string", "clinical_significance": "string" }],
+    "nails": { "observation": "string", "needs_trimming": false },
     "hygiene": "clean",
     "visible_parasites": false,
     "visible_lumps": false
@@ -123,32 +130,66 @@ Return this exact JSON structure with real values (not type annotations):
   "mood": {
     "primary": "ecstatic|happy|calm|tired|anxious|sad|playful|sick|alert|fearful|submissive",
     "confidence": 0.0,
-    "signals": ["string"]
+    "signals": ["ears forward", "relaxed stance", "soft eye"],
+    "body_language_reading": "Extended prose on ear set, tail carriage, facial tension, limb positioning, eye expression — what together they communicate emotionally and behaviorally.",
+    "stress_indicators": ["string"],
+    "arousal_level": "low|moderate|high",
+    "welfare_flags": ["any Five Domains concerns visible in this frame"]
   },
   "environment": {
     "location": "home_indoor|home_outdoor|park|beach|clinic|car|street|unknown",
-    "accessories": [{ "type": "collar|leash|harness|clothes|muzzle|id_tag|other", "description": "string" }],
+    "accessories": [{ "type": "collar|leash|harness|clothes|muzzle|id_tag|other", "description": "string", "fit_assessment": "appropriate|tight|loose|inappropriate_for_breed" }],
     "other_animals": false,
-    "visible_risks": null
+    "visible_risks": ["specific hazard 1", "specific hazard 2"],
+    "suitability_assessment": "Prose: is this environment adequate for this breed/size/age? any enrichment gaps?"
   },
-  "alerts": [{ "message": "string", "severity": "info|attention|concern", "category": "health|safety|care|toxicity" }],
-  "disclaimer": "string",
-  "description": "REQUIRED — never null. Clinical interpretation in 2-3 sentences. For pets: BCS assessment, pain signals, coat/skin condition, behavioral state. For feces: Bristol score, color significance, parasite risk. For wounds: classification, infection signs, urgency. For plants/food: toxicity risk with mechanism. For environment: safety hazards. Always actionable for the tutor.",
+  "alerts": [{
+    "message": "Concise alert headline",
+    "severity": "info|attention|concern",
+    "category": "health|safety|care|toxicity|behavior",
+    "why_it_matters": "Pathophysiology or welfare reasoning in 1-2 sentences.",
+    "what_to_monitor": ["specific sign 1", "specific sign 2"],
+    "red_flags": ["when to go emergency: concrete signs"],
+    "time_frame": "monitor 24h | see vet within 1 week | routine next visit | urgent"
+  }],
+  "disclaimer": "string in target language",
+  "description": "5-8 sentences of specialist-grade clinical prose. Integrate BCS/MCS, pain signals, dermatological assessment, dental grade, postural analysis, coat quality, and welfare reading. This is the headline laudo — make it read like a veterinary report, not a generic app.",
+  "clinical_reasoning": "Chain-of-inference in prose (3-5 sentences): 'I observe X, combined with Y and the breed-specific predisposition Z, which is consistent with hypothesis H because...' Make the visual-to-conclusion path explicit.",
+  "differential_considerations": [
+    { "hypothesis": "string", "likelihood": "low|moderate|high", "distinguishing_features": "what additional finding would confirm or rule out", "recommended_test": "what a vet would order to discriminate" }
+  ],
+  "breed_specific_context": "Prose on genetic predispositions, conformational concerns, hereditary diseases of this breed that the visible findings touch on. If breed unknown, write null.",
+  "age_specific_context": "Prose on how age-stage physiology (puppy immune window, senior sarcopenia, senior cognitive, reproductive status) modulates interpretation of these findings.",
+  "follow_up_questions": [
+    "Concrete question to the tutor that would meaningfully refine the analysis (e.g. 'Has the coat dullness been present for longer than 4 weeks?')."
+  ],
+  "recommendations": {
+    "immediate": ["what to do in next 24h — concrete, time-bound"],
+    "short_term": ["what to address in next 2-4 weeks — routine vet visit, dietary tweak, etc."],
+    "preventive": ["long-horizon care — vaccination, parasite prevention, grooming frequency, dental care schedule"]
+  },
+  "prognostic_outlook": "1-2 sentences on expected trajectory given age, breed, and visible findings — what the tutor should expect if current conditions are maintained vs improved.",
   "toxicity_check": {
     "has_toxic_items": false,
     "items": null
   },
-  "sources": ["WSAVA Body Condition Score Guidelines (2021)"]
+  "sources": ["WSAVA Body Condition Score Guidelines (2021)", "AVDC Periodontal Disease Staging"]
 }
 
-Requirements:
-- description: 2-3 actionable sentences with clinical interpretation. NEVER null.
-- For feces: include Bristol score, color assessment, parasite check.
-- For wounds: include classification, infection signs, urgency level.
-- For plants/food: include ASPCA toxicity assessment.
-- For pets: include BCS score, pain signals, behavioral state.
+REQUIREMENTS (enforced — violations waste Opus capacity):
+- description: 5-8 full clinical sentences. NEVER null, NEVER 1-line.
+- clinical_reasoning: always prose, even if short for trivial photos.
+- At least one differential_considerations entry when any health.severity is "attention" or "concern".
+- breed_specific_context: write null only if breed is unknown.
+- follow_up_questions: always 2-4 questions. Each must be specific enough that its answer changes the analysis.
+- recommendations: immediate/short_term/preventive all non-empty. Be concrete (numbers, frequencies, product categories) — not generic.
+- Every health observation needs rationale + clinical_significance. Empty rationale = you're not earning Opus.
+- Every alert needs why_it_matters, what_to_monitor, red_flags, time_frame — populated.
+- For feces: include Bristol score, color assessment, parasite check in description.
+- For wounds: include classification, infection signs, urgency in alerts.
+- For plants/food: include ASPCA toxicity assessment in toxicity_check with mechanism.
 - toxicity_check: always fill, even if has_toxic_items is false.
-- sources: list up to 3 scientific references actually used. NEVER null.
+- sources: 2-5 scientific references actually used. NEVER null, NEVER generic.
 - alerts: add if any finding warrants attention or concern.`;
 
     const petIdentity = [pet_name, pet_breed].filter(Boolean).join(', ');
@@ -166,7 +207,40 @@ Requirements:
       : '';
     // User prompt agora é só o que varia: espécie, nome/raça do pet, idioma.
     // Tudo o mais (frameworks clínicos + schema + requirements) está cacheado no system.
+    // ── Depth→(max_tokens, instruction block) ──
+    const DEPTH_CFG: Record<string, { max: number; instruction: string }> = {
+      fast: {
+        max: 3000,
+        instruction: `Fast mode — compact assessment:
+- Populate ONLY: identification (breed, size, age_category, estimated_age_months, estimated_weight_kg, sex, coat), mood (primary + confidence), 2-3 alerts with message+severity only, description (2 sentences integrating the main findings).
+- LEAVE EMPTY or null: health.skin_coat/eyes/ears/mouth_teeth/posture_body arrays, clinical_reasoning, differential_considerations, breed_specific_context, age_specific_context, follow_up_questions, recommendations (all three arrays empty), prognostic_outlook, sources, welfare_flags.
+- Keep description hedged and professional, no diagnosis.`,
+      },
+      balanced: {
+        max: 3500,
+        instruction: `Balanced mode — contextual clinical assessment:
+- Populate: identification (full), health (body_condition_score, body_condition, muscle_condition_score, skin_coat/eyes/ears/mouth_teeth/posture_body with observation+severity+confidence ONLY — NO rationale, NO clinical_significance), mood (primary+confidence+signals+body_language_reading in 1-2 sentences), environment (location+accessories+other_animals+visible_risks), alerts (message+severity+category+why_it_matters in 1 sentence), description (4-6 sentences integrating BCS, mood, key findings).
+- LEAVE EMPTY or null: clinical_reasoning, differential_considerations, breed_specific_context, age_specific_context, follow_up_questions, recommendations (all three arrays empty), prognostic_outlook, sources (ok to cite 1-2 references if naturally used).
+- Alerts keep what_to_monitor/red_flags/time_frame empty in this mode.`,
+      },
+      deep: {
+        max: 8000,
+        instruction: `Deep mode — specialist-grade report:
+- Deliver the depth that a DVM specialist would recognize as rigorous.
+- Link every observation to pathophysiology or welfare framework.
+- Populate clinical_reasoning, differential_considerations, breed_specific_context, age_specific_context, follow_up_questions, recommendations, prognostic_outlook.
+- Each health observation must have rationale + clinical_significance.
+- Each alert must have why_it_matters + what_to_monitor + red_flags + time_frame.
+- Cite 2-5 scientific references in sources.
+- Do not truncate. Use the full token budget.`,
+      },
+    };
+    const depthCfg = DEPTH_CFG[analysis_depth as string] ?? DEPTH_CFG.deep;
+
     const userPrompt = `${petSexContext ? petSexContext + '\n\n' : ''}Perform a clinical veterinary assessment of this photo for a ${species === 'dog' ? (language === 'pt-BR' ? 'cão' : 'dog') : (language === 'pt-BR' ? 'gato' : 'cat')}${petContextSuffix}.
+
+${depthCfg.instruction}
+
 Write all text fields in ${lang}.`;
 
     const cfg = await getAIConfig();
@@ -195,7 +269,7 @@ Write all text fields in ${lang}.`;
         functionName: 'analyze-pet-photo',
         buildPayload: (model) => ({
           model,
-          max_tokens: 2500,
+          max_tokens: depthCfg.max,
           // temperature removido: Opus 4.7+ deprecou esse parâmetro (retorna 400
           // com `invalid_request_error`). O prompt pede JSON estruturado, então
           // o determinismo vem da estrutura do schema, não da temperatura.
@@ -267,8 +341,30 @@ Write all text fields in ${lang}.`;
 
     const aiResponse = await response.json();
     const textContent = aiResponse.content?.find((c: { type: string }) => c.type === 'text');
+    const stopReason = aiResponse.stop_reason ?? 'unknown';
+    const usage = aiResponse.usage ?? {};
+
+    console.log(`[analyze-pet-photo] [${reqId}] model response | stop=${stopReason} | in=${usage.input_tokens} | out=${usage.output_tokens}`);
 
     if (!textContent?.text) {
+      // DIAG: gravar contexto completo quando modelo não devolver texto
+      try {
+        await diagClient.from('edge_function_diag_logs').insert({
+          function_name: 'analyze-pet-photo',
+          request_id: reqId,
+          level: 'error',
+          message: '[analyze-pet-photo] empty AI response',
+          payload: {
+            model_used: modelUsed,
+            stop_reason: stopReason,
+            usage,
+            content_types: (aiResponse.content ?? []).map((c: { type: string }) => c.type),
+            total_ms: Date.now() - t0,
+          },
+        });
+      } catch (logErr) {
+        console.error(`[analyze-pet-photo] [${reqId}] empty-response diag log failed:`, logErr);
+      }
       return new Response(
         JSON.stringify({ error: 'Empty AI response' }),
         { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
@@ -281,7 +377,44 @@ Write all text fields in ${lang}.`;
       jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    const analysis = JSON.parse(jsonText);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonText);
+    } catch (parseErr) {
+      // DIAG crítico: JSON inválido (truncamento por max_tokens, markdown, emoji, etc.)
+      const preview = jsonText.slice(0, 1000);
+      const tail = jsonText.slice(-500);
+      console.error(`[analyze-pet-photo] [${reqId}] JSON parse failed | stop=${stopReason} | out=${usage.output_tokens} | text=${jsonText.length}chars`);
+      try {
+        await diagClient.from('edge_function_diag_logs').insert({
+          function_name: 'analyze-pet-photo',
+          request_id: reqId,
+          level: 'error',
+          message: '[analyze-pet-photo] JSON parse failed',
+          payload: {
+            model_used: modelUsed,
+            stop_reason: stopReason,
+            usage,
+            parse_error: String(parseErr),
+            text_chars: jsonText.length,
+            text_preview: preview,
+            text_tail: tail,
+            total_ms: Date.now() - t0,
+          },
+        });
+      } catch (logErr) {
+        console.error(`[analyze-pet-photo] [${reqId}] parse-failure diag log failed:`, logErr);
+      }
+      return new Response(
+        JSON.stringify({
+          error: 'AI returned invalid JSON',
+          status: 502,
+          details: { stop_reason: stopReason, output_tokens: usage.output_tokens, text_chars: jsonText.length },
+          trace: { request_id: reqId },
+        }),
+        { status: 502, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+      );
+    }
 
     // When pet_name is provided, this is a diary photo — ignore AI breed/species inference.
     // The pet identity is already known from the profile. Only health/behavior data matters.

@@ -1,0 +1,40 @@
+/**
+ * PROPOSTA — Elite Typography
+ *
+ * Este arquivo é uma PROPOSTA de substituição para `constants/fonts.ts`.
+ * Não é executado pelo app — é só leitura pra revisão.
+ *
+ * Quando aprovado, copiar este conteúdo sobre `constants/fonts.ts`.
+ *
+ * Requer também:
+ *   npm install @expo-google-fonts/inter @expo-google-fonts/playfair-display @expo-google-fonts/jetbrains-mono
+ *
+ * E carregamento em `app/_layout.tsx` via `useFonts({...})`.
+ *
+ * Ver detalhes completos em `docs/elite-tokens.md §5`.
+ */
+
+export const fonts = {
+  // DISPLAY — Playfair Display. Apenas logo + títulos literários curtos.
+  // Nunca corpo de texto, nunca narração. Único lugar permitido de itálico
+  // é o `au` do logo.
+  display:        "'PlayfairDisplay_500Medium', 'Didot', 'Georgia', serif",
+  displayItalic:  "'PlayfairDisplay_500Medium_Italic', 'Didot', serif", // APENAS logo
+
+  // BODY — Inter. UI, labels, botões, quotes do tutor, narração da IA,
+  // qualquer texto verbal. Fallback no iOS: SF Pro Text em caso raro de
+  // falha no bundle.
+  body:           "'Inter_400Regular', -apple-system, 'SF Pro Text', 'Segoe UI', 'Roboto', sans-serif",
+  bodyMed:        "'Inter_500Medium', -apple-system, 'SF Pro Text', sans-serif",
+  bodyLight:      "'Inter_300Light', -apple-system, 'SF Pro Text', sans-serif",
+
+  // MONO — JetBrains Mono. Scores numéricos, timestamps, níveis, confidence.
+  mono:           "'JetBrainsMono_400Regular', 'SF Mono', 'Menlo', 'Consolas', monospace",
+  monoMed:        "'JetBrainsMono_500Medium', 'SF Mono', 'Menlo', monospace",
+
+  // LEGACY ALIAS — backward compat pra não quebrar imports antigos.
+  // handwriting era Caveat (cursive). Apontado pra Inter regular — a voz
+  // Clarice NÃO usa mais italic/cursive, agora mora em Inter dentro do
+  // container jade. Eventualmente remover.
+  handwriting:    "'Inter_400Regular', -apple-system, sans-serif", // @deprecated
+} as const;

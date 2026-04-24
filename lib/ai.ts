@@ -5,7 +5,7 @@ import { withTimeout } from './withTimeout';
 // AI Edge Functions podem envolver RAG + Claude API + OCR/Vision + TTS —
 // 30s cobre worst case para chamadas simples (CLAUDE.md §12.4: nunca deixar
 // spinner infinito).
-const AI_TIMEOUT_MS = 30_000;
+const AI_TIMEOUT_MS = 140000;
 
 // classify-diary-entry atende múltiplos input_types — cada um tem peso diferente.
 // Chain de timeouts (outermost → innermost):
@@ -15,14 +15,14 @@ const AI_TIMEOUT_MS = 30_000;
 // Outer atual (mediaRoutines.ts): text=30s, photo=55s, video=75s, audio=75s, ocr=55s.
 // Inner Gemini (callGemini.ts): 60s fixo para video+audio (native inline media).
 const AI_TIMEOUT_CLASSIFY_BY_TYPE: Record<string, number> = {
-  text:     25_000,  // <  outer text 30s
-  gallery:  50_000,  // <  outer photo 55s
-  video:    70_000,  // >  Gemini 60s, <  outer video 75s
-  audio:    70_000,  // >  Gemini 60s, <  outer audio 75s
-  ocr_scan: 50_000,  // <  outer ocr 55s
-  pdf:      55_000,
+  text:     130000,  // <  outer text 30s
+  gallery:  130000,  // <  outer photo 55s
+  video:    130000,  // >  Gemini 60s, <  outer video 75s
+  audio:    130000,  // >  Gemini 60s, <  outer audio 75s
+  ocr_scan: 130000,  // <  outer ocr 55s
+  pdf:      130000,
 };
-const AI_TIMEOUT_CLASSIFY_DEFAULT = 35_000;
+const AI_TIMEOUT_CLASSIFY_DEFAULT = 130000;
 
 export async function generateDiaryNarration(
   petId: string,
@@ -48,10 +48,11 @@ export async function analyzePetPhoto(
   petId: string,
   photoUrl: string,
   analysisType: 'breed' | 'mood' | 'health' | 'general' = 'general',
+  analysisDepth: 'fast' | 'balanced' | 'deep' = 'deep',
 ): Promise<PhotoAnalysisResponse> {
   const { data, error } = await withTimeout(
     supabase.functions.invoke('analyze-pet-photo', {
-      body: { pet_id: petId, photo_url: photoUrl, analysis_type: analysisType },
+      body: { pet_id: petId, photo_url: photoUrl, analysis_type: analysisType, analysis_depth: analysisDepth },
     }),
     AI_TIMEOUT_MS,
     'analyzePetPhoto',
@@ -164,6 +165,7 @@ export async function classifyDiaryEntry(
   audioDurationSeconds?: number,
   videoUrl?: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
   const timeoutMs = AI_TIMEOUT_CLASSIFY_BY_TYPE[inputType] ?? AI_TIMEOUT_CLASSIFY_DEFAULT;
   const { data, error } = await withTimeout(
@@ -179,6 +181,7 @@ export async function classifyDiaryEntry(
         video_url: videoUrl ?? undefined,
         input_type: inputType,
         language,
+        analysis_depth: analysisDepth,
       },
     }),
     timeoutMs,
@@ -223,8 +226,9 @@ export async function classifyTextOnly(
   text: string,
   language: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
-  return classifyDiaryEntry(petId, text, null, 'text', language, undefined, undefined, undefined, undefined, headers);
+  return classifyDiaryEntry(petId, text, null, 'text', language, undefined, undefined, undefined, undefined, headers, analysisDepth);
 }
 
 /** Classify photo gallery: generates narration + classification from photos when no text is present. */
@@ -233,8 +237,9 @@ export async function classifyPhotoGallery(
   photosBase64: string[],
   language: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
-  return classifyDiaryEntry(petId, null, photosBase64, 'gallery', language, undefined, undefined, undefined, undefined, headers);
+  return classifyDiaryEntry(petId, null, photosBase64, 'gallery', language, undefined, undefined, undefined, undefined, headers, analysisDepth);
 }
 
 /** Classify video: analyzes video URL + optional thumbnail frame for visual behavior. */
@@ -245,6 +250,7 @@ export async function classifyVideo(
   thumbnailFrameBase64: string | null,
   language: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
   return classifyDiaryEntry(
     petId,
@@ -257,6 +263,7 @@ export async function classifyVideo(
     undefined,
     videoUrl,
     headers,
+    analysisDepth,
   );
 }
 
@@ -268,6 +275,7 @@ export async function classifyPetAudio(
   durationSeconds: number | null,
   language: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
   return classifyDiaryEntry(
     petId,
@@ -280,6 +288,7 @@ export async function classifyPetAudio(
     durationSeconds ?? undefined,
     undefined,
     headers,
+    analysisDepth,
   );
 }
 
@@ -289,6 +298,7 @@ export async function classifyOCR(
   docBase64: string,
   language: string,
   headers?: Record<string, string>,
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep' = 'fast',
 ): Promise<ClassifyDiaryResponse> {
   return classifyDiaryEntry(petId, null, [docBase64], 'ocr_scan', language, undefined, undefined, undefined, undefined, headers);
 }

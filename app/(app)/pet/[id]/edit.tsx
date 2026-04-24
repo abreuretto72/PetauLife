@@ -60,7 +60,7 @@ export default function EditPetScreen() {
   }
 
   const isDog = pet?.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   // ── Photo upload + AI analysis ──
   const uploadPhoto = useCallback(async (uri: string) => {
@@ -334,7 +334,7 @@ export default function EditPetScreen() {
           {/* ── AI Analyzing Banner ── */}
           {isAnalyzing && (
             <View style={S.analyzingBanner}>
-              <ActivityIndicator size="small" color={colors.purple} />
+              <ActivityIndicator size="small" color={colors.click} />
               <Text style={S.analyzingText}>{t('editPet.analyzing')}</Text>
             </View>
           )}
@@ -483,8 +483,8 @@ const S = StyleSheet.create({
   bloodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8) },
   bloodBtn: { minWidth: rs(72), paddingVertical: rs(10), paddingHorizontal: rs(12), borderRadius: rs(12), backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center' },
 
-  analyzingBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.purple + '10', borderWidth: 1, borderColor: colors.purple + '20', borderRadius: rs(14), paddingVertical: rs(12), marginBottom: rs(4) },
-  analyzingText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(13), color: colors.purple },
+  analyzingBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(8), backgroundColor: colors.click + '10', borderWidth: 1, borderColor: colors.click + '20', borderRadius: rs(14), paddingVertical: rs(12), marginBottom: rs(4) },
+  analyzingText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(13), color: colors.click },
 
   savedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(6), paddingVertical: rs(8) },
   savedText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), color: colors.success },

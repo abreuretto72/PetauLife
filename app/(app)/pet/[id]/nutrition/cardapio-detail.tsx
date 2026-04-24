@@ -17,7 +17,7 @@ import { usePets } from '../../../../../hooks/usePets';
 import type { Cardapio, CardapioDia } from '../../../../../hooks/useNutricao';
 
 const WEEKDAY_COLORS = [
-  colors.click, colors.petrol, colors.purple, colors.success,
+  colors.click, colors.petrol, colors.click, colors.success,
   colors.warning, colors.rose, colors.sky,
 ];
 

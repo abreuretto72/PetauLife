@@ -335,7 +335,7 @@ export default function HubScreen() {
                     context: 'pet_registration',
                   },
                 }),
-                45_000,
+                140000,
                 'generate-diary-narration:registration',
               );
               narration = narData?.narration ?? null;
@@ -461,7 +461,7 @@ export default function HubScreen() {
         {/* AI insight card */}
         <View style={styles.insightCard}>
           <View style={styles.insightHeader}>
-            <Sparkles size={rs(18)} color={colors.purple} strokeWidth={1.8} />
+            <Sparkles size={rs(18)} color={colors.ai} strokeWidth={1.8} />
             <Text style={styles.insightLabel}>{t('pets.insightLabel')}</Text>
           </View>
           <Text style={styles.insightText}>
@@ -530,7 +530,7 @@ export default function HubScreen() {
           <View style={styles.emptyState}>
             <View style={styles.emptyIconRow}>
               <Dog size={rs(40)} color={colors.click + '50'} strokeWidth={1.5} />
-              <Cat size={rs(40)} color={colors.purple + '50'} strokeWidth={1.5} />
+              <Cat size={rs(40)} color={colors.click + '50'} strokeWidth={1.5} />
             </View>
             <Text style={styles.emptyTitle}>{t('pets.noPets')}</Text>
             <Text style={styles.emptyText}>{t('pets.noPetsHint')}</Text>
@@ -539,13 +539,10 @@ export default function HubScreen() {
               activeOpacity={0.7}
               onPress={handleAddPet}
             >
-              <LinearGradient
-                colors={[colors.click, colors.clickDark]}
-                style={styles.emptyBtnGradient}
-              >
+              <View style={[styles.emptyBtnGradient, { backgroundColor: colors.click }]}>
                 <Plus size={rs(20)} color="#fff" strokeWidth={2} />
                 <Text style={styles.emptyBtnText}>{t('pets.registerFirstPet')}</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         );
@@ -683,7 +680,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: rs(20),
     paddingTop: rs(12),
-    paddingBottom: rs(8),
+    paddingBottom: rs(16),
     zIndex: 1,
   },
   headerBtn: {
@@ -728,8 +725,8 @@ const styles = StyleSheet.create({
     borderColor: colors.danger + '30',
     borderRadius: radii.xl,
     paddingHorizontal: rs(14),
-    paddingVertical: rs(12),
-    marginBottom: rs(16),
+    paddingVertical: rs(14),
+    marginBottom: rs(20),
     gap: rs(8),
   },
   vaccineAlertText: {
@@ -742,8 +739,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: rs(16),
-    marginTop: rs(4),
+    marginBottom: rs(20),
+    marginTop: rs(8),
   },
   sectionLabel: {
     fontFamily: 'Sora_700Bold',
@@ -773,10 +770,10 @@ const styles = StyleSheet.create({
   insightCard: {
     backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: colors.purple + '25',
+    borderColor: colors.ai + '30',
     borderRadius: radii.xxl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: rs(18),
+    marginBottom: spacing.lg,
   },
   insightHeader: {
     flexDirection: 'row',
@@ -787,7 +784,7 @@ const styles = StyleSheet.create({
   insightLabel: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(11),
-    color: colors.purple,
+    color: colors.ai,
     letterSpacing: 1,
   },
   insightText: {

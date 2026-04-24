@@ -49,7 +49,7 @@ addPet.*      Modal adicionar pet (step 0, 1, 2)
 diary.*       Entrada, narração, filtros, help modal, lentes
 health.*      Prontuário, vacinas, alergias, consultas
 settings.*    Configurações
-toast.*       Mensagens de balão (voz do pet — empático)
+toast.*       Mensagens de balão (registro Elite — 3ª pessoa factual)
 errors.*      Erros técnicos → mensagens humanas
 members.*     Co-tutores, convites, papéis
 ```
@@ -59,11 +59,11 @@ members.*     Co-tutores, convites, papéis
 ## Tom das mensagens — Voz do Pet
 
 ```typescript
-// ✅ Tom correto — empático, na voz do pet:
-t('toast.saveSuccess')    // "Guardei! 🐾" → sem emoji no código, mas no JSON sim
-t('errors.noInternet')    // "Opa, caí da rede! Verifica o Wi-Fi e tenta de novo?"
-t('errors.saveFailed')    // "Xi, algo deu errado. Tenta de novo?"
-t('errors.noSpace')       // "Sem espaço aqui! Libera um cantinho no celular?"
+// ✅ Tom correto — registro Elite, 3ª pessoa factual:
+t('toast.saveSuccess')    // "Registrado."
+t('errors.noInternet')    // "A conexão caiu. Verifique a rede e tente de novo."
+t('errors.saveFailed')    // "Algo não saiu como esperado. Tente novamente."
+t('errors.noSpace')       // "Armazenamento cheio. Libere espaço no aparelho."
 
 // ❌ Tom técnico — nunca:
 "Error 500: Internal Server Error"
@@ -199,4 +199,4 @@ i18n.init({
 - [ ] Toast usa `t()`, nunca string literal
 - [ ] Alert.alert() substituído por `toast()` ou `confirm()`
 - [ ] Placeholders e títulos de inputs via `t()`
-- [ ] Mensagens de erro via `t('errors.*')` (humanas, voz do pet)
+- [ ] Mensagens de erro via `t('errors.*')` (registro Elite, 3ª pessoa factual)

@@ -25,6 +25,7 @@ import { getErrorMessage } from '../../../../utils/errorMessages';
 import PdfActionModal from '../../../../components/pdf/PdfActionModal';
 import { previewPhotoAnalysisPdf, sharePhotoAnalysisPdf } from '../../../../lib/photoAnalysisPdf';
 import { usePet } from '../../../../hooks/usePets';
+import { AIThinkingTicker } from '../../../../components/AIThinkingTicker';
 import { Skeleton } from '../../../../components/Skeleton';
 import type { PhotoAnalysisResponse } from '../../../../types/ai';
 
@@ -85,7 +86,7 @@ export default function PhotoAnalysisScreen() {
             language: i18n.language,
           },
         }),
-        30_000,
+        140000,
         'analyze-pet-photo:analysis',
       );
 
@@ -141,7 +142,7 @@ export default function PhotoAnalysisScreen() {
   }, [handleNewAnalysis]);
 
   const isDog = pet?.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -205,15 +206,16 @@ export default function PhotoAnalysisScreen() {
         {/* Analisando */}
         {analyzing && (
           <View style={s.analyzingCard}>
-            <ActivityIndicator size="small" color={colors.purple} />
+            <ActivityIndicator size="small" color={colors.click} />
             <Text style={s.analyzingText}>{t('addPet.analyzing')}</Text>
           </View>
         )}
+        {analyzing && <AIThinkingTicker species={pet?.species ?? 'both'} />}
 
         {/* Lista de análises */}
         {analyses.length === 0 && !analyzing && (
           <View style={s.emptyState}>
-            <ScanEye size={rs(48)} color={colors.purple + '40'} strokeWidth={1.5} />
+            <ScanEye size={rs(48)} color={colors.click + '40'} strokeWidth={1.5} />
             <Text style={s.emptyTitle}>{t('tutor.noPets')}</Text>
           </View>
         )}
@@ -241,7 +243,7 @@ export default function PhotoAnalysisScreen() {
                 )}
                 <View style={{ flex: 1 }}>
                   <View style={s.cardTitleRow}>
-                    <Sparkles size={rs(14)} color={colors.purple} strokeWidth={2} />
+                    <Sparkles size={rs(14)} color={colors.ai} strokeWidth={2} />
                     <Text style={s.cardTitle}>{t('addPet.analysisComplete')}</Text>
                   </View>
                   <Text style={s.cardDate}>{formatDate(analysis.created_at)}</Text>
@@ -253,7 +255,7 @@ export default function PhotoAnalysisScreen() {
 
               {/* Raça */}
               <View style={s.resultRow}>
-                <ScanEye size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+                <ScanEye size={rs(16)} color={colors.click} strokeWidth={1.8} />
                 <Text style={s.resultLabel}>{t('addPet.breed')}</Text>
                 <Text style={s.resultValue} numberOfLines={2}>{breedName}</Text>
               </View>
@@ -375,8 +377,8 @@ const s = StyleSheet.create({
   exportBtnText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(13), color: colors.click },
 
   // Analyzing
-  analyzingCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(10), backgroundColor: colors.purpleSoft, borderRadius: radii.xl, paddingVertical: rs(14), marginBottom: spacing.md },
-  analyzingText: { fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.purple },
+  analyzingCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: rs(10), backgroundColor: colors.clickSoft, borderRadius: radii.xl, paddingVertical: rs(14), marginBottom: spacing.md },
+  analyzingText: { fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.click },
 
   // Empty
   emptyState: { alignItems: 'center', paddingVertical: rs(60), gap: rs(16) },
@@ -388,10 +390,10 @@ const s = StyleSheet.create({
   cardPhoto: { width: rs(64), height: rs(64), borderRadius: rs(16) },
   cardPhotoPlaceholder: { width: rs(64), height: rs(64), borderRadius: rs(16), alignItems: 'center', justifyContent: 'center' },
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },
-  cardTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(13), color: colors.purple },
+  cardTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(13), color: colors.click },
   cardDate: { fontFamily: 'Sora_400Regular', fontSize: fs(11), color: colors.textDim, marginTop: rs(4) },
-  confBadge: { backgroundColor: colors.purpleSoft, borderRadius: radii.sm, paddingHorizontal: rs(8), paddingVertical: rs(2), alignSelf: 'flex-start', marginTop: rs(6) },
-  confText: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(10), color: colors.purple },
+  confBadge: { backgroundColor: colors.clickSoft, borderRadius: radii.sm, paddingHorizontal: rs(8), paddingVertical: rs(2), alignSelf: 'flex-start', marginTop: rs(6) },
+  confText: { fontFamily: 'JetBrainsMono_500Medium', fontSize: fs(10), color: colors.click },
 
   // Result rows
   resultRow: { flexDirection: 'row', alignItems: 'center', gap: rs(8), paddingVertical: rs(6), borderBottomWidth: 1, borderBottomColor: colors.border },

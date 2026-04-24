@@ -19,7 +19,7 @@ import { usePets } from '../../../../../hooks/usePets';
 import type { CardapioDia } from '../../../../../hooks/useNutricao';
 
 const WEEKDAY_COLORS = [
-  colors.click, colors.petrol, colors.purple, colors.success,
+  colors.click, colors.petrol, colors.click, colors.success,
   colors.warning, colors.rose, colors.sky,
 ];
 
@@ -74,7 +74,7 @@ export default function CardapioScreen() {
           canExport={false}
         />
         <View style={s.centered}>
-          <ActivityIndicator color={colors.purple} size="large" />
+          <ActivityIndicator color={colors.click} size="large" />
           <Text style={s.loadingText}>{t('nutrition.cardapioLoading')}</Text>
         </View>
       </SafeAreaView>
@@ -121,7 +121,7 @@ export default function CardapioScreen() {
         {/* Subtitle + meta */}
         <View style={s.metaRow}>
           <View style={s.sparkleWrap}>
-            <Sparkles size={rs(14)} color={colors.purple} />
+            <Sparkles size={rs(14)} color={colors.ai} />
             <Text style={s.metaText}>{t('nutrition.cardapioSubtitle', { name: petName })}</Text>
           </View>
           {generatedDate ? (

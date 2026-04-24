@@ -127,7 +127,7 @@ export default function PhotoAnalysisPdfScreen() {
           <View style={s.headerBtn} />
         </View>
         <View style={s.center}>
-          <ActivityIndicator color={colors.purple} />
+          <ActivityIndicator color={colors.ai} />
           <Text style={s.loadingText}>{t('photoAnalysis.generating')}</Text>
         </View>
       </SafeAreaView>
@@ -151,7 +151,7 @@ export default function PhotoAnalysisPdfScreen() {
         {/* Preview illustration */}
         <View style={s.previewBox}>
           <View style={s.previewIconWrap}>
-            <ScanEye size={rs(48)} color={colors.purple} strokeWidth={1.3} />
+            <ScanEye size={rs(48)} color={colors.ai} strokeWidth={1.3} />
           </View>
           <Text style={s.previewTitle}>{t('photoAnalysis.pdfReady')}</Text>
           <Text style={s.previewSubtitle}>{t('photoAnalysis.pdfReadySubtitle')}</Text>
@@ -222,7 +222,7 @@ const s = StyleSheet.create({
 
   content: { flex: 1, padding: rs(24) },
   previewBox: { alignItems: 'center', padding: rs(32) },
-  previewIconWrap: { width: rs(96), height: rs(96), borderRadius: rs(28), backgroundColor: colors.purpleSoft, alignItems: 'center', justifyContent: 'center', marginBottom: rs(16) },
+  previewIconWrap: { width: rs(96), height: rs(96), borderRadius: rs(28), backgroundColor: colors.clickSoft, alignItems: 'center', justifyContent: 'center', marginBottom: rs(16) },
   previewTitle: { fontFamily: 'Sora_700Bold', fontSize: fs(20), color: colors.text, textAlign: 'center' },
   previewSubtitle: { fontFamily: 'Sora_400Regular', fontSize: fs(14), color: colors.textDim, textAlign: 'center', marginTop: rs(8), lineHeight: fs(14) * 1.6 },
 

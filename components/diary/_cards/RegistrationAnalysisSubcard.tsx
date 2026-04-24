@@ -52,7 +52,7 @@ export function RegistrationAnalysisSubcard({ data, t }: Props) {
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <Sparkles size={rs(12)} color={colors.purple} strokeWidth={1.8} />
+        <Sparkles size={rs(12)} color={colors.ai} strokeWidth={1.8} />
         <Text style={s.headerLabel}>{t('diary.registrationAnalysis').toUpperCase()}</Text>
       </View>
 
@@ -136,8 +136,8 @@ const s = StyleSheet.create({
     marginTop: rs(8),
     borderRadius: rs(12),
     borderWidth: 1,
-    borderColor: colors.purple + '30',
-    backgroundColor: colors.purple + '08',
+    borderColor: colors.click + '30',
+    backgroundColor: colors.click + '08',
     overflow: 'hidden',
   },
   header: {
@@ -147,12 +147,12 @@ const s = StyleSheet.create({
     paddingHorizontal: rs(12),
     paddingVertical: rs(8),
     borderBottomWidth: 1,
-    borderBottomColor: colors.purple + '20',
+    borderBottomColor: colors.click + '20',
   },
   headerLabel: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(10),
-    color: colors.purple,
+    color: colors.click,
     letterSpacing: 1.2,
   },
   breedRow: {
@@ -170,7 +170,7 @@ const s = StyleSheet.create({
     flex: 1,
   },
   confidenceBadge: {
-    backgroundColor: colors.purple + '20',
+    backgroundColor: colors.ai + '20',
     borderRadius: rs(8),
     paddingHorizontal: rs(8),
     paddingVertical: rs(3),
@@ -178,7 +178,7 @@ const s = StyleSheet.create({
   confidenceText: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(10),
-    color: colors.purple,
+    color: colors.ai,
   },
   bcsBlock: {
     paddingHorizontal: rs(12),

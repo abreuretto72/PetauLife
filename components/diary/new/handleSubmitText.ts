@@ -24,6 +24,7 @@ type UseHandleSubmitTextParams = {
   tutorText: string;
   attachments: Attachment[];
   analyzeWithAI: boolean;
+  analysisDepth: 'off' | 'fast' | 'balanced' | 'deep';
   submitEntry: (params: SubmitEntryParams) => Promise<void>;
   router: { back: () => void };
   toast: (msg: string, type?: 'success' | 'error' | 'warning' | 'info') => void;
@@ -34,6 +35,7 @@ export function useHandleSubmitText({
   tutorText,
   attachments,
   analyzeWithAI,
+  analysisDepth,
   submitEntry,
   router,
   toast,
@@ -165,6 +167,7 @@ export function useHandleSubmitText({
       hasVideo,
       docBase64: inlineDocBase64,
       skipAI: !analyzeWithAI,
+      analysisDepth,
     });
     router.back();
   }, [tutorText, attachments, toast, t, submitEntry, router]);

@@ -95,7 +95,7 @@ export default function DiaryTimeline({
   const { toast, confirm } = useToast();
   const { isOwner } = useMyPetRole(petId);
 
-  const petColor = petSpecies === 'cat' ? colors.purple : colors.click;
+  const petColor = petSpecies === 'cat' ? colors.click : colors.click;
 
   const handleDeleteEntry = useCallback(async (id: string) => {
     const yes = await confirm({ text: t('diary.deleteConfirm'), type: 'warning' });

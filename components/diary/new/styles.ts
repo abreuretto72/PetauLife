@@ -139,9 +139,9 @@ export const styles = StyleSheet.create({
   helpAICard: {
     flexDirection: 'column',
     gap: rs(spacing.sm),
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.clickSoft,
     borderWidth: 1,
-    borderColor: colors.purple + '30',
+    borderColor: colors.click + '30',
     borderRadius: rs(radii.lg),
     padding: rs(spacing.md),
     marginTop: rs(spacing.md),
@@ -153,7 +153,7 @@ export const styles = StyleSheet.create({
     marginBottom: rs(2),
   },
   helpAITitle: {
-    color: colors.purple,
+    color: colors.click,
     fontSize: fs(13),
     fontFamily: 'Sora_600SemiBold',
   },
@@ -169,7 +169,7 @@ export const styles = StyleSheet.create({
     marginTop: rs(1),
   },
   helpAIBadgeOn: {
-    backgroundColor: colors.purple + '20',
+    backgroundColor: colors.click + '20',
   },
   helpAIBadgeOff: {
     backgroundColor: colors.border,
@@ -290,27 +290,6 @@ export const styles = StyleSheet.create({
     padding: rs(spacing.md),
     gap: rs(spacing.md),
   },
-  waveCard: {
-    backgroundColor: colors.card,
-    borderRadius: rs(radii.xxl),
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: rs(20),
-    paddingHorizontal: rs(16),
-    justifyContent: 'center',
-  },
-  waveRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: rs(52),
-  },
-  waveBar: {
-    width: rs(4),
-    height: rs(40),
-    borderRadius: rs(3),
-    backgroundColor: colors.click,
-  },
   transcriptionCard: {
     backgroundColor: colors.card,
     borderRadius: rs(radii.xl),
@@ -324,7 +303,16 @@ export const styles = StyleSheet.create({
     fontSize: fs(15),
     lineHeight: fs(22),
     textAlignVertical: 'top',
-    minHeight: rs(80),
+    minHeight: rs(140),
+    // Sem maxHeight — cresce livremente conforme o tutor digita
+  },
+  transcriptionTitle: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(11),
+    color: colors.click,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: rs(8),
   },
   attachThumb: {
     flex: 1,
@@ -368,6 +356,55 @@ export const styles = StyleSheet.create({
     color: colors.textSec,
     marginTop: rs(2),
   },
+  aiDepthHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(spacing.sm),
+    marginTop: rs(spacing.md),
+  },
+  aiDepthTitle: {
+    flex: 1,
+    fontFamily: 'Sora_600SemiBold',
+    fontSize: fs(13),
+    color: colors.text,
+  },
+  aiDepthChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: rs(spacing.xs),
+    marginTop: rs(spacing.xs),
+  },
+  aiDepthChip: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: rs(4),
+    borderRadius: rs(radii.lg),
+    borderWidth: 1,
+    paddingVertical: rs(12),
+  },
+  aiDepthChipActive: {
+    backgroundColor: colors.click,
+    borderColor: colors.click,
+  },
+  aiDepthChipIdle: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+  },
+  aiDepthChipLabel: {
+    fontFamily: 'Sora_700Bold',
+    fontSize: fs(12),
+  },
+  aiDepthChipLabelActive: { color: '#FFFFFF' },
+  aiDepthChipLabelIdle: { color: colors.text },
+  aiDepthChipSub: {
+    fontFamily: 'JetBrainsMono_400Regular',
+    fontSize: fs(9),
+    marginTop: rs(2),
+  },
+  aiDepthChipSubActive: { color: '#FFFFFF', opacity: 0.85 },
+  aiDepthChipSubIdle: { color: colors.textDim },
   micBottomBar: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,

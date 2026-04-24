@@ -91,7 +91,7 @@ export default function CapsulesScreen() {
             </View>
             <View style={s.heroStatDivider} />
             <View style={s.heroStat}>
-              <Text style={[s.heroStatVal, { color: colors.purple }]}>{locked.length}</Text>
+              <Text style={[s.heroStatVal, { color: colors.click }]}>{locked.length}</Text>
               <Text style={s.heroStatLabel}>{t('capsules.locked')}</Text>
             </View>
             <View style={s.heroStatDivider} />
@@ -127,7 +127,7 @@ export default function CapsulesScreen() {
         {/* ── Capsules List ── */}
         {filtered.map((capsule) => {
           const isLocked = capsule.status === 'locked';
-          const tintColor = isLocked ? colors.purple : colors.warning;
+          const tintColor = isLocked ? colors.click : colors.warning;
           return (
             <View key={capsule.id} style={s.capsuleCard}>
               <View style={s.capsuleHeader}>

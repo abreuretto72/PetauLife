@@ -40,6 +40,7 @@ import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
 import { withTimeout } from '../lib/withTimeout';
+import { AIThinkingTicker } from './AIThinkingTicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface VaccineData {
@@ -227,7 +228,7 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
             language: i18n.language,
           },
         }),
-        15_000,
+        140000,
         'ocr-document:vaccine',
       );
 
@@ -354,8 +355,8 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
 
         {/* OCR — Camera */}
         <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
-          <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+        <View style={[styles.methodIconWrap, { backgroundColor: colors.clickSoft }]}>
+          <Camera size={rs(28)} color={colors.click} strokeWidth={1.8} />
         </View>
         <View style={styles.methodTextWrap}>
           <Text style={styles.methodTitle}>{t('health.photoVaccineCard')}</Text>
@@ -409,16 +410,17 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
       {/* Analyzing indicator */}
       {analyzing && (
         <Animated.View style={[styles.analyzingBanner, { transform: [{ scale: pulseAnim }] }]}>
-          <ScanEye size={rs(20)} color={colors.purple} strokeWidth={1.8} />
+          <ScanEye size={rs(20)} color={colors.click} strokeWidth={1.8} />
           <Text style={styles.analyzingText}>{t('health.analyzingVaccineCard')}</Text>
-          <ActivityIndicator size="small" color={colors.purple} />
+          <ActivityIndicator size="small" color={colors.click} />
         </Animated.View>
       )}
+      {analyzing && <AIThinkingTicker species="both" />}
 
       {/* OCR confidence badge */}
       {ocrConfidence != null && !analyzing && (
         <View style={styles.ocrBadge}>
-          <Sparkles size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(14)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.ocrBadgeText}>
             {t('health.ocrFilled', { confidence: ocrConfidence })}
           </Text>
@@ -686,7 +688,7 @@ const styles = StyleSheet.create({
   analyzingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.clickSoft,
     borderRadius: radii.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -697,13 +699,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Sora_500Medium',
     fontSize: fs(13),
-    color: colors.purple,
+    color: colors.ai,
   },
   // OCR confidence badge
   ocrBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.clickSoft,
     borderRadius: radii.sm,
     paddingVertical: rs(4),
     paddingHorizontal: spacing.sm,
@@ -714,7 +716,7 @@ const styles = StyleSheet.create({
   ocrBadgeText: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: fs(11),
-    color: colors.purple,
+    color: colors.click,
   },
   // Form
   formScroll: {

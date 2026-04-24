@@ -59,7 +59,7 @@ const formatConfidence = (value: number): string =>
 const TAG_COLORS: readonly string[] = [
   colors.click,
   colors.petrol,
-  colors.purple,
+  colors.click,
   colors.success,
   colors.warning,
   colors.sky,
@@ -116,7 +116,7 @@ const NarrationBubble: React.FC<NarrationBubbleProps> = ({
       {/* Header: sparkles + AI NARRATES + mood badge */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(16)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.aiLabel}>{t('diary.aiNarrates')}</Text>
         </View>
         <View style={[styles.moodBadge, { backgroundColor: `${moodVisual.color}15` }]}>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: radii.xxl,
     borderLeftWidth: rs(4),
-    borderLeftColor: colors.purple,
+    borderLeftColor: colors.click,
     borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora',
     fontWeight: '700',
     fontSize: fs(11),
-    color: colors.purple,
+    color: colors.click,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },

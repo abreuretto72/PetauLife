@@ -66,7 +66,7 @@ O botão "Falar" é o maior e mais proeminente. Campo de texto é visível mas s
    - STT transcreve (se voz)
    - Busca RAG: top 5 memórias relevantes do pet
    - Monta prompt: texto + nome/raça/idade/personalidade + humor + RAG + idioma
-   - Claude API gera narração 1ª pessoa na voz do pet (máx 150 palavras)
+   - Claude API gera narração 3ª pessoa literária (registro Elite — Clarice) sobre o pet (máx 150 palavras)
    - Em paralelo: sugere tags, infere `mood_score` 0-100, detecta momento especial
 4. Preview: texto + narração em card com borda laranja + tags + humor
 5. Tutor pode: publicar, refazer narração, editar texto, mudar humor

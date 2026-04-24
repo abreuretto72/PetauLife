@@ -76,7 +76,7 @@ export default function IaPdfScreen() {
       >
         {messages.length === 0 ? (
           <View style={s.emptyWrap}>
-            <SparklesIcon size={rs(32)} color={colors.purple} strokeWidth={1.4} />
+            <SparklesIcon size={rs(32)} color={colors.ai} strokeWidth={1.4} />
             <Text style={s.emptyText}>{t('ia.pdfEmpty')}</Text>
           </View>
         ) : (
@@ -86,7 +86,7 @@ export default function IaPdfScreen() {
               <View key={m.id} style={[s.msgRow, isUser && s.msgRowUser]}>
                 {!isUser && (
                   <View style={s.msgAvatar}>
-                    <SparklesIcon size={rs(12)} color={colors.purple} strokeWidth={1.8} />
+                    <SparklesIcon size={rs(12)} color={colors.ai} strokeWidth={1.8} />
                   </View>
                 )}
                 <View style={[s.msgBubble, isUser ? s.msgBubbleUser : s.msgBubbleAI]}>
@@ -158,12 +158,12 @@ const s = StyleSheet.create({
     color: colors.text,
   },
   headerCount: {
-    backgroundColor: colors.purple + '20', borderRadius: rs(10),
+    backgroundColor: colors.click + '20', borderRadius: rs(10),
     paddingHorizontal: rs(10), paddingVertical: rs(4),
-    borderWidth: 1, borderColor: colors.purple + '30',
+    borderWidth: 1, borderColor: colors.click + '30',
   },
   headerCountText: {
-    fontFamily: 'JetBrainsMono_700Bold', fontSize: fs(12), color: colors.purple,
+    fontFamily: 'JetBrainsMono_700Bold', fontSize: fs(12), color: colors.click,
   },
 
   msgScroll: { flex: 1 },
@@ -184,9 +184,9 @@ const s = StyleSheet.create({
   msgRowUser: { justifyContent: 'flex-end' },
   msgAvatar: {
     width: rs(26), height: rs(26), borderRadius: rs(13),
-    backgroundColor: colors.purple + '15',
+    backgroundColor: colors.click + '15',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.purple + '20', flexShrink: 0,
+    borderWidth: 1, borderColor: colors.click + '20', flexShrink: 0,
   },
   msgBubble: {
     maxWidth: '80%', borderRadius: rs(16),

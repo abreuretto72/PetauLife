@@ -80,8 +80,8 @@ const TYPE_CONFIG: Readonly<Record<ClassificationType, TypeConfig>> = {
     i18nKey: 'diary.classificationWeight',
   },
   exam: {
-    color: colors.purple,
-    softColor: colors.purpleSoft,
+    color: colors.click,
+    softColor: colors.clickSoft,
     icon: FileText,
     i18nKey: 'diary.classificationExam',
   },

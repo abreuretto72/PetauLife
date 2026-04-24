@@ -499,10 +499,10 @@ const styles = StyleSheet.create({
 
   // Narration
   narrationCard: {
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.aiSoft,
     borderRadius: rs(radii.xl),
     borderWidth: 1,
-    borderColor: colors.purple + '20',
+    borderColor: colors.click + '20',
     padding: rs(14),
     gap: rs(6),
   },

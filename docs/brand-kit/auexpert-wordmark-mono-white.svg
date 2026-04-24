@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  auExpert — wordmark MONOCROMÁTICO em branco.
+  Uso: fundos escuros ou coloridos onde a versão dual-color não contrasta.
+  Também bom pra impressão em 1 cor, silkscreen em camisetas, etc.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="auExpert">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;1,500&display=swap');
+      .au     { font-family: 'Playfair Display', Didot, Georgia, serif; font-weight: 500; font-style: italic; }
+      .expert { font-family: 'Playfair Display', Didot, Georgia, serif; font-weight: 500; font-style: normal; }
+    ]]></style>
+  </defs>
+  <text x="12" y="46" class="au"     font-size="38" fill="#FFFFFF">au</text>
+  <text x="64" y="46" class="expert" font-size="38" fill="#FFFFFF" letter-spacing="0.3">Expert</text>
+</svg>

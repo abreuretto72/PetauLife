@@ -94,7 +94,7 @@ function roleColor(role: AccessRole): string {
     case 'vet_tech':
       return colors.petrol;
     case 'trainer':
-      return colors.purple;
+      return colors.click;
     case 'ong_member':
       return colors.rose;
     default:
@@ -243,7 +243,7 @@ export default function PartnershipInviteScreen() {
               {pets.map((p) => {
                 const selected = petId === p.id;
                 const isDog = p.species === 'dog';
-                const petColor = isDog ? colors.click : colors.purple;
+                const petColor = isDog ? colors.click : colors.click;
                 return (
                   <TouchableOpacity
                     key={p.id}

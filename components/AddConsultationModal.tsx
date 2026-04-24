@@ -39,6 +39,7 @@ import { useToast } from './Toast';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
 import { withTimeout } from '../lib/withTimeout';
+import { AIThinkingTicker } from './AIThinkingTicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export type ConsultationType = 'check-up' | 'emergency' | 'specialty' | 'follow-up';
@@ -202,7 +203,7 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
             language: i18n.language,
           },
         }),
-        15_000,
+        140000,
         'ocr-document:consultation',
       );
 
@@ -329,8 +330,8 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
         <Text style={styles.orLabel}>{t('health.orImportWith')}</Text>
 
         <TouchableOpacity style={styles.methodCard} onPress={handleTakePhoto} activeOpacity={0.7}>
-        <View style={[styles.methodIconWrap, { backgroundColor: colors.purpleSoft }]}>
-          <Camera size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+        <View style={[styles.methodIconWrap, { backgroundColor: colors.clickSoft }]}>
+          <Camera size={rs(28)} color={colors.click} strokeWidth={1.8} />
         </View>
         <View style={styles.methodTextWrap}>
           <Text style={styles.methodTitle}>{t('health.photoConsultation')}</Text>
@@ -378,17 +379,18 @@ const AddConsultationModal: React.FC<AddConsultationModalProps> = ({
         </TouchableOpacity>
       </View>
 
+      {analyzing && <AIThinkingTicker species="both" />}
       {analyzing && (
         <Animated.View style={[styles.analyzingBanner, { transform: [{ scale: pulseAnim }] }]}>
-          <ScanEye size={rs(20)} color={colors.purple} strokeWidth={1.8} />
+          <ScanEye size={rs(20)} color={colors.click} strokeWidth={1.8} />
           <Text style={styles.analyzingText}>{t('health.analyzingConsultation')}</Text>
-          <ActivityIndicator size="small" color={colors.purple} />
+          <ActivityIndicator size="small" color={colors.click} />
         </Animated.View>
       )}
 
       {ocrConfidence != null && !analyzing && (
         <View style={styles.ocrBadge}>
-          <Sparkles size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(14)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.ocrBadgeText}>
             {t('health.ocrFilled', { confidence: ocrConfidence })}
           </Text>
@@ -616,7 +618,7 @@ const styles = StyleSheet.create({
   analyzingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.clickSoft,
     borderRadius: radii.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -627,12 +629,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Sora_500Medium',
     fontSize: fs(13),
-    color: colors.purple,
+    color: colors.click,
   },
   ocrBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.clickSoft,
     borderRadius: radii.sm,
     paddingVertical: rs(4),
     paddingHorizontal: spacing.sm,
@@ -643,7 +645,7 @@ const styles = StyleSheet.create({
   ocrBadgeText: {
     fontFamily: 'Sora_600SemiBold',
     fontSize: fs(11),
-    color: colors.purple,
+    color: colors.click,
   },
   formScroll: {
     maxHeight: rs(480),

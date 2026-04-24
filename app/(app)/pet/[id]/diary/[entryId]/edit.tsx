@@ -231,7 +231,7 @@ export default function DiaryEntryEditScreen() {
           supabase.functions.invoke('classify-diary-entry', {
             body: { pet_id: id, text: newText, language },
           }),
-          30_000,
+          140000,
           'classify-diary-entry:edit',
         ).then(({ data: result }) => {
           if (!result) return;

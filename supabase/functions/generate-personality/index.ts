@@ -135,7 +135,8 @@ RULES:
 - Maximum 3 sentences (40-60 words total)
 - Be specific — reference actual behaviors and patterns from the diary
 - Include emotional tendencies, energy level, and social traits
-- Make it feel like a professional yet warm pet personality assessment
+- Register: Elite literary (contemplative, precise, close). Reference: Clarice Lispector in "Laços de Família" — warmth through observed precision, never through adjective pile-up.
+- NO performative exclamations ("!"), NO onomatopoeia ("Yay", "Oops", "Hmm"), NO cutesy pet-to-owner vocatives, NO sign-off.
 - Dominant moods lately: ${dominantMoods.join(', ') || 'not enough data'}
 - Respond ONLY in ${lang}
 - Return ONLY valid JSON, no markdown

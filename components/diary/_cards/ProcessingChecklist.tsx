@@ -65,7 +65,7 @@ export const ProcessingChecklist = React.memo(({ tempId, inputType, content, t }
     return (
       <View>
         <View style={s.fallbackRow}>
-          <ActivityIndicator size="small" color={colors.purple} />
+          <ActivityIndicator size="small" color={colors.click} />
           <Text style={s.fallbackText}>{fallbackMsg}</Text>
         </View>
         {!!content && content !== '(media)' && (
@@ -120,7 +120,7 @@ const ChecklistRow = React.memo(({ item, t }: { item: ChecklistItem; t: TFunctio
     item.state === 'done'
       ? colors.textSec
       : item.state === 'running'
-      ? colors.purple
+      ? colors.click
       : colors.textDim;
 
   return (
@@ -154,7 +154,7 @@ const SpinningLoader = ({ size }: { size: number }) => {
   const rotate = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   return (
     <Animated.View style={{ transform: [{ rotate }] }}>
-      <Loader size={size} color={colors.purple} strokeWidth={2} />
+      <Loader size={size} color={colors.click} strokeWidth={2} />
     </Animated.View>
   );
 };
@@ -236,7 +236,7 @@ const s = StyleSheet.create({
   },
   barFill: {
     height: '100%',
-    backgroundColor: colors.purple,
+    backgroundColor: colors.click,
     borderRadius: rs(2),
   },
   barIndeterminate: {
@@ -244,14 +244,14 @@ const s = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: BAR_PILL_WIDTH,
-    backgroundColor: colors.purple,
+    backgroundColor: colors.click,
     opacity: 0.85,
     borderRadius: rs(2),
   },
 
   // Fallback (no phases active yet)
   fallbackRow: { flexDirection: 'row', alignItems: 'center', gap: rs(8), marginBottom: rs(6) },
-  fallbackText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.purple },
+  fallbackText: { fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.click },
 
   content: {
     fontFamily: 'Sora_400Regular',

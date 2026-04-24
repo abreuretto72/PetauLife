@@ -19,7 +19,7 @@ export function ConsultationsTab({ consultations, consultationsHasMore, currentU
   const TYPE_COLORS: Record<string, string> = {
     routine: colors.petrol, check_up: colors.petrol,
     emergency: colors.danger,
-    specialist: colors.purple, specialty: colors.purple,
+    specialist: colors.click, specialty: colors.click,
     surgery: colors.warning,
     follow_up: colors.sky,
   };

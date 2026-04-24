@@ -63,7 +63,7 @@ const ACTIVE_PLANS: Plan[] = [
     price: 99.00,
     renewalKey: 'insurance.planAccidentRenewal',
     icon: Shield,
-    tintColor: colors.purple,
+    tintColor: colors.click,
     coverageKeys: [
       'insurance.coverAccidents',
       'insurance.coverSurgery',
@@ -74,7 +74,7 @@ const ACTIVE_PLANS: Plan[] = [
 
 const CONTACTS: Contact[] = [
   { id: 'c1', nameKey: 'insurance.contactHealthName', phoneKey: 'insurance.contactHealthPhone', tintColor: colors.petrol },
-  { id: 'c2', nameKey: 'insurance.contactAccidentName', phoneKey: 'insurance.contactAccidentPhone', tintColor: colors.purple },
+  { id: 'c2', nameKey: 'insurance.contactAccidentName', phoneKey: 'insurance.contactAccidentPhone', tintColor: colors.click },
 ];
 
 // ──────────────────────────────────────────
@@ -312,7 +312,7 @@ export default function InsuranceScreen() {
       ))}
 
       {/* Suggested */}
-      <SectionHeader label={t('insurance.aiRecommended')} icon={Sparkles} iconColor={colors.purple} />
+      <SectionHeader label={t('insurance.aiRecommended')} icon={Sparkles} iconColor={colors.ai} />
       <SuggestedPlan t={t} />
 
       {/* Cost Summary */}

@@ -28,6 +28,7 @@ import { initLocalDb } from '../lib/localDb';
 import { useSyncQueue } from '../hooks/useSyncQueue';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore, getSecureStore, BIO_EMAIL_KEY, BIO_PASS_KEY } from '../stores/authStore';
+import { usePreferencesStore } from '../stores/usePreferencesStore';
 import { isFirstRun, markAsLaunched } from '../lib/firstRun';
 import { useTranslation } from 'react-i18next';
 import InviteModal, { type InviteInfo, type InviteMemberRole } from '../components/InviteModal';
@@ -256,6 +257,11 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const router = useRouter();
 
+  // Preferência de tamanho de fonte — observa pra forçar re-mount do <Stack>
+  // quando o tutor muda o tamanho. Sem isso, StyleSheet.create() ficaria
+  // preso no valor do primeiro render.
+  const fontScale = usePreferencesStore((s) => s.fontScale);
+
   const [fontsLoaded] = useFonts({
     // Elite Typography — primárias
     Inter_300Light,
@@ -401,6 +407,7 @@ export default function RootLayout() {
           <PetAgeSync />
           <NetworkGuard>
             <Stack
+              key={fontScale}
               screenOptions={{
                 headerShown: false,
                 contentStyle: { backgroundColor: colors.bg },

@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>auExpert — Uma inteligência única para o seu pet</title>
+<meta name="description" content="Diário literário, prontuário vet-grade e IA que observa sem diagnosticar. Cuide do seu pet como você cuidaria de si — com atenção." />
+
+<meta property="og:title" content="auExpert — Uma inteligência única para o seu pet" />
+<meta property="og:description" content="Diário literário, prontuário vet-grade e IA que observa sem diagnosticar." />
+<meta property="og:url" content="https://auexpert.com.br/" />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="pt_BR" />
+
+<meta name="theme-color" content="#0D0E16" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,500;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+:root {
+  --bg: #0D0E16;
+  --bg-card: #161826;
+  --bg-deep: #08090F;
+  --border: #232538;
+  --border-light: #2E314A;
+  --click: #8F7FA8;
+  --click-light: #A89BC0;
+  --click-dark: #6F6088;
+  --click-soft: rgba(143,127,168,0.1);
+  --click-border: rgba(143,127,168,0.3);
+  --ai: #4FA89E;
+  --ai-soft: rgba(79,168,158,0.08);
+  --ai-border: rgba(79,168,158,0.28);
+  --ai-text: #7CC5BA;
+  --success: #7FA886;
+  --success-soft: rgba(127,168,134,0.12);
+  --success-border: rgba(127,168,134,0.3);
+  --success-text: #9DC2A3;
+  --warning: #D4A574;
+  --danger: #C2645E;
+  --text: #F0EDF5;
+  --text-sec: #A89FB5;
+  --text-dim: #6B6478;
+  --text-ghost: #3A3542;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', -apple-system, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Header nav */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(13,14,22,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--border);
+}
+.nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--text);
+}
+.logo .au { font-style: italic; color: var(--text); }
+.logo .expert { color: var(--text-sec); }
+
+.nav-links {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+}
+.nav-links a {
+  color: var(--text-sec);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 400;
+  transition: color .15s ease;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  background: var(--click);
+  color: var(--bg);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background .15s ease;
+}
+.nav-cta:hover { background: var(--click-light); }
+@media (max-width: 640px) {
+  .nav-links a:not(.nav-cta) { display: none; }
+}
+
+/* Hero */
+.hero {
+  padding: 80px 0 100px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(143,127,168,0.08), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ai-text);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  background: var(--ai-soft);
+  border: 0.5px solid var(--ai-border);
+  border-radius: 999px;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+.hero-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(32px, 5vw, 54px);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--text);
+  max-width: 760px;
+  margin: 0 auto 24px;
+  position: relative;
+  z-index: 1;
+}
+.hero-sub {
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.6;
+  color: var(--text-sec);
+  max-width: 560px;
+  margin: 0 auto 40px;
+  position: relative;
+  z-index: 1;
+}
+.hero-cta-row {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all .15s ease;
+  border: 0.5px solid transparent;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--click);
+  color: var(--bg);
+}
+.btn-primary:hover { background: var(--click-light); transform: translateY(-1px); }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-light);
+}
+.btn-secondary:hover { border-color: var(--click); color: var(--click-light); }
+
+/* Sections */
+section { padding: 80px 0; }
+.section-eyebrow {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-sec);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text);
+  margin-bottom: 20px;
+  max-width: 780px;
+}
+.section-lead {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text-sec);
+  max-width: 680px;
+  margin-bottom: 48px;
+}
+
+/* Three promises */
+.promises {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+.promise {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  position: relative;
+}
+.promise-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+.promise-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 12px;
+  line-height: 1.25;
+}
+.promise-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-sec);
+}
+.promise-body .quote {
+  display: block;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--ai-soft);
+  border: 0.5px solid var(--ai-border);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.7;
+  opacity: 0.94;
+  position: relative;
+}
+.promise-body .quote::before,
+.promise-body .quote::after {
+  font-family: 'Playfair Display', serif;
+  color: var(--ai);
+  font-size: 22px;
+  line-height: 0;
+  font-weight: 500;
+  opacity: 0.7;
+}
+.promise-body .quote::before { content: '"'; margin-right: 4px; }
+.promise-body .quote::after { content: '"'; margin-left: 4px; }
+.promise-body .quote-lbl {
+  display: block;
+  font-size: 9px;
+  color: var(--ai);
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+/* How it works */
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+}
+.step {
+  text-align: center;
+}
+.step-num {
+  width: 44px; height: 44px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: var(--click-soft);
+  border: 0.5px solid var(--click-border);
+  color: var(--click);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+.step-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.step-body {
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.6;
+}
+
+/* Features grid */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.feature {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+.feature-icon {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  background: var(--click-soft);
+  border: 0.5px solid var(--click-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: var(--click);
+  font-size: 18px;
+}
+.feature-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.25;
+}
+.feature-body {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.55;
+}
+
+/* FAQ */
+.faq-item {
+  border-bottom: 0.5px solid var(--border);
+  padding: 22px 0;
+}
+.faq-item:first-child { border-top: 0.5px solid var(--border); }
+.faq-q {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.faq-a {
+  font-size: 15px;
+  color: var(--text-sec);
+  line-height: 1.65;
+}
+
+/* Waitlist */
+.waitlist {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 48px;
+  text-align: center;
+}
+.waitlist-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(24px, 3.5vw, 34px);
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 14px;
+  line-height: 1.2;
+}
+.waitlist-sub {
+  color: var(--text-sec);
+  font-size: 16px;
+  margin-bottom: 28px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.waitlist-form {
+  display: flex;
+  gap: 10px;
+  max-width: 440px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.waitlist-form input {
+  flex: 1;
+  min-width: 180px;
+  background: var(--bg-deep);
+  border: 0.5px solid var(--border-light);
+  color: var(--text);
+  padding: 14px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.waitlist-form input::placeholder { color: var(--text-dim); }
+.waitlist-form input:focus { border-color: var(--click); box-shadow: 0 0 0 3px rgba(143,127,168,0.15); }
+.waitlist-form button { flex-shrink: 0; border: none; }
+.waitlist-note {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.waitlist-success {
+  display: none;
+  background: var(--success-soft);
+  border: 0.5px solid var(--success-border);
+  color: var(--success-text);
+  padding: 14px 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+.waitlist-success.active { display: block; }
+
+/* Footer */
+footer {
+  border-top: 0.5px solid var(--border);
+  padding: 48px 0 32px;
+  margin-top: 40px;
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-links {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: var(--text-sec);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color .15s;
+}
+.footer-links a:hover { color: var(--text); }
+.footer-copy {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Phone mockups */
+.mockups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px 24px;
+  margin-top: 48px;
+  justify-items: center;
+}
+.mockup-wrap { display: flex; flex-direction: column; align-items: center; max-width: 320px; width: 100%; }
+.phone {
+  width: 100%;
+  background: var(--bg);
+  border-radius: 36px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(143,127,168,0.08);
+}
+.phone-inner {
+  background: var(--bg);
+  border-radius: 30px;
+  overflow: hidden;
+  position: relative;
+  min-height: 480px;
+}
+.p-status {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px 6px; font-size: 11px; color: var(--text); font-weight: 500;
+}
+.p-batt {
+  width: 14px; height: 8px; border: 1px solid var(--text-sec); border-radius: 2px;
+  display: inline-block; position: relative;
+}
+.p-batt::after {
+  content: ''; position: absolute; top: 1px; left: 1px; bottom: 1px;
+  width: 9px; background: var(--text); border-radius: 1px;
+}
+.p-hdr { display: flex; justify-content: space-between; align-items: center; padding: 6px 16px 12px; }
+.p-icon { width: 26px; height: 28px; display: flex; align-items: center; justify-content: center; }
+.p-logo { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 500; line-height: 1; letter-spacing: 0.3px; }
+.p-logo .au { font-style: italic; color: var(--text); }
+.p-logo .expert { color: var(--text-sec); }
+.p-hdr-title { font-family: 'Playfair Display', Georgia, serif; font-size: 16px; font-weight: 500; color: var(--text); line-height: 1.1; text-align: center; }
+.p-hdr-sub { font-family: 'Inter', sans-serif; font-size: 9px; color: var(--text-dim); letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; text-align: center; }
+.p-body { padding: 2px 14px 16px; }
+.p-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 12px 13px; margin-bottom: 9px; }
+.p-row { display: flex; align-items: center; gap: 10px; }
+.p-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-deep); border: 0.5px solid var(--border-light);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text); font-family: 'Playfair Display', Georgia, serif; font-size: 14px; font-weight: 500; flex-shrink: 0;
+}
+.p-info { flex: 1; min-width: 0; }
+.p-name { font-family: 'Playfair Display', Georgia, serif; font-size: 14px; color: var(--text); font-weight: 500; line-height: 1.1; }
+.p-sub { font-size: 10px; color: var(--text-sec); margin-top: 2px; line-height: 1.3; }
+.p-level { text-align: right; margin-right: 4px; }
+.p-level-t { font-family: 'Playfair Display', Georgia, serif; font-size: 11px; color: var(--text); line-height: 1; }
+.p-level-s { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: var(--text-dim); margin-top: 2px; }
+.p-chev { stroke: var(--click); stroke-width: 1.3; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.p-xpbar { height: 2.5px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 10px 0; }
+.p-xpbar > div { height: 100%; background: var(--success); }
+.p-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.p-stat { text-align: center; }
+.p-stat-n { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); font-weight: 500; line-height: 1; }
+.p-stat-l { font-family: 'Inter', sans-serif; font-size: 7.5px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+.p-section-lbl { font-size: 9px; font-weight: 500; color: var(--text-sec); letter-spacing: 2.2px; text-transform: uppercase; margin: 10px 2px 8px; }
+.p-pet-avatar {
+  width: 48px; height: 48px; border-radius: 15px;
+  background: var(--bg-deep); border: 0.5px solid var(--border-light);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.p-pet-name { font-family: 'Playfair Display', Georgia, serif; font-size: 16px; color: var(--text); font-weight: 500; line-height: 1; }
+.p-pet-breed { font-family: 'Inter', sans-serif; font-size: 7.5px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+.p-score { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; }
+.p-score-l { font-family: 'Inter', sans-serif; font-size: 7.5px; color: var(--text-dim); letter-spacing: 1.3px; text-transform: uppercase; }
+.p-chip { font-family: 'Inter', sans-serif; font-size: 8.5px; padding: 2px 7px; border-radius: 999px; border: 0.5px solid; white-space: nowrap; }
+.p-chip-ok { background: var(--success-soft); color: var(--success-text); border-color: var(--success-border); }
+.p-chip-ai { background: var(--ai-soft); color: var(--ai-text); border-color: var(--ai-border); }
+.p-chip-warn { background: rgba(212,165,116,0.12); color: #E4C08F; border-color: rgba(212,165,116,0.3); }
+.p-chip-neutral { background: var(--bg-deep); color: var(--text-sec); border-color: var(--border); }
+.p-actions { display: grid; grid-template-columns: 1fr 0.5px 1fr 0.5px 1fr; background: var(--bg-deep); border: 0.5px solid var(--border); border-radius: 11px; overflow: hidden; margin-top: 10px; }
+.p-action { display: flex; flex-direction: column; align-items: center; padding: 9px 2px 7px; position: relative; }
+.p-action-ic { width: 26px; height: 26px; border-radius: 8px; background: var(--click-soft); border: 0.5px solid var(--click-border); display: flex; align-items: center; justify-content: center; margin-bottom: 5px; }
+.p-action-lbl { font-family: 'Playfair Display', Georgia, serif; font-size: 10px; color: var(--text); font-weight: 500; }
+.p-divi { background: var(--border); }
+.p-narr { background: var(--ai-soft); border: 0.5px solid var(--ai-border); border-radius: 12px; padding: 10px 12px; margin-bottom: 9px; }
+.p-narr-head { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+.p-narr-lbl { font-family: 'Inter', sans-serif; font-size: 8px; font-weight: 500; color: var(--ai); letter-spacing: 2px; text-transform: uppercase; }
+.p-narr-text { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 400; color: var(--text); line-height: 1.7; letter-spacing: 0.1px; opacity: 0.94; }
+.p-narr-quote { color: var(--ai); font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 500; opacity: 0.75; }
+.p-mood { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.p-mood-circle { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-deep); border: 0.5px solid var(--border-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.p-mood-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); }
+.p-mood-lbl { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sec); margin-top: 1px; }
+.p-quote { background: var(--bg-deep); border-left: 2px solid var(--border-light); border-radius: 7px 9px 9px 7px; padding: 8px 10px; margin-bottom: 9px; font-size: 11.5px; color: var(--text-sec); line-height: 1.5; }
+.p-photo-hero { height: 100px; border-radius: 14px; background: linear-gradient(145deg, #2E314A 0%, #1A1D2E 40%, rgba(79,168,158,0.15) 100%); border: 0.5px solid var(--border); margin: 0 14px 12px; position: relative; display: flex; align-items: center; justify-content: center; }
+.p-photo-badge { position: absolute; top: 8px; left: 8px; background: rgba(13,14,22,0.7); backdrop-filter: blur(6px); border: 0.5px solid var(--ai-border); padding: 3px 8px; border-radius: 999px; font-size: 8px; color: var(--ai-text); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500; }
+.p-ident-stripe { position: absolute; top: 0; left: 18px; width: 24px; height: 2px; background: var(--ai); border-radius: 0 0 2px 2px; }
+.p-finding { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 11px; margin-bottom: 6px; position: relative; }
+.p-finding-cat { font-family: 'Inter', sans-serif; font-size: 8px; color: var(--ai); letter-spacing: 1.3px; text-transform: uppercase; margin-bottom: 3px; font-weight: 500; }
+.p-finding-obs { font-size: 10.5px; color: var(--text); line-height: 1.3; padding-right: 50px; }
+.p-finding-chip { position: absolute; top: 7px; right: 10px; font-size: 7.5px; padding: 1.5px 6px; border-radius: 999px; border: 0.5px solid; }
+.mockup-caption { margin-top: 20px; text-align: center; }
+.mockup-caption-t { font-family: 'Playfair Display', Georgia, serif; font-size: 17px; color: var(--text); font-weight: 500; margin-bottom: 4px; }
+.mockup-caption-s { font-size: 13px; color: var(--text-sec); line-height: 1.5; }
+
+/* Utilities */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+
+@media (max-width: 640px) {
+  .hero { padding: 56px 0 72px; }
+  section { padding: 56px 0; }
+  .waitlist { padding: 32px 24px; }
+}
+</style>
+</head>
+<body>
+
+<h1 class="sr-only">auExpert — Uma inteligência única para o seu pet</h1>
+
+<nav class="nav" aria-label="Navegação principal">
+  <div class="nav-inner">
+    <a href="/" class="logo"><span class="au">au</span><span class="expert">Expert</span></a>
+    <div class="nav-links">
+      <a href="#promessas">O que é</a>
+      <a href="#como">Como funciona</a>
+      <a href="#faq">Dúvidas</a>
+      <a href="#lista" class="nav-cta">Lista de espera</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-eyebrow">Beta fechado · 2026</span>
+    <h2 class="hero-title">A inteligência que cuida do seu pet como você cuidaria.</h2>
+    <p class="hero-sub">Um diário literário. Um prontuário vet-grade. Uma IA que observa, não julga. Sem ansiedade de notificação, sem checklist genérico.</p>
+    <div class="hero-cta-row">
+      <a href="#lista" class="btn btn-primary">Entrar na lista de espera →</a>
+      <a href="#promessas" class="btn btn-secondary">Como funciona</a>
+    </div>
+  </div>
+</section>
+
+<section id="promessas">
+  <div class="container">
+    <div class="section-eyebrow">O que é o auExpert</div>
+    <h2 class="section-title">Três promessas pra quem cuida de verdade.</h2>
+    <p class="section-lead">Você já encontrou um app de pet que parecia sério? A maioria vira checklist de vacina. O auExpert trata o seu pet como personagem — com voz, história e um olhar clínico por trás.</p>
+
+    <div class="promises">
+      <article class="promise">
+        <div class="promise-num">01 · Narração</div>
+        <h3 class="promise-title">Diário literário em 3ª pessoa.</h3>
+        <p class="promise-body">Toda entrada vira prosa na tradição de Clarice Lispector. A IA escreve pelo seu pet, com delicadeza e precisão.
+          <span class="quote">
+            <span class="quote-lbl">Observação da IA</span>
+            A Mana sabia. Sabia da câmera como sabe dos passos do tutor na escada. Recuou no último instante, ofereceu o peito ao tapete.
+          </span>
+        </p>
+      </article>
+
+      <article class="promise">
+        <div class="promise-num">02 · Prontuário</div>
+        <h3 class="promise-title">Vet-grade, que o veterinário reconhece.</h3>
+        <p class="promise-body">Vacinas, exames, cirurgias, medicamentos, emergency card, predisposições raciais por IA. Estrutura que o médico veterinário abre e entende, sem precisar reorganizar. Exportável em PDF a qualquer momento.</p>
+      </article>
+
+      <article class="promise">
+        <div class="promise-num">03 · Curadoria</div>
+        <h3 class="promise-title">A IA observa. Não diagnostica.</h3>
+        <p class="promise-body">Percebe padrões, marca mudanças, avisa quando algo merece olhar do veterinário. Mas nunca substitui exame clínico. A presença é de uma curadora atenta, não de um algoritmo gritando.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="como" style="background: var(--bg-card); border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);">
+  <div class="container">
+    <div class="section-eyebrow">Como funciona</div>
+    <h2 class="section-title">Três passos. O resto é com a IA.</h2>
+    <p class="section-lead">Você registra. Ela organiza. Você cuida.</p>
+
+    <div class="how-steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3 class="step-title">Tira uma foto</h3>
+        <p class="step-body">Ou fala no microfone. Ou escreve. O jeito que for mais natural pra você naquele momento.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3 class="step-title">A IA interpreta</h3>
+        <p class="step-body">Identifica raça, humor, saúde visual, compromissos. Escreve uma narração literária. Classifica tudo que foi dito.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3 class="step-title">Tudo nos lugares certos</h3>
+        <p class="step-body">Vacina entra no prontuário. Consulta vai pra agenda com hora. Humor atualiza o gráfico de felicidade. Nenhum formulário pra preencher.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dentro">
+  <div class="container">
+    <div class="section-eyebrow">Dentro do app</div>
+    <h2 class="section-title">Três momentos reais.</h2>
+    <p class="section-lead">A mesma identidade visual que você vai ter no celular — paleta Ametista &amp; Jade, tipografia editorial, IA assinando cada observação sem gritar.</p>
+
+    <div class="mockups-grid">
+
+      <!-- Mockup 1: Hub -->
+      <div class="mockup-wrap">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="p-status"><span>9:41</span><span class="p-batt"></span></div>
+            <div class="p-hdr">
+              <div class="p-icon"><svg width="14" height="11" viewBox="0 0 20 14"><path d="M1 1h18M1 7h18M1 13h18" stroke="#8F7FA8" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              <div class="p-logo"><span class="au">au</span><span class="expert">Expert</span></div>
+              <div style="display:flex;gap:2px;">
+                <div class="p-icon"><svg width="12" height="14" viewBox="0 0 16 18" fill="none"><path d="M3 1h7l5 5v10a1 1 0 01-1 1H3a1 1 0 01-1-1V2a1 1 0 011-1zM10 1v5h5M5 9h6M5 12h6" stroke="#8F7FA8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="p-icon" style="position:relative;"><svg width="12" height="14" viewBox="0 0 16 18" fill="none"><path d="M8 1a5 5 0 015 5v4l1.5 2.5H1.5L3 10V6a5 5 0 015-5zM6 15a2 2 0 004 0" stroke="#8F7FA8" stroke-width="1.2" stroke-linecap="round"/></svg><span style="position:absolute;top:5px;right:3px;width:5px;height:5px;border-radius:50%;background:#C2645E;border:1px solid var(--bg);"></span></div>
+              </div>
+            </div>
+            <div class="p-body">
+              <div class="p-card">
+                <div class="p-row" style="margin-bottom:8px;">
+                  <div class="p-avatar">B</div>
+                  <div class="p-info">
+                    <div class="p-name">Belisario</div>
+                    <div class="p-sub">São Paulo · membro desde abr/26</div>
+                  </div>
+                  <div class="p-level"><div class="p-level-t">Nível 3</div><div class="p-level-s">620 / 1000</div></div>
+                  <svg width="5" height="9" viewBox="0 0 6 10"><path class="p-chev" d="M1 1l4 4-4 4"/></svg>
+                </div>
+                <div class="p-xpbar"><div style="width:62%;"></div></div>
+                <div class="p-stats">
+                  <div class="p-stat"><div class="p-stat-n">2</div><div class="p-stat-l">Pets</div></div>
+                  <div class="p-stat"><div class="p-stat-n">47</div><div class="p-stat-l">Diário</div></div>
+                  <div class="p-stat"><div class="p-stat-n">12</div><div class="p-stat-l">Fotos</div></div>
+                  <div class="p-stat"><div class="p-stat-n">1</div><div class="p-stat-l">Co-tutor</div></div>
+                </div>
+              </div>
+
+              <div class="p-section-lbl">Meus pets · 2</div>
+
+              <div class="p-card" style="padding:11px 12px;">
+                <div class="p-row" style="margin-bottom:9px;">
+                  <div class="p-pet-avatar" style="overflow: hidden; padding: 0;">
+                    <img src="/images/mana.jpg" alt="Foto da Mana" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
+                  </div>
+                  <div class="p-info">
+                    <div style="display:flex;align-items:baseline;gap:5px;justify-content:space-between;">
+                      <div style="display:flex;align-items:baseline;gap:5px;">
+                        <div class="p-pet-name">Mana</div>
+                        <div class="p-pet-breed">Chihuahua</div>
+                      </div>
+                      <div style="display:flex;align-items:baseline;gap:3px;"><span class="p-score" style="color:#7FA886;">92</span><span class="p-score-l">saúde</span></div>
+                    </div>
+                    <div class="p-sub" style="margin-top:2px;">fêmea · 2a · 2,5 kg</div>
+                    <div style="display:flex;gap:4px;margin-top:5px;">
+                      <span class="p-chip p-chip-ok">vacinas ok</span>
+                      <span class="p-chip p-chip-ai">brincalhona</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="p-actions">
+                  <div class="p-action">
+                    <div class="p-action-ic"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1l1.8 4L14 6.5 10 9l-2 5-2-5-4-2.5 4.2-1.5z" stroke="#8F7FA8" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+                    <div class="p-action-lbl">Minha IA</div>
+                  </div>
+                  <div class="p-divi"></div>
+                  <div class="p-action">
+                    <div class="p-action-ic"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 3a1.5 1.5 0 011.5-1.5H8v12H3.5A1.5 1.5 0 012 12zm6 10.5V1.5h4.5A1.5 1.5 0 0114 3v9a1.5 1.5 0 01-1.5 1.5z" stroke="#8F7FA8" stroke-width="1.1" stroke-linejoin="round"/></svg></div>
+                    <div class="p-action-lbl">Diário</div>
+                  </div>
+                  <div class="p-divi"></div>
+                  <div class="p-action">
+                    <div class="p-action-ic"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="#8F7FA8" stroke-width="1.1"/><path d="M5 1v3M11 1v3M2 7h12" stroke="#8F7FA8" stroke-width="1.1" stroke-linecap="round"/></svg></div>
+                    <div class="p-action-lbl">Agenda</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">
+          <div class="mockup-caption-t">Hub</div>
+          <div class="mockup-caption-s">Tutor, pets e a rede solidária — tudo a um toque.</div>
+        </div>
+      </div>
+
+      <!-- Mockup 2: Diário -->
+      <div class="mockup-wrap">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="p-status"><span>9:41</span><span class="p-batt"></span></div>
+            <div class="p-hdr">
+              <div class="p-icon"><svg width="12" height="10" viewBox="0 0 14 12" fill="none"><path d="M6 1L1 6l5 5M1 6h12" stroke="#8F7FA8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div style="text-align:center;"><div class="p-hdr-title">Diário da Mana</div><div class="p-hdr-sub">47 entradas</div></div>
+              <div style="display:flex;gap:2px;">
+                <div class="p-icon"><svg width="12" height="14" viewBox="0 0 16 18" fill="none"><path d="M3 1h7l5 5v10a1 1 0 01-1 1H3a1 1 0 01-1-1V2a1 1 0 011-1zM10 1v5h5M5 9h6M5 12h6" stroke="#8F7FA8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="p-icon"><svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#8F7FA8" stroke-width="1.4"/><path d="M7 4v6M4 7h6" stroke="#8F7FA8" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+              </div>
+            </div>
+            <div class="p-body">
+              <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:500;color:var(--text-sec);letter-spacing:2px;text-transform:uppercase;margin:6px 0 10px;display:flex;align-items:center;gap:8px;">hoje · 23 abr<span style="flex:1;height:0.5px;background:var(--border);"></span></div>
+
+              <div class="p-card" style="padding:12px;">
+                <div class="p-mood">
+                  <div class="p-mood-circle"><svg width="16" height="16" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#7FA886" stroke-width="1.3"/><path d="M6 11c1 1 5 1 6 0" stroke="#7FA886" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="7.5" r=".5" fill="#7FA886"/><circle cx="11.5" cy="7.5" r=".5" fill="#7FA886"/></svg></div>
+                  <div><div class="p-mood-time">14:32</div><div class="p-mood-lbl">brincalhona</div></div>
+                  <div style="margin-left:auto;font-size:15px;color:var(--click);line-height:1;padding:4px 8px;">⋯</div>
+                </div>
+
+                <div style="height:140px; background: var(--bg-deep); border-radius:10px; border:0.5px solid var(--border); margin-bottom:10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  <img src="/images/mana.jpg" alt="Foto anexada da Mana" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;" />
+                </div>
+
+                <div class="p-quote">"Ela me olhou assim hoje cedo. Juro que ela entende tudo."</div>
+
+                <div class="p-narr">
+                  <div class="p-narr-head">
+                    <svg width="10" height="10" viewBox="0 0 12 12"><path d="M6 1l1.5 3L10 5l-2.5 1L6 9 4.5 6 2 5l2.5-1z" fill="#4FA89E"/></svg>
+                    <span class="p-narr-lbl">Narração da IA</span>
+                  </div>
+                  <div class="p-narr-text"><span class="p-narr-quote">"</span> A Mana encarou a câmera sem piscar. Orelhas firmes, cabeça exatamente onde deveria estar — como quem já tinha decidido posar antes de ser pedida. <span class="p-narr-quote">"</span></div>
+                </div>
+
+                <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                  <span class="p-chip p-chip-ai"><svg width="8" height="8" viewBox="0 0 10 10" style="margin-right:2px;"><path d="M5 1l1.2 2.5L9 4.5 7 6l-2 3-2-3-2-1.5 2-1z" fill="#4FA89E"/></svg>mood · 0,88</span>
+                  <span class="p-chip p-chip-ai">atenta</span>
+                  <span class="p-chip p-chip-neutral">retrato</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">
+          <div class="mockup-caption-t">Diário</div>
+          <div class="mockup-caption-s">A voz do tutor e a voz literária da IA no mesmo card.</div>
+        </div>
+      </div>
+
+      <!-- Mockup 3: Análise de foto -->
+      <div class="mockup-wrap">
+        <div class="phone">
+          <div class="phone-inner">
+            <div class="p-status"><span>9:41</span><span class="p-batt"></span></div>
+            <div class="p-hdr">
+              <div class="p-icon"><svg width="12" height="10" viewBox="0 0 14 12" fill="none"><path d="M6 1L1 6l5 5M1 6h12" stroke="#8F7FA8" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div style="text-align:center;"><div class="p-hdr-title">Análise da IA</div><div class="p-hdr-sub">Mana · 23 abr · 14:32</div></div>
+              <div class="p-icon"><svg width="12" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v9M3.5 5L7 1l3.5 4M2 11v1.5c0 0.3 0.2 0.5 0.5 0.5h9c0.3 0 0.5-0.2 0.5-0.5V11" stroke="#8F7FA8" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+
+            <div class="p-photo-hero" style="height: 160px; background: var(--bg-deep); display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+              <img src="/images/mana.jpg" alt="Foto analisada da Mana" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block;" />
+              <div class="p-photo-badge"><svg width="6" height="6" viewBox="0 0 10 10" style="margin-right:3px;display:inline-block;vertical-align:middle;"><path d="M5 1l1.2 2.5L9 4.5 7 6l-2 3-2-3-2-1.5 2-1z" fill="#4FA89E"/></svg>Análise completa</div>
+            </div>
+
+            <div class="p-body">
+              <div class="p-card" style="position:relative;padding:12px;">
+                <div class="p-ident-stripe"></div>
+                <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px;">
+                  <div class="p-pet-name" style="font-size:18px;">Chihuahua</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#7CC5BA;">0,95 conf.</div>
+                </div>
+                <div class="p-sub" style="margin-bottom:10px;">adulta · fêmea · pelagem chocolate &amp; tan</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+                  <div style="background:var(--bg-deep);border:0.5px solid var(--border);border-radius:8px;padding:7px 4px;text-align:center;">
+                    <div style="font-family:'Inter',sans-serif;font-size:7px;color:var(--text-dim);letter-spacing:1.1px;text-transform:uppercase;">Idade</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);font-weight:500;margin-top:2px;">~24 <span style="font-size:8px;color:var(--text-dim);">m</span></div>
+                  </div>
+                  <div style="background:var(--bg-deep);border:0.5px solid var(--border);border-radius:8px;padding:7px 4px;text-align:center;">
+                    <div style="font-family:'Inter',sans-serif;font-size:7px;color:var(--text-dim);letter-spacing:1.1px;text-transform:uppercase;">Peso</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);font-weight:500;margin-top:2px;">~2,5 <span style="font-size:8px;color:var(--text-dim);">kg</span></div>
+                  </div>
+                  <div style="background:var(--bg-deep);border:0.5px solid var(--border);border-radius:8px;padding:7px 4px;text-align:center;">
+                    <div style="font-family:'Inter',sans-serif;font-size:7px;color:var(--text-dim);letter-spacing:1.1px;text-transform:uppercase;">BCS</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#9DC2A3;font-weight:500;margin-top:2px;">5<span style="font-size:8px;color:var(--text-dim);">/9</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-section-lbl" style="margin-top:12px;">Achados de saúde · 3</div>
+
+              <div class="p-finding">
+                <div class="p-finding-cat">Pelagem</div>
+                <div class="p-finding-obs">Saudável, brilho uniforme, sem queda.</div>
+                <span class="p-finding-chip p-chip-ok">normal</span>
+              </div>
+              <div class="p-finding">
+                <div class="p-finding-cat">Olhos</div>
+                <div class="p-finding-obs">Claros, sem secreção visível.</div>
+                <span class="p-finding-chip p-chip-ok">normal</span>
+              </div>
+              <div class="p-finding">
+                <div class="p-finding-cat">Orelhas</div>
+                <div class="p-finding-obs">Eretas e atentas, canal externo limpo.</div>
+                <span class="p-finding-chip p-chip-ok">normal</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mockup-caption">
+          <div class="mockup-caption-t">Análise de foto</div>
+          <div class="mockup-caption-s">A IA lê a foto, marca achados, respeita limites.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-eyebrow">O que tem dentro</div>
+    <h2 class="section-title">Funcionalidades que respeitam o seu tempo.</h2>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Diário com narração IA</h3>
+        <p class="feature-body">Texto, foto, vídeo ou voz. A IA transforma em prosa literária.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Análise de foto</h3>
+        <p class="feature-body">Visão computacional identifica raça, idade, humor e achados visuais.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Prontuário completo</h3>
+        <p class="feature-body">Vacinas, exames, cirurgias, medicações — estrutura vet-grade.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Agenda inteligente</h3>
+        <p class="feature-body">Marcou a consulta no diário? Já está agendada com lembrete push.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Carteirinha digital</h3>
+        <p class="feature-body">QR code com dados essenciais pra emergência e viagem.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Nutrição guiada</h3>
+        <p class="feature-body">Cardápio semanal, trocas de ração, receitas naturais validadas.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Exportação em PDF</h3>
+        <p class="feature-body">Prontuário, diário, relatórios — tudo pronto pra imprimir ou enviar.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✦</div>
+        <h3 class="feature-title">Funciona offline</h3>
+        <p class="feature-body">Registra sem internet. Sincroniza quando a conexão voltar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="background: var(--bg-card); border-top: 0.5px solid var(--border); border-bottom: 0.5px solid var(--border);">
+  <div class="container" style="max-width: 760px;">
+    <div class="section-eyebrow">Dúvidas frequentes</div>
+    <h2 class="section-title">Perguntas que recebemos.</h2>
+
+    <div class="faq-item">
+      <h3 class="faq-q">Por que Elite apenas?</h3>
+      <p class="faq-a">Preferimos fazer muito bem pra poucos antes de fazer mediano pra muitos. A primeira turma de tutores vai receber o melhor modelo de IA que existe hoje, suporte próximo e influência direta no que construímos a seguir.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3 class="faq-q">A IA diagnostica?</h3>
+      <p class="faq-a">Não. A IA observa, organiza e sugere quando algo merece atenção. O diagnóstico é sempre do veterinário. Nosso papel é dar ao profissional um prontuário bem estruturado e ao tutor uma leitura atenta do pet entre consultas.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3 class="faq-q">Funciona offline?</h3>
+      <p class="faq-a">Sim. Você registra sem internet e o app sincroniza quando a conexão voltar. Todos os seus dados ficam armazenados no dispositivo primeiro.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3 class="faq-q">Os dados do meu pet ficam seguros?</h3>
+      <p class="faq-a">Criptografados em trânsito e em repouso. Você pode exportar tudo em PDF a qualquer momento, e pedir a exclusão completa quando quiser. Não vendemos dados. Nunca.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3 class="faq-q">Funciona pra gato também?</h3>
+      <p class="faq-a">Sim. Cães e gatos no MVP. Outras espécies em avaliação conforme a comunidade crescer.</p>
+    </div>
+
+    <div class="faq-item">
+      <h3 class="faq-q">Quando lança?</h3>
+      <p class="faq-a">Beta fechado em curso. Lançamento público previsto pra 2026. Entre na lista de espera abaixo — avisamos assim que abrir.</p>
+    </div>
+  </div>
+</section>
+
+<section id="lista">
+  <div class="container" style="max-width: 720px;">
+    <div class="waitlist">
+      <h2 class="waitlist-title">Seja um dos primeiros.</h2>
+      <p class="waitlist-sub">A lista de espera é o caminho mais curto pro beta fechado. Sem spam — um email quando abrirmos vaga, e só.</p>
+
+      <form class="waitlist-form" id="waitlistForm" onsubmit="handleWaitlist(event)">
+        <label for="email" class="sr-only">Seu email</label>
+        <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
+        <button type="submit" class="btn btn-primary">Entrar na lista</button>
+      </form>
+
+      <p class="waitlist-note">Enviando você concorda que usemos seu email apenas para avisar sobre o lançamento.</p>
+
+      <div class="waitlist-success" id="waitlistSuccess">
+        ✓ Entrou na lista. Te avisamos quando abrir.
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-copy">© 2026 Multiverso Digital · auExpert</div>
+      <div class="footer-links">
+        <a href="/privacidade.html">Privacidade</a>
+        <a href="/termos.html">Termos</a>
+        <a href="/contato.html">Contato</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+function handleWaitlist(e) {
+  e.preventDefault();
+  var email = document.getElementById('email').value;
+  // TODO: substituir por POST real pra um endpoint de captura (ex: Supabase, Mailchimp, ConvertKit).
+  // Por enquanto apenas mostra confirmação local.
+  console.log('Waitlist signup:', email);
+  document.getElementById('waitlistForm').style.display = 'none';
+  document.getElementById('waitlistSuccess').classList.add('active');
+  document.getElementById('waitlistSuccess').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  return false;
+}
+</script>
+
+</body>
+</html>

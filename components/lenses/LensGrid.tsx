@@ -40,7 +40,6 @@ const LENSES: LensConfig[] = [
   { id: 'expenses', icon: Receipt, labelKey: 'lenses.expenses', color: colors.warning, route: 'expenses' },
   { id: 'friends', icon: PawIcon, labelKey: 'lenses.friends', color: colors.click, route: 'friends' },
   { id: 'plans', icon: Heart, labelKey: 'lenses.plans', color: colors.rose, route: 'plans' },
-  { id: 'achievements', icon: Trophy, labelKey: 'lenses.achievements', color: colors.warning, route: 'achievements' },
   { id: 'happiness', icon: Smile, labelKey: 'lenses.happiness', color: colors.success, route: 'happiness' },
   { id: 'travels', icon: Plane, labelKey: 'lenses.travels', color: colors.sky, route: 'travel' },
 ];

@@ -22,7 +22,7 @@ Expo SDK 52+ · React Native · TypeScript · Expo Router v4 · Zustand 4.x · R
 
 ## Inviolable Rules (resumo — detalhes nas skills)
 
-Essas 10 regras valem em qualquer arquivo, qualquer tarefa. Cada violação é bug em aberto.
+Essas 11 regras valem em qualquer arquivo, qualquer tarefa. Cada violação é bug em aberto.
 
 1. **Nenhuma string visível ao tutor hardcoded.** Todo texto de UI (Text, placeholder, toast, label, alert) vai para i18n. Ver skill `auexpert-i18n`.
 2. **`Alert.alert()` é proibido.** Usar `toast()` ou `confirm()` do ToastProvider. Ver skill `auexpert-ui-patterns`.
@@ -34,6 +34,7 @@ Essas 10 regras valem em qualquer arquivo, qualquer tarefa. Cada violação é b
 8. **Cores hardcoded são proibidas.** Sempre importar de `constants/colors.ts`. Branco puro `#FFFFFF` é exceção universal permitida apenas em texto de botão primário. Preto puro nunca.
 9. **Arquivos protegidos não são modificados** sem autorização explícita (ver seção "Protected files" abaixo).
 10. **Fontes customizadas são proibidas.** Apenas fonte do sistema (SF Pro/Roboto). Nunca `fontStyle: 'italic'` em texto corrido. Tamanho mínimo: 12px labels, 14px corpo.
+11. **Clicável primário = ametista sólido.** Todo CTA principal (botão de ação, stat box, submit, confirmar) usa `backgroundColor: colors.click` sólido + texto/ícones em `#FFFFFF`. Nunca `LinearGradient`, nunca fundo translúcido, nunca cor diferente. Referência: `components/pets/PetListHeader.addBtn` + `components/PetCard.statBox`. Exceções: botões destrutivos (`colors.danger`), secundários/cancelar (borda sem fundo), chips de filtro/toggles (não são CTAs primários), seletores polissêmicos por função (ex: `components/diary/InputSelector.tsx` tem uma cor por método de input).
 
 ---
 
@@ -93,6 +94,46 @@ WHERE table_name = 'nome_da_tabela' AND table_schema = 'public';
 
 ---
 
+## Registro Elite — tom da UI e da IA (REGRA OBRIGATÓRIA)
+
+> **Desde 2026-04-23 o app opera em registro Elite. Qualquer texto visível ao tutor (toast, erro, narração, helper, placeholder, tip, alert, confirm) segue as regras abaixo — sem exceção.**
+>
+> Esta seção **sobrepõe** as skills em `.claude/skills/*` que ainda descrevem a antiga "voz do pet cartoonesca" ("Eba!", "Xi!", "— seu pet"). Elas são legado pendente de atualização manual.
+
+**Regras invioláveis:**
+
+- **Clicável primário = fundo ametista sólido.** Todo botão CTA (Adicionar pet, Entrar, Salvar, Confirmar, stat box de pet, etc.) usa `backgroundColor: colors.click` sólido + texto/ícones brancos. Padronização deliberada: o tutor identifica clicabilidade pela cor única e sólida. Nunca usar `LinearGradient` (padrão antigo), nunca fundo translúcido (`clickSoft` é pra hover/focus ring, não pra CTA primário), nunca cor diferente (jade é pra saída da IA, não pra botão que abre a IA). Exceções documentadas: destrutivos em `colors.danger`, secundários com borda sem fundo, seletores polissêmicos com cor-por-função (ex: `InputSelector`).
+- **3ª pessoa ou voz impessoal/passiva.** Nunca 1ª pessoa do pet/app falando ao tutor. Nunca "Eu", "Posso", "Preciso", "Não consegui", "I'll", "Let me", "I can", "Couldn't".
+- **Sem exclamação performática.** `!` só em casos genuinamente comemorativos — quase nunca em UI.
+- **Sem onomatopeia.** Proibido: "Eba", "Xi", "Opa", "Ué", "Hmm", "Yay", "Oops", "Oh", "Hey".
+- **Sem vocativo fofinho.** Proibido: "humano", "hein?", "né?", "tá?", "viu?", "amigo", "hein".
+- **Sem assinatura textual** "— seu pet" / "— your pet". A composição visual do balão (patinha colorida + container) já declara autoria.
+- **Imperativo polido.** "Tente" (não "Tenta"), "Verifique" (não "Confere"), "Aguarde" (não "Espera").
+- **Frases curtas.** Um ponto final por ideia. Vírgula para respiro, não para enfeite.
+
+**Referência literária:** Clarice Lispector em "Laços de Família" e "Felicidade Clandestina" — contemplativa, próxima, sensorial, sem derrame emocional. Nunca Clarice de "A Hora da Estrela" (o app não pode pesar).
+
+**Exemplos — antes × depois:**
+
+| ❌ Cartoon antigo | ✅ Elite atual |
+|---|---|
+| "Eba! Nova memória registrada!" | "Registrado." |
+| "Xi, não consegui salvar. Tenta de novo?" | "Não foi possível salvar. Tente novamente." |
+| "Opa, caí da rede! Verifica o Wi-Fi e tenta de novo?" | "A conexão caiu. Verifique a rede e tente de novo." |
+| "Calma, humano! Muitas tentativas. Espera um pouquinho." | "Muitas tentativas. Aguarde alguns minutos." |
+| "Te reconheci! Bem-vindo de volta!" | "Reconhecido. Bem-vindo de volta." |
+| "Só cabe 1 vídeo por entrada, humano!" | "Cada entrada aceita apenas um vídeo." |
+| "Yay! New memory recorded!" | "Recorded." |
+| "Oops, something went wrong. Try again?" | "Something did not go as expected. Try again." |
+
+**Narração da IA no diário:** segue o mesmo registro. A regra inviolável #5 (3ª pessoa sempre) continua valendo — a mudança é que o tom passa de "cachorrinho animado" para "narrador Clarice". Sensorial, próxima, sem sentimentalismo explícito, sem metáfora de morte/sofrimento.
+
+**Escopo da reescrita:** `i18n/pt-BR.json` e `i18n/en-US.json` já foram reescritos nesta norma em 2026-04-23. Quando adicionar chave nova, seguir o registro Elite desde a primeira escrita. Locales es-MX, es-AR, pt-PT ficam pendentes de tradução sob mesma régua.
+
+**Confirm() dialogs:** o registro é ainda mais seco — confirmação é momento funcional, não literário. "Deseja sair?", "Remover esta entrada?", "Confirmar alteração?" — sem literatura, sem emoção.
+
+---
+
 ## Protected files (não modificar sem autorização)
 
 Cada um desses arquivos tem efeito em cascata. Se precisar de comportamento novo, criar arquivo SEPARADO que reuse o protegido — não mexer no original.
@@ -112,7 +153,7 @@ Cada um desses arquivos tem efeito em cascata. Se precisar de comportamento novo
 - **Tutor** — dono do pet (usar "tutor" no UI, nunca "usuário")
 - **Pet** — cão ou gato (apenas estes no MVP)
 - **RAG** — Retrieval-Augmented Generation (memória vetorial por pet)
-- **Narração** — texto gerado pela IA na voz do pet
+- **Narração** — texto literário gerado pela IA sobre o pet, em 3ª pessoa, registro Elite inspirado em Clarice Lispector (contemplativo, sensorial, sem 1ª pessoa, sem vocativo ao tutor)
 - **Mood** — `ecstatic | happy | calm | tired | anxious | sad | playful | sick`
 - **Health Score** — 0-100 calculado pela IA
 - **Aldeia** — micro-rede solidária hiperlocal (pós-MVP, 22 tabelas, 13 telas)
@@ -147,73 +188,3 @@ PDF é gerado apenas quando o tutor escolhe uma das opções
 ### Uso
 
 ```tsx
-import PdfActionModal from '../../../components/pdf/PdfActionModal';
-
-// 1. Estado
-const [pdfModal, setPdfModal] = useState(false);
-
-// 2. Botão que abre
-<TouchableOpacity onPress={() => setPdfModal(true)}>
-  <FileText size={rs(20)} color={colors.accent} />
-</TouchableOpacity>
-
-// 3. Modal (no final do JSX, antes do </SafeAreaView>)
-<PdfActionModal
-  visible={pdfModal}
-  onClose={() => setPdfModal(false)}
-  title={t('xxx.pdfTitle', { name: pet.name })}
-  subtitle={t('xxx.pdfSubtitle', { count: entries.length })}
-  onPreview={() => previewXxxPdf(data)}
-  onShare={() => shareXxxPdf(data, 'arquivo.pdf')}
-/>
-```
-
-### Regras
-
-- **NUNCA** chamar `router.push('/xxx-pdf')` — substituir por `setPdfModal(true)`
-- **NUNCA** gerar PDF automaticamente no mount — esperar escolha do tutor
-- Ícone do botão que abre o modal: `FileText` (laranja, `accent`)
-- As funções `onPreview`/`onShare` devem ser async e podem lançar exceção — o modal já trata o erro via toast
-- As chaves i18n do modal são sempre `pdfCommon.printOrSave`, `pdfCommon.shareFile` etc.
-- Cada tipo de PDF tem suas funções em `lib/xxxPdf.ts` (previewXxxPdf / shareXxxPdf)
-
----
-
-## Especialização (skills — carregadas sob demanda)
-
-Quando a tarefa envolver um desses temas, a skill correspondente entra no contexto automaticamente:
-
-| Skill | Quando carrega |
-|---|---|
-| `auexpert-design-system` | Ao mexer em cores, fontes, tipografia, botões, ícones, logo, espaçamento |
-| `auexpert-ui-patterns` | Ao usar Toast/confirm, traduzir erros técnicos para o tutor, hierarquia de botões |
-| `auexpert-i18n` | Ao adicionar/editar strings, estrutura de chaves, tom de voz do pet |
-| `auexpert-diary-flow` | Ao trabalhar na tela de nova entrada, pipeline de publicação, cenários de input |
-| `auexpert-edge-functions` | Ao escrever Edge Function (Promise.all, structured outputs, cache, timing, compressão de imagem) |
-| `auexpert-architecture` | Ao organizar pastas, criar hooks, separar estado (RQ vs Zustand), escalar código |
-| `auexpert-resilience` | Ao lidar com erros, offline, ErrorBoundary, NetworkGuard, PDF export |
-
-**Docs adicionais** (carregados por referência explícita):
-- `@docs/aldeia-spec.md` — spec completa da Aldeia (pós-MVP)
-- `@docs/prototypes-catalog.md` — catálogo de protótipos em `docs/prototypes/`
-
----
-
-## Compact Instructions
-
-Quando compactar o contexto, **SEMPRE preservar:**
-
-- Bug atual sob investigação + passos de reprodução
-- Lista completa de arquivos modificados na sessão (paths absolutos)
-- Migrations pendentes ou schema changes que ainda não tiveram `NOTIFY pgrst, 'reload schema'` aplicado
-- Debug logs adicionados ao código que ainda não foram validados visualmente pelo tutor
-- Decisões arquiteturais tomadas nesta sessão que ainda não entraram neste CLAUDE.md
-
-**O resumo nunca pode dropar:**
-- Regra de i18n (strings hardcoded proibidas)
-- Soft delete (`is_active = false`)
-- PostgREST JOIN syntax com constraint name
-- Regra de `getAIConfig()` para modelo de IA
-- Lista de protected files
-
-Após compactar, sempre pedir para o Claude confirmar o estado: "Resuma onde estamos e o que vamos fazer em seguida."

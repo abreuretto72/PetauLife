@@ -195,7 +195,7 @@ export default function ProntuarioQrScreen() {
             <Text style={s.sectionTitle}>{t('health.medications').toUpperCase()}</Text>
             {prontuario.active_medications.map((m) => (
               <View key={m.id} style={s.infoRow}>
-                <Pill size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+                <Pill size={rs(14)} color={colors.click} strokeWidth={1.8} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.infoTitle}>{m.name}</Text>
                   {(m.dosage || m.frequency) && (

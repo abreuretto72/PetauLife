@@ -22,7 +22,7 @@ import { useLensPlans, type PetPlan } from '../../hooks/useLens';
 const PLAN_TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; labelKey: string }> = {
   health:     { icon: Shield,    color: colors.success,  labelKey: 'plans.typeHealth' },
   insurance:  { icon: Heart,     color: colors.rose,     labelKey: 'plans.typeInsurance' },
-  funeral:    { icon: Star,      color: colors.purple,   labelKey: 'plans.typeFuneral' },
+  funeral:    { icon: Star,      color: colors.click,   labelKey: 'plans.typeFuneral' },
   assistance: { icon: Zap,       color: colors.petrol,   labelKey: 'plans.typeAssistance' },
   emergency:  { icon: Wallet,    color: colors.warning,  labelKey: 'plans.typeEmergency' },
 };
@@ -197,7 +197,7 @@ function PlanSuggestionCard() {
   const { t } = useTranslation();
   return (
     <View style={styles.suggestionCard}>
-      <Sparkles size={rs(20)} color={colors.purple} strokeWidth={1.8} />
+      <Sparkles size={rs(20)} color={colors.ai} strokeWidth={1.8} />
       <View style={styles.suggestionText}>
         <Text style={styles.suggestionTitle}>{t('plans.suggestionTitle')}</Text>
         <Text style={styles.suggestionHint}>{t('plans.suggestionHint')}</Text>

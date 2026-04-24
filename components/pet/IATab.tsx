@@ -224,7 +224,7 @@ function EmptyInsights({ filter }: { filter: InsightCategory | 'all' }) {
   const { t } = useTranslation();
   return (
     <View style={styles.empty}>
-      <Sparkles size={rs(40)} color={colors.purple} strokeWidth={1.4} />
+      <Sparkles size={rs(40)} color={colors.ai} strokeWidth={1.4} />
       <Text style={styles.emptyTitle}>
         {filter === 'all'
           ? t('insights.emptyTitle')
@@ -371,7 +371,7 @@ function ChatView({ petName, messages, isLoading, error, sendMessage }: ChatView
       <View style={[styles.msgRow, isUser && styles.msgRowUser]}>
         {!isUser && (
           <View style={styles.msgAvatar}>
-            <Sparkles size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+            <Sparkles size={rs(14)} color={colors.ai} strokeWidth={1.8} />
           </View>
         )}
         <View style={[styles.msgBubble, isUser ? styles.msgBubbleUser : styles.msgBubbleAssistant]}>
@@ -392,7 +392,7 @@ function ChatView({ petName, messages, isLoading, error, sendMessage }: ChatView
       {/* Header */}
       <View style={styles.chatHeader}>
         <View style={styles.chatHeaderLeft}>
-          <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(16)} color={colors.ai} strokeWidth={1.8} />
           <View>
             <Text style={styles.chatTitle}>{t('ia.title')}</Text>
             <Text style={styles.chatSubtitle}>{t('ia.subtitle', { name: petName })}</Text>
@@ -411,7 +411,7 @@ function ChatView({ petName, messages, isLoading, error, sendMessage }: ChatView
         ListEmptyComponent={
           <View style={styles.welcomeWrap}>
             <View style={styles.welcomeIcon}>
-              <Sparkles size={rs(28)} color={colors.purple} strokeWidth={1.4} />
+              <Sparkles size={rs(28)} color={colors.ai} strokeWidth={1.4} />
             </View>
             <Text style={styles.welcomeText}>
               {t('ia.welcome', { name: petName })}
@@ -423,7 +423,7 @@ function ChatView({ petName, messages, isLoading, error, sendMessage }: ChatView
       {/* Typing indicator */}
       {isLoading && (
         <View style={styles.thinkingRow}>
-          <ActivityIndicator size="small" color={colors.purple} />
+          <ActivityIndicator size="small" color={colors.click} />
           <Text style={styles.thinkingText}>{t('ia.thinking')}</Text>
         </View>
       )}
@@ -553,7 +553,7 @@ export default function IATab({ petId, petName, chatMessages, chatIsLoading, cha
         >
           <MessageCircle
             size={rs(14)}
-            color={subView === 'chat' ? colors.purple : colors.textDim}
+            color={subView === 'chat' ? colors.click : colors.textDim}
             strokeWidth={1.8}
           />
           <Text style={[styles.switcherLabel, subView === 'chat' && styles.switcherLabelActive]}>
@@ -567,7 +567,7 @@ export default function IATab({ petId, petName, chatMessages, chatIsLoading, cha
         >
           <Sparkles
             size={rs(14)}
-            color={subView === 'insights' ? colors.purple : colors.textDim}
+            color={subView === 'insights' ? colors.ai : colors.textDim}
             strokeWidth={1.8}
           />
           <Text style={[styles.switcherLabel, subView === 'insights' && styles.switcherLabelActive]}>
@@ -586,11 +586,11 @@ export default function IATab({ petId, petName, chatMessages, chatIsLoading, cha
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={false} onRefresh={refetch} tintColor={colors.purple} />
+              <RefreshControl refreshing={false} onRefresh={refetch} tintColor={colors.click} />
             }
           >
             <View style={styles.sectionHeader}>
-              <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+              <Sparkles size={rs(16)} color={colors.ai} strokeWidth={1.8} />
               <Text style={styles.sectionTitle}>
                 {t('insights.sectionTitle', { name: resolvedName.toUpperCase() })}
               </Text>
@@ -661,11 +661,11 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: rs(6), paddingVertical: rs(8), borderRadius: rs(radii.lg),
   },
-  switcherTabActive: { backgroundColor: colors.purple + '20' },
+  switcherTabActive: { backgroundColor: colors.click + '20' },
   switcherLabel: {
     fontFamily: 'Sora_600SemiBold', fontSize: fs(12), color: colors.textDim,
   },
-  switcherLabelActive: { color: colors.purple, fontFamily: 'Sora_700Bold' },
+  switcherLabelActive: { color: colors.ai, fontFamily: 'Sora_700Bold' },
 
   insightsScroll: { flex: 1 },
   content: {
@@ -695,8 +695,8 @@ const styles = StyleSheet.create({
   welcomeWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: rs(40), gap: rs(12) },
   welcomeIcon: {
     width: rs(56), height: rs(56), borderRadius: rs(28),
-    backgroundColor: colors.purple + '15', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.purple + '30',
+    backgroundColor: colors.click + '15', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.click + '30',
   },
   welcomeText: {
     fontFamily: 'Sora_400Regular', fontSize: fs(13), color: colors.textSec,
@@ -706,8 +706,8 @@ const styles = StyleSheet.create({
   msgRowUser: { justifyContent: 'flex-end' },
   msgAvatar: {
     width: rs(28), height: rs(28), borderRadius: rs(14),
-    backgroundColor: colors.purple + '15', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: colors.purple + '20', flexShrink: 0,
+    backgroundColor: colors.click + '15', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.click + '20', flexShrink: 0,
   },
   msgBubble: {
     maxWidth: '80%', borderRadius: rs(16), paddingHorizontal: rs(14), paddingVertical: rs(10),
@@ -832,8 +832,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   filterChipActive: {
-    backgroundColor: colors.purple + '20',
-    borderColor: colors.purple,
+    backgroundColor: colors.click + '20',
+    borderColor: colors.click,
   },
   filterChipText: {
     fontFamily: 'Sora_600SemiBold',
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     color: colors.textDim,
   },
   filterChipTextActive: {
-    color: colors.purple,
+    color: colors.click,
     fontFamily: 'Sora_700Bold',
   },
 

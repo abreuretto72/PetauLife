@@ -1,4 +1,18 @@
-# Aldeia — Rede Solidária (pós-MVP)
+# ⚠️ DEPRECATED — substituído por `docs/circulo-spec.md`
+
+> **Status em 2026-04-23:** esta spec está **depreciada** pelo reframe Elite.
+> O Pilar 4 do plano de posicionamento (`docs/elite/posicionamento/2026-04-22_plano_elite_auexpert.md`) substituiu a Aldeia (rede solidária hiperlocal, 22 tabelas, Pet-Credits, favores, feed comunitário) pelo **Círculo** (editorial curado + diretório de parceiros verificados + memoriais + eventos exclusivos, 8 tabelas, zero mecânica transacional).
+>
+> **O que usar em vez disto:**
+> - `docs/circulo-spec.md` — spec ativa do reframe (8 tabelas, 5 telas, sem Pet-Credits, sem favores, sem feed público).
+>
+> **Por que a Aldeia saiu de escopo:** elite não pede favor pro vizinho, não troca ração, não quer feed comunitário. O que ela quer é curadoria — e é o que o Círculo entrega.
+>
+> Este documento é preservado como referência histórica do que foi considerado e descartado. Não implementar nada daqui. Migração de dados (se houver algum legado em teste): apenas `aldeia_memorials` → `circulo_memorials` e `aldeia_partners` de tipo `vet/hotel/grooming/pet_shop` → `circulo_partners`. Resto descartar.
+
+---
+
+# Aldeia — Rede Solidária (pós-MVP) — DEPRECATED
 
 > Doc de referência. **NÃO é skill** — não carrega automaticamente. Abrir explicitamente com `@docs/aldeia-spec.md` quando for trabalhar em qualquer tela ou Edge Function relacionada à Aldeia.
 

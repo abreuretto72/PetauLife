@@ -750,13 +750,14 @@ Tamanho no balao: 56x56px com borderRadius 16.
 │      │  🐾 branca │      │  ← Patinha branca sobre fundo colorido
 │      └────────────┘      │
 │                          │
-│   Mensagem na voz do     │  ← Sora 500, 15px, center
-│   pet, simples e leve    │
+│   Mensagem factual,      │  ← Inter 500, 15px, center
+│   breve, em 3a pessoa    │
 │                          │
 │  [Cancelar] [Confirmar]  │  ← So aparece no confirm()
 │                          │
-│       — seu pet          │  ← Caveat 400, italic
 └──────────────────────────┘
+
+(Sem assinatura textual "— seu pet" — a composicao visual do balao ja declara autoria.)
 ```
 
 **Dois metodos:**
@@ -777,7 +778,7 @@ Tamanho no balao: 56x56px com borderRadius 16.
 - NUNCA usar `Alert.alert()` do React Native — sempre `confirm()` do Toast
 - NUNCA mostrar mensagens no topo da tela — sempre balao centralizado
 - Todas as mensagens em i18n (chaves `toast.*` e `errors.*`)
-- Tom das mensagens: voz do pet, leve, carinhoso — nunca tecnico
+- Tom das mensagens: registro Elite — literario factual, 3a pessoa, seco. SEM exclamacao performatica ("!"), SEM onomatopeia ("Eba", "Xi", "Opa", "Yay", "Oops"), SEM vocativo fofinho ("humano", "hein?"), SEM assinatura "— seu pet". Referencia: Clarice Lispector em "Lacos de Familia".
 - Backdrop escuro `rgba(11, 18, 25, 0.6)` — foco total no balao
 
 ### Progress bars
@@ -1294,15 +1295,19 @@ diary.*      → diário
 health.*     → saúde, vacinas, alergias
 ai.*         → análises de IA
 settings.*   → configurações
-toast.*      → mensagens de balão (voz do pet)
-errors.*     → mensagens de erro (voz do pet)
+toast.*      → mensagens de balão (registro Elite, 3ª pessoa factual)
+errors.*     → mensagens de erro (registro Elite, 3ª pessoa factual)
 ```
 
-**Tom das mensagens (voz do pet):**
-- Toast e erros DEVEM ser escritos como se fosse o pet falando com o tutor
-- Tom leve, carinhoso, bem-humorado — nunca técnico, nunca frio
-- Exemplos: "Eba!", "Xi!", "Opa!", "Calma, humano!", "Te reconheci!"
-- Assinatura: "— seu pet" (PT-BR) / "— your pet" (EN-US)
+**Tom das mensagens (registro Elite — voz literária factual, desde 2026-04-23):**
+- Toast e erros são escritos em 3ª pessoa ou voz impessoal/passiva — nunca na voz de 1ª pessoa do pet falando com o tutor.
+- SEM exclamação performática ("!"). Exclamação só se for genuinamente comemorativo — raríssimo em toast/erro.
+- SEM onomatopeia: "Eba!", "Xi!", "Opa!", "Ué!", "Yay!", "Oops!", "Hmm", "Hey".
+- SEM vocativo fofinho: "humano", "hein?", "né?", "tá?", "viu?", "amigo".
+- SEM assinatura textual "— seu pet" / "— your pet". A composição visual do balão (patinha + container) já declara autoria.
+- Referência literária: Clarice Lispector em "Laços de Família" — contemplativa, próxima, sensorial, sem derrame emocional. Nunca Clarice de "A Hora da Estrela".
+- Exemplos: "Registrado.", "Algo não saiu como esperado. Tente novamente.", "A conexão caiu. Verifique a rede e tente de novo.", "Muitas tentativas. Aguarde alguns minutos."
+- A regra inviolável #5 (narração sempre em 3ª pessoa) continua valendo — o tom é Elite, mas a perspectiva narrativa não muda.
 
 ---
 

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  auExpert Wordmark — Variação A (editorial)
+  Composição: "au" em Cormorant Garamond Italic 500 + "Expert" Semibold 600
+  Cor: #D17547 (âmbar terroso)
+  Uso: tela de login, onboarding, splash, página de vendas
+  Substitui: assets/images/logotipotrans.png
+
+  Para exportar em PNG:
+  1. Instalar Cormorant Garamond (fonts.google.com/specimen/Cormorant+Garamond)
+  2. Abrir este SVG no Figma free tier ou no Illustrator
+  3. Exportar em PNG @3x (fundo transparente)
+  4. Substituir logotipotrans.png mantendo o mesmo nome
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250" width="800" height="250">
+  <text
+    x="400"
+    y="165"
+    text-anchor="middle"
+    font-family="'Cormorant Garamond', 'Cormorant', serif"
+    font-size="160"
+    fill="#D17547"
+    letter-spacing="-2"
+  >
+    <tspan font-style="italic" font-weight="500">au</tspan><tspan font-style="normal" font-weight="600">Expert</tspan>
+  </text>
+</svg>

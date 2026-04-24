@@ -9,7 +9,6 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ArrowRight, Fingerprint, ScanFace, Mail, Lock } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -193,10 +192,7 @@ export default function LoginScreen() {
             activeOpacity={0.8}
             style={styles.loginBtnWrap}
           >
-            <LinearGradient
-              colors={[colors.click, colors.clickDark]}
-              style={styles.loginBtn}
-            >
+            <View style={[styles.loginBtn, { backgroundColor: colors.click }]}>
               {loading ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
@@ -205,7 +201,7 @@ export default function LoginScreen() {
                   <ArrowRight size={rs(18)} color="#fff" strokeWidth={2} />
                 </>
               )}
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
 
           {/* Divider */}
@@ -244,11 +240,11 @@ export default function LoginScreen() {
                   disabled={bioLoading}
                   style={[styles.bioBtn, styles.bioBtnFace, bioLoading && styles.bioBtnDisabled]}
                 >
-                  <View style={[styles.bioOrb, { backgroundColor: colors.purpleSoft }]} />
+                  <View style={[styles.bioOrb, { backgroundColor: colors.clickSoft }]} />
                   {bioLoading ? (
-                    <ActivityIndicator size="small" color={colors.purple} />
+                    <ActivityIndicator size="small" color={colors.click} />
                   ) : (
-                    <ScanFace size={rs(36)} color={colors.purple} strokeWidth={1.4} />
+                    <ScanFace size={rs(36)} color={colors.click} strokeWidth={1.4} />
                   )}
                   <Text style={styles.bioLabel}>{t('auth.biometricFace')}</Text>
                 </TouchableOpacity>
@@ -273,8 +269,8 @@ export default function LoginScreen() {
                 activeOpacity={0.7}
                 style={[styles.bioBtn, styles.bioBtnFace]}
               >
-                <View style={[styles.bioOrb, { backgroundColor: colors.purpleSoft }]} />
-                <ScanFace size={rs(36)} color={colors.purple} strokeWidth={1.4} />
+                <View style={[styles.bioOrb, { backgroundColor: colors.clickSoft }]} />
+                <ScanFace size={rs(36)} color={colors.click} strokeWidth={1.4} />
                 <Text style={styles.bioLabel}>{t('auth.biometricFace')}</Text>
               </TouchableOpacity>
             </View>
@@ -378,7 +374,7 @@ const styles = StyleSheet.create({
   bioBtnFinger: {
     backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: 'rgba(232, 129, 58, 0.3)',
+    borderColor: 'rgba(143, 127, 168, 0.3)',
     shadowColor: colors.click,
     shadowOffset: { width: 0, height: rs(4) },
     shadowOpacity: 0.1,
@@ -388,8 +384,8 @@ const styles = StyleSheet.create({
   bioBtnFace: {
     backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: 'rgba(155, 89, 182, 0.3)',
-    shadowColor: colors.purple,
+    borderColor: 'rgba(79, 168, 158, 0.3)',
+    shadowColor: colors.ai,
     shadowOffset: { width: 0, height: rs(4) },
     shadowOpacity: 0.1,
     shadowRadius: rs(20),

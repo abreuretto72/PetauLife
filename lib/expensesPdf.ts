@@ -13,11 +13,11 @@ import { colors } from '../constants/colors';
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ExpenseRow {
   id: string;
-  amount: number | null;
+  total: number | null;
   currency: string | null;
   category: string | null;
-  description: string | null;
-  merchant_name: string | null;
+  notes: string | null;
+  vendor: string | null;
   date: string | null;
   created_at: string;
 }
@@ -26,7 +26,7 @@ interface ExpenseRow {
 async function fetchExpenses(petId: string): Promise<ExpenseRow[]> {
   const { data, error } = await supabase
     .from('expenses')
-    .select('id, amount, currency, category, description, merchant_name, date, created_at')
+    .select('id, total, currency, category, notes, vendor, date, created_at')
     .eq('pet_id', petId)
     .eq('is_active', true)
     .order('date', { ascending: false, nullsFirst: false })
@@ -54,7 +54,7 @@ function formatDate(value: string | null, lang: string): string {
 }
 
 function formatAmount(row: ExpenseRow): string {
-  const amt = Number(row.amount ?? 0);
+  const amt = Number(row.total ?? 0);
   const cur = row.currency ?? '';
   return `${cur} ${amt.toFixed(2)}`.trim();
 }
@@ -71,7 +71,7 @@ function buildBody(rows: ExpenseRow[], lang: string): string {
   let grandTotal = 0;
   for (const r of rows) {
     const cat = r.category ?? 'other';
-    const v = Number(r.amount ?? 0);
+    const v = Number(r.total ?? 0);
     grandTotal += isNaN(v) ? 0 : v;
     if (!byCat.has(cat)) byCat.set(cat, { rows: [], total: 0 });
     const bucket = byCat.get(cat)!;
@@ -114,8 +114,8 @@ function buildBody(rows: ExpenseRow[], lang: string): string {
         ${v.rows.map((r) => `
           <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #eee;page-break-inside:avoid;">
             <div style="flex:1;">
-              <div style="font-size:11px;color:#333;font-weight:600;">${escHtml(r.description ?? r.merchant_name ?? '—')}</div>
-              <div style="font-size:10px;color:#888;">${escHtml(formatDate(r.date ?? r.created_at.slice(0, 10), lang))}${r.merchant_name && r.description ? ` · ${escHtml(r.merchant_name)}` : ''}</div>
+              <div style="font-size:11px;color:#333;font-weight:600;">${escHtml(r.notes ?? r.vendor ?? '—')}</div>
+              <div style="font-size:10px;color:#888;">${escHtml(formatDate(r.date ?? r.created_at.slice(0, 10), lang))}${r.vendor && r.notes ? ` · ${escHtml(r.vendor)}` : ''}</div>
             </div>
             <div style="font-size:11px;font-weight:700;color:#222;margin-left:8px;">${escHtml(formatAmount(r))}</div>
           </div>

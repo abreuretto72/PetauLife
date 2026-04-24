@@ -35,7 +35,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
 const TYPE_COLORS: Record<string, string> = {
   vaccine: colors.success,
   consultation: colors.petrol,
-  exam: colors.purple,
+  exam: colors.click,
   medication: colors.sky,
   surgery: colors.danger,
   weight: colors.click,
@@ -128,7 +128,7 @@ export default function PDFImportScreen({
   const summaryBadges = ic ? [
     ic.vaccines > 0 && { label: t('pdf.countVaccines', { n: ic.vaccines }), color: colors.success },
     ic.consultations > 0 && { label: t('pdf.countConsultations', { n: ic.consultations }), color: colors.petrol },
-    ic.exams > 0 && { label: t('pdf.countExams', { n: ic.exams }), color: colors.purple },
+    ic.exams > 0 && { label: t('pdf.countExams', { n: ic.exams }), color: colors.click },
     ic.medications > 0 && { label: t('pdf.countMedications', { n: ic.medications }), color: colors.sky },
     ic.surgeries > 0 && { label: t('pdf.countSurgeries', { n: ic.surgeries }), color: colors.danger },
   ].filter(Boolean) as Array<{ label: string; color: string }> : [];
@@ -328,16 +328,16 @@ const s = StyleSheet.create({
   },
 
   narrationCard: {
-    backgroundColor: colors.purpleSoft,
+    backgroundColor: colors.aiSoft,
     borderRadius: rs(12),
     padding: rs(14),
     borderWidth: 1,
-    borderColor: colors.purple + '20',
+    borderColor: colors.ai + '20',
   },
   narrationText: {
     fontFamily: 'Caveat_400Regular',
     fontSize: fs(15),
-    color: colors.purple,
+    color: colors.ai,
     fontStyle: 'italic',
     lineHeight: fs(22),
     textAlign: 'center',

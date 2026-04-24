@@ -17,13 +17,13 @@ export const CapsuleCard = React.memo(({ event, t, onDelete, isOwner, onAdminDea
   <View style={styles.cardBase}>
     <View style={styles.cardIconRow}>
       {event.locked
-        ? <Lock size={rs(16)} color={colors.purple} strokeWidth={1.8} />
-        : <Gift size={rs(16)} color={colors.purple} strokeWidth={1.8} />}
-      <Text style={[styles.cardTypeLabel, { color: colors.purple }]}>{t('diary.capsuleLabel')}</Text>
+        ? <Lock size={rs(16)} color={colors.click} strokeWidth={1.8} />
+        : <Gift size={rs(16)} color={colors.click} strokeWidth={1.8} />}
+      <Text style={[styles.cardTypeLabel, { color: colors.click }]}>{t('diary.capsuleLabel')}</Text>
       {event.locked && (
-        <View style={[styles.severityBadge, { backgroundColor: colors.purple + '20' }]}>
-          <Lock size={rs(10)} color={colors.purple} strokeWidth={2} />
-          <Text style={[styles.severityText, { color: colors.purple, marginLeft: rs(4) }]}>
+        <View style={[styles.severityBadge, { backgroundColor: colors.click + '20' }]}>
+          <Lock size={rs(10)} color={colors.click} strokeWidth={2} />
+          <Text style={[styles.severityText, { color: colors.click, marginLeft: rs(4) }]}>
             {t('diary.capsuleLocked')}
           </Text>
         </View>

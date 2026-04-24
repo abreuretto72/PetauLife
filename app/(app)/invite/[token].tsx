@@ -333,7 +333,7 @@ export default function InviteLandingScreen() {
   const inviterName = p.inviter.display_name || t('invite.inviterFallback');
   const petName = pet?.name || t('invite.unknownPet');
   const SpeciesIcon = pet?.species === 'cat' ? Cat : Dog;
-  const speciesColor = pet?.species === 'cat' ? colors.purple : colors.click;
+  const speciesColor = pet?.species === 'cat' ? colors.click : colors.click;
 
   return (
     <SafeAreaView style={styles.safe}>

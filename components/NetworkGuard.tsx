@@ -7,10 +7,9 @@ import {
   Animated,
   TouchableOpacity,
   Pressable,
-  Image,
 } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import { X, RefreshCw } from 'lucide-react-native';
+import { X, RefreshCw, WifiOff, Wifi } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../constants/colors';
 import { radii, spacing } from '../constants/spacing';
@@ -20,9 +19,6 @@ import type { SyncResult } from '../lib/offlineSync';
 import { getQueueSize } from '../lib/offlineQueue';
 import { persistQueryCache } from '../lib/offlineCache';
 import { queryClient } from '../lib/queryClient';
-/* eslint-disable @typescript-eslint/no-var-requires */
-const pataAmarela = require('../assets/images/m_aviso_icon.png');
-const pataVerde = require('../assets/images/m_sucesso_icon.png');
 
 interface NetworkGuardProps {
   children: ReactNode;
@@ -166,7 +162,9 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
               </View>
             </TouchableOpacity>
 
-            <Image source={pataAmarela} style={styles.pawImage} />
+            <View style={[styles.iconCircle, { backgroundColor: colors.warning }]}>
+              <WifiOff size={rs(28)} color="#FFFFFF" strokeWidth={2.2} />
+            </View>
 
             <Text style={styles.bubbleText}>
               {pendingCount > 0
@@ -196,7 +194,9 @@ export function NetworkGuard({ children }: NetworkGuardProps) {
               { opacity: onlineOpacity, transform: [{ scale: onlineScale }] },
             ]}
           >
-            <Image source={pataVerde} style={styles.pawImage} />
+            <View style={[styles.iconCircle, { backgroundColor: colors.success }]}>
+              <Wifi size={rs(28)} color="#FFFFFF" strokeWidth={2.2} />
+            </View>
 
             <Text style={styles.bubbleText}>
               {syncing
@@ -263,10 +263,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pawImage: {
+  iconCircle: {
     width: rs(56),
     height: rs(56),
     borderRadius: rs(16),
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: rs(spacing.md),
   },
   bubbleText: {

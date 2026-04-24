@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>auExpert — App Icon Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: #0D0E16;
+      color: #F0EDF5;
+      font-family: 'Inter', sans-serif;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 500;
+      font-size: 32px;
+      margin: 0 0 8px;
+    }
+    .subtitle { color: #A89FB5; margin-bottom: 40px; font-size: 13px; }
+
+    h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #6B6478;
+      margin: 40px 0 16px;
+    }
+
+    .row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+    .demo {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .demo label {
+      font-size: 11px; color: #6B6478;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* iOS icon — superellipse mask (Apple squircle) */
+    .icon-ios {
+      border-radius: 22.37%; /* ~iOS mask radius */
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    /* Android circle mask */
+    .icon-android-circle {
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    /* Android squircle (Google mask) */
+    .icon-android-squircle {
+      border-radius: 28%;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    /* Android adaptive container: background + foreground stacked */
+    .adaptive {
+      position: relative;
+    }
+    .adaptive .bg, .adaptive .fg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+    }
+    .adaptive .fg { z-index: 1; }
+
+    /* Home screen mock (Android) */
+    .home-mock {
+      background: linear-gradient(180deg, #2a2d44, #1a1d30);
+      border-radius: 32px;
+      padding: 30px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      max-width: 440px;
+    }
+    .home-mock .slot {
+      aspect-ratio: 1;
+      position: relative;
+    }
+    .home-mock .slot::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px; color: #ccc;
+      white-space: nowrap;
+    }
+    .placeholder {
+      background: rgba(255,255,255,0.1);
+      border-radius: 22%;
+      width: 100%; height: 100%;
+    }
+
+    /* Notification bar mock */
+    .statusbar-mock {
+      background: #0a0a0a;
+      border-radius: 20px 20px 4px 4px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 360px;
+      color: #eee;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+    }
+    .statusbar-mock .notif-icon {
+      width: 18px; height: 18px;
+      filter: brightness(2);
+    }
+  </style>
+</head>
+<body>
+  <h1>auExpert — App Icon</h1>
+  <p class="subtitle">Proposta nova — wordmark tipográfico Elite. Substitui o mascote cartoon do PetauLife+.</p>
+
+  <h2>iOS — universal 1024×1024 (com máscara squircle)</h2>
+  <div class="row">
+    <div class="demo">
+      <div class="icon-ios" style="width: 240px; height: 240px;">
+        <img src="icon-ios-1024.svg" width="240" height="240">
+      </div>
+      <label>iOS 240pt</label>
+    </div>
+    <div class="demo">
+      <div class="icon-ios" style="width: 120px; height: 120px;">
+        <img src="icon-ios-1024.svg" width="120" height="120">
+      </div>
+      <label>iOS 120pt</label>
+    </div>
+    <div class="demo">
+      <div class="icon-ios" style="width: 60px; height: 60px;">
+        <img src="icon-ios-1024.svg" width="60" height="60">
+      </div>
+      <label>iOS 60pt (home)</label>
+    </div>
+    <div class="demo">
+      <div class="icon-ios" style="width: 40px; height: 40px;">
+        <img src="icon-ios-1024.svg" width="40" height="40">
+      </div>
+      <label>iOS 40pt (settings)</label>
+    </div>
+    <div class="demo">
+      <div class="icon-ios" style="width: 20px; height: 20px;">
+        <img src="icon-ios-1024.svg" width="20" height="20">
+      </div>
+      <label>20pt (notification)</label>
+    </div>
+  </div>
+
+  <h2>Android Adaptive Icon — com máscaras</h2>
+  <p style="color:#A89FB5; font-size:12px; margin-bottom:20px;">
+    O Android aplica a máscara do launcher (Pixel usa circle, Samsung squircle, etc). Foreground deve ficar dentro da safe zone (círculo interno).
+  </p>
+  <div class="row">
+    <div class="demo">
+      <div class="icon-android-circle adaptive" style="width: 180px; height: 180px;">
+        <img class="bg" src="icon-android-background.svg">
+        <img class="fg" src="icon-android-foreground.svg">
+      </div>
+      <label>Circle (Pixel)</label>
+    </div>
+    <div class="demo">
+      <div class="icon-android-squircle adaptive" style="width: 180px; height: 180px;">
+        <img class="bg" src="icon-android-background.svg">
+        <img class="fg" src="icon-android-foreground.svg">
+      </div>
+      <label>Squircle (Samsung)</label>
+    </div>
+    <div class="demo">
+      <div class="adaptive" style="width: 180px; height: 180px; border-radius: 16%; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+        <img class="bg" src="icon-android-background.svg">
+        <img class="fg" src="icon-android-foreground.svg">
+      </div>
+      <label>Rounded (Xiaomi)</label>
+    </div>
+  </div>
+
+  <h2>Home screen mock — Android</h2>
+  <div class="home-mock">
+    <div class="slot" data-label="auExpert">
+      <div class="icon-android-squircle adaptive" style="width: 100%; height: 100%;">
+        <img class="bg" src="icon-android-background.svg">
+        <img class="fg" src="icon-android-foreground.svg">
+      </div>
+    </div>
+    <div class="slot" data-label="Gmail"><div class="placeholder"></div></div>
+    <div class="slot" data-label="Maps"><div class="placeholder"></div></div>
+    <div class="slot" data-label="Chrome"><div class="placeholder"></div></div>
+    <div class="slot" data-label="Camera"><div class="placeholder"></div></div>
+    <div class="slot" data-label="Photos"><div class="placeholder"></div></div>
+    <div class="slot" data-label="WhatsApp"><div class="placeholder"></div></div>
+    <div class="slot" data-label="Calendar"><div class="placeholder"></div></div>
+  </div>
+
+  <h2>Notification — Android status bar</h2>
+  <div class="statusbar-mock">
+    <img src="icon-notification.svg" class="notif-icon">
+    <span>auExpert · Cacau tem uma vacina vencendo em 7 dias</span>
+  </div>
+</body>
+</html>

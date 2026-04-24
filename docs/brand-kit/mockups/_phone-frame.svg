@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Phone frame template — iPhone 14 proportions (390×844 @1x).
+  Não é pra ser usado diretamente — serve de referência pros outros mockups.
+  Cada mockup específico replica essa estrutura base.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <rect width="390" height="844" fill="#0D0E16"/>
+  <!-- Status bar area: 0-47 -->
+  <!-- Safe bottom area: ~800-844 -->
+  <!-- Content area: ~47-800 -->
+</svg>

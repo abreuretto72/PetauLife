@@ -21,12 +21,14 @@ import {
   Trash2,
   FileText,
   Shield,
+  Type,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import Constants from 'expo-constants';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
-import { rs, fs } from '../../hooks/useResponsive';
+import { rs, fs, fsWithScale } from '../../hooks/useResponsive';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useToast } from '../../components/Toast';
@@ -36,6 +38,7 @@ import { supabase } from '../../lib/supabase';
 import { withTimeout } from '../../lib/withTimeout';
 import PdfActionModal from '../../components/pdf/PdfActionModal';
 import { previewPreferencesPdf, sharePreferencesPdf } from '../../lib/preferencesPdf';
+import { usePreferencesStore, FONT_SCALE_OPTIONS, ADVANCE_OPTIONS_LONG, ADVANCE_OPTIONS_MID, ADVANCE_OPTIONS_SHORT } from '../../stores/usePreferencesStore';
 
 type ConfirmOptions = {
   text: string;
@@ -46,6 +49,24 @@ type ConfirmOptions = {
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
+  const fontScale = usePreferencesStore((s) => s.fontScale);
+  const setFontScale = usePreferencesStore((s) => s.setFontScale);
+  const notifAdvanceLong = usePreferencesStore((s) => s.notifAdvanceLong);
+  const notifAdvanceMid = usePreferencesStore((s) => s.notifAdvanceMid);
+  const notifAdvanceShort = usePreferencesStore((s) => s.notifAdvanceShort);
+  const setNotifAdvanceLong = usePreferencesStore((s) => s.setNotifAdvanceLong);
+  const setNotifAdvanceMid = usePreferencesStore((s) => s.setNotifAdvanceMid);
+  const setNotifAdvanceShort = usePreferencesStore((s) => s.setNotifAdvanceShort);
+
+  // Versão exibida — sempre reflete o build atual via expo-constants.
+  // Em dev (Expo Go) usa expoConfig; em builds nativos pega do manifest2.
+  const _cfg = Constants.expoConfig ?? Constants.manifest2?.extra?.expoClient ?? null;
+  const _version = (_cfg && 'version' in _cfg ? _cfg.version : null) ?? '—';
+  const _build =
+    (_cfg as { ios?: { buildNumber?: string } })?.ios?.buildNumber ??
+    (_cfg as { android?: { versionCode?: number } })?.android?.versionCode?.toString() ??
+    null;
+  const versionDisplay = _build ? `${_version} (${_build})` : _version;
   const router = useRouter();
   const { toast, confirm } = useToast();
   const [pdfModal, setPdfModal] = useState(false);
@@ -139,6 +160,112 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Antecedência dos avisos — aplica a todo compromisso */}
+        {notificationsEnabled && (
+          <>
+            <Text style={styles.sectionLabel}>{t('settings.notifAdvanceTitle').toUpperCase()}</Text>
+            <View style={styles.card}>
+              <View style={styles.textSizeHeader}>
+                <Bell size={rs(20)} color={colors.click} strokeWidth={1.8} />
+                <View style={styles.toggleTextCol}>
+                  <Text style={styles.toggleLabel}>{t('settings.notifAdvanceTitle')}</Text>
+                  <Text style={styles.toggleDesc}>{t('settings.notifAdvanceDesc')}</Text>
+                </View>
+              </View>
+
+              {/* 1º aviso */}
+              <Text style={[styles.toggleDesc, { marginTop: rs(spacing.md), marginBottom: rs(spacing.xs) }]}>
+                {t('settings.notifAdvance1')}
+              </Text>
+              <View style={styles.textSizeRow}>
+                {ADVANCE_OPTIONS_LONG.map((opt) => {
+                  const selected = notifAdvanceLong === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.textSizeChip,
+                        selected ? styles.textSizeChipActive : styles.textSizeChipIdle,
+                      ]}
+                      onPress={() => setNotifAdvanceLong(opt.value)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.textSizeChipLabel,
+                          selected ? styles.textSizeChipLabelActive : styles.textSizeChipLabelIdle,
+                        ]}
+                      >
+                        {t('settings.advance_' + opt.key)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* 2º aviso */}
+              <Text style={[styles.toggleDesc, { marginTop: rs(spacing.md), marginBottom: rs(spacing.xs) }]}>
+                {t('settings.notifAdvance2')}
+              </Text>
+              <View style={styles.textSizeRow}>
+                {ADVANCE_OPTIONS_MID.map((opt) => {
+                  const selected = notifAdvanceMid === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.textSizeChip,
+                        selected ? styles.textSizeChipActive : styles.textSizeChipIdle,
+                      ]}
+                      onPress={() => setNotifAdvanceMid(opt.value)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.textSizeChipLabel,
+                          selected ? styles.textSizeChipLabelActive : styles.textSizeChipLabelIdle,
+                        ]}
+                      >
+                        {t('settings.advance_' + opt.key)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* 3º aviso */}
+              <Text style={[styles.toggleDesc, { marginTop: rs(spacing.md), marginBottom: rs(spacing.xs) }]}>
+                {t('settings.notifAdvance3')}
+              </Text>
+              <View style={styles.textSizeRow}>
+                {ADVANCE_OPTIONS_SHORT.map((opt) => {
+                  const selected = notifAdvanceShort === opt.value;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.textSizeChip,
+                        selected ? styles.textSizeChipActive : styles.textSizeChipIdle,
+                      ]}
+                      onPress={() => setNotifAdvanceShort(opt.value)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.textSizeChipLabel,
+                          selected ? styles.textSizeChipLabelActive : styles.textSizeChipLabelIdle,
+                        ]}
+                      >
+                        {t('settings.advance_' + opt.key)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </>
+        )}
+
         {/* Biometria */}
         <Text style={styles.sectionLabel}>{t('settings.biometric').toUpperCase()}</Text>
         <View style={styles.card}>
@@ -156,6 +283,59 @@ export default function SettingsScreen() {
               trackColor={{ false: colors.border, true: colors.click + '50' }}
               thumbColor={biometricEnabled ? colors.click : colors.textDim}
             />
+          </View>
+        </View>
+
+        {/* Tamanho do texto — acessibilidade */}
+        <Text style={styles.sectionLabel}>{t('settings.textSize').toUpperCase()}</Text>
+        <View style={styles.card}>
+          <View style={styles.textSizeHeader}>
+            <Type size={rs(20)} color={colors.click} strokeWidth={1.8} />
+            <View style={styles.toggleTextCol}>
+              <Text style={styles.toggleLabel}>{t('settings.textSize')}</Text>
+              <Text style={styles.toggleDesc}>{t('settings.textSizeDesc')}</Text>
+            </View>
+          </View>
+
+          <View style={styles.textSizeRow}>
+            {FONT_SCALE_OPTIONS.map((opt) => {
+              const selected = fontScale === opt.value;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[
+                    styles.textSizeChip,
+                    selected ? styles.textSizeChipActive : styles.textSizeChipIdle,
+                  ]}
+                  onPress={() => setFontScale(opt.value)}
+                  activeOpacity={0.75}
+                >
+                  <Text
+                    style={[
+                      styles.textSizeChipLabel,
+                      selected ? styles.textSizeChipLabelActive : styles.textSizeChipLabelIdle,
+                    ]}
+                  >
+                    {t('settings.textSize_' + opt.key)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.textSizePreview}>
+            <Text style={styles.textSizePreviewLabel}>{t('settings.textSizePreview').toUpperCase()}</Text>
+            <Text
+              style={[
+                styles.textSizePreviewText,
+                {
+                  fontSize: fsWithScale(15, fontScale),
+                  lineHeight: fsWithScale(23, fontScale),
+                },
+              ]}
+            >
+              {t('settings.textSizePreviewSample')}
+            </Text>
           </View>
         </View>
 
@@ -220,7 +400,7 @@ export default function SettingsScreen() {
           <View style={styles.infoRow}>
             <Info size={rs(18)} color={colors.petrol} strokeWidth={1.8} />
             <Text style={styles.infoLabel}>{t('settings.version')}</Text>
-            <Text style={styles.infoValue}>1.0.0-beta</Text>
+            <Text style={styles.infoValue}>{versionDisplay}</Text>
           </View>
         </View>
 
@@ -276,4 +456,15 @@ const styles = StyleSheet.create({
   consentNote: { flexDirection: 'row', alignItems: 'flex-start', gap: rs(6), marginTop: rs(10), paddingTop: rs(10), borderTopWidth: 1, borderTopColor: colors.border },
   consentNoteText: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textDim, flex: 1, lineHeight: fs(15) },
   bottomSpacer: { height: rs(40) },
+  textSizeHeader: { flexDirection: 'row', alignItems: 'center', gap: rs(spacing.sm), marginBottom: rs(spacing.md) },
+  textSizeRow: { flexDirection: 'row', gap: rs(8), marginBottom: rs(spacing.md) },
+  textSizeChip: { flex: 1, paddingVertical: rs(10), paddingHorizontal: rs(6), borderRadius: rs(radii.lg), alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  textSizeChipActive: { backgroundColor: colors.click, borderColor: colors.click },
+  textSizeChipIdle: { backgroundColor: 'transparent', borderColor: colors.border },
+  textSizeChipLabel: { fontFamily: 'Sora_600SemiBold', fontSize: fs(11), letterSpacing: 0.3 },
+  textSizeChipLabelActive: { color: '#FFFFFF' },
+  textSizeChipLabelIdle: { color: colors.textSec },
+  textSizePreview: { paddingTop: rs(spacing.md), borderTopWidth: 1, borderTopColor: colors.border, gap: rs(6) },
+  textSizePreviewLabel: { fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.textDim, letterSpacing: 1.2 },
+  textSizePreviewText: { fontFamily: 'Sora_400Regular', fontSize: fs(15), color: colors.text, lineHeight: fs(23) },
 });

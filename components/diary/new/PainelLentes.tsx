@@ -20,7 +20,7 @@ export function PainelLentes({ t }: { t: (k: string, opts?: Record<string, unkno
     { icon: <ShieldCheck   size={rs(14)} color={colors.success} strokeWidth={1.8} />, color: colors.success, labelKey: 'mic.lenteVacina',      descKey: 'mic.lenteVacinaDesc' },
     { icon: <Stethoscope   size={rs(14)} color={colors.petrol}  strokeWidth={1.8} />, color: colors.petrol,  labelKey: 'mic.lenteConsulta',     descKey: 'mic.lenteConsultaDesc' },
     { icon: <FlaskConical  size={rs(14)} color={colors.sky}     strokeWidth={1.8} />, color: colors.sky,     labelKey: 'mic.lenteExame',        descKey: 'mic.lenteExameDesc' },
-    { icon: <Pill          size={rs(14)} color={colors.purple}  strokeWidth={1.8} />, color: colors.purple,  labelKey: 'mic.lenteMedicamento',  descKey: 'mic.lenteMedicamentoDesc' },
+    { icon: <Pill          size={rs(14)} color={colors.click}  strokeWidth={1.8} />, color: colors.click,  labelKey: 'mic.lenteMedicamento',  descKey: 'mic.lenteMedicamentoDesc' },
     { icon: <Scale         size={rs(14)} color={colors.click}  strokeWidth={1.8} />, color: colors.click,  labelKey: 'mic.lentePeso',         descKey: 'mic.lentePesoDesc' },
     { icon: <DollarSign    size={rs(14)} color={colors.warning} strokeWidth={1.8} />, color: colors.warning, labelKey: 'mic.lenteGasto',        descKey: 'mic.lenteGastoDesc' },
     { icon: <ThermometerSun size={rs(14)} color={colors.danger} strokeWidth={1.8} />, color: colors.danger,  labelKey: 'mic.lenteSintoma',      descKey: 'mic.lenteSintomaDesc' },

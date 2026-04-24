@@ -27,6 +27,10 @@ import { spacing, radii } from '../../../../../constants/spacing';
 import { MEDIA_LIMITS } from '../../../../../constants/media';
 import { useDiary } from '../../../../../hooks/useDiary';
 import { usePet } from '../../../../../hooks/usePets';
+import { AIThinkingTicker } from '../../../../../components/AIThinkingTicker';
+import { AnalysisDepthInfoModal } from '../../../../../components/AnalysisDepthInfoModal';
+import { ANALYSIS_DEPTH_OPTIONS, type AnalysisDepth } from '../../../../../stores/diaryAIToggleStore';
+import { Info } from 'lucide-react-native';
 import { useToast } from '../../../../../components/Toast';
 import { useDiaryAIToggleStore } from '../../../../../stores/diaryAIToggleStore';
 import { getErrorMessage } from '../../../../../utils/errorMessages';
@@ -115,7 +119,8 @@ export default function NewDiaryEntryScreen() {
   const [showHelp, setShowHelp] = useState(false);
   const [helpTab, setHelpTab] = useState<'uso' | 'painel'>('uso');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const { enabled: analyzeWithAI, setEnabled: setAnalyzeWithAI } = useDiaryAIToggleStore();
+  const { depth: analysisDepth, setDepth: setAnalysisDepth, enabled: analyzeWithAI, setEnabled: setAnalyzeWithAI } = useDiaryAIToggleStore();
+  const [depthInfoOpen, setDepthInfoOpen] = React.useState(false);
 
   const MAX_PHOTOS    = 4;
   const MAX_VIDEOS    = 1;
@@ -162,7 +167,7 @@ export default function NewDiaryEntryScreen() {
 
   // ── Animations (extracted to ./_new/animations.ts) ───────────────────────
 
-  const { barAnims, pulseAnim, pawAnim, ringAnim, ringOpacity, dotsAnim, showAnalyzingAndBack } =
+  const { pulseAnim, pawAnim, ringAnim, ringOpacity, dotsAnim, showAnalyzingAndBack } =
     useAnimations({ isListening, setIsAnalyzing, draftKey, router });
 
   // ── STT (extracted to ./_new/stt.ts) ─────────────────────────────────────
@@ -351,6 +356,7 @@ export default function NewDiaryEntryScreen() {
     tutorText,
     attachments,
     analyzeWithAI,
+    analysisDepth,
     submitEntry,
     router,
     toast,
@@ -612,12 +618,12 @@ export default function NewDiaryEntryScreen() {
                 {/* AI toggle explanation */}
                 <View style={styles.helpAICard}>
                   <View style={styles.helpAIHeader}>
-                    <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+                    <Sparkles size={rs(16)} color={colors.ai} strokeWidth={1.8} />
                     <Text style={styles.helpAITitle}>{t('mic.helpAIToggle')}</Text>
                   </View>
                   <View style={styles.helpAIStateRow}>
                     <View style={[styles.helpAIBadge, styles.helpAIBadgeOn]}>
-                      <Text style={[styles.helpAIBadgeText, { color: colors.purple }]}>{t('mic.helpAIToggleOnTitle')}</Text>
+                      <Text style={[styles.helpAIBadgeText, { color: colors.click }]}>{t('mic.helpAIToggleOnTitle')}</Text>
                     </View>
                     <Text style={styles.helpAIStateDesc}>{t('mic.helpAIToggleOnDesc')}</Text>
                   </View>
@@ -654,26 +660,9 @@ export default function NewDiaryEntryScreen() {
             contentContainerStyle={[styles.micContent, { paddingBottom: rs(120) + insets.bottom }]}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Waveform card */}
-            <View style={styles.waveCard}>
-              <View style={styles.waveRow}>
-                {barAnims.map((anim, i) => (
-                  <Animated.View
-                    key={i}
-                    style={[
-                      styles.waveBar,
-                      {
-                        transform: [{ scaleY: anim }],
-                        opacity: anim.interpolate({ inputRange: [0.1, 1], outputRange: [0.3, 1] }),
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-
-            {/* Transcription card — editable TextInput */}
+            {/* Transcription card — editable TextInput com título */}
             <View style={styles.transcriptionCard}>
+              <Text style={styles.transcriptionTitle}>{t('mic.transcriptionTitle')}</Text>
               <TextInput
                 style={styles.transcriptionInput}
                 value={tutorText}
@@ -688,27 +677,50 @@ export default function NewDiaryEntryScreen() {
               )}
             </View>
 
-            {/* AI toggle */}
-            <View style={styles.aiToggleRow}>
-              <Sparkles size={rs(16)} color={analyzeWithAI ? colors.purple : colors.textDim} strokeWidth={1.8} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aiToggleLabel}>{t('mic.analyzeWithAI')}</Text>
-                <Text style={styles.aiToggleDesc}>
-                  {analyzeWithAI ? t('mic.analyzeWithAIDesc') : t('mic.skipAIDesc')}
-                </Text>
-              </View>
-              <Switch
-                value={analyzeWithAI}
-                onValueChange={setAnalyzeWithAI}
-                trackColor={{ false: colors.border, true: colors.click + '50' }}
-                thumbColor={analyzeWithAI ? colors.click : colors.textDim}
-              />
+            {/* AI analysis depth — 4 chips + Info */}
+            <View style={styles.aiDepthHeaderRow}>
+              <Sparkles size={rs(16)} color={analysisDepth !== 'off' ? colors.ai : colors.textDim} strokeWidth={1.8} />
+              <Text style={styles.aiDepthTitle}>{t('diary.aiAnalysisTitle')}</Text>
+              <TouchableOpacity onPress={() => setDepthInfoOpen(true)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Info size={rs(16)} color={colors.click} strokeWidth={1.8} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.aiDepthChipsRow}>
+              {ANALYSIS_DEPTH_OPTIONS.map((opt) => {
+                const selected = analysisDepth === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[
+                      styles.aiDepthChip,
+                      selected ? styles.aiDepthChipActive : styles.aiDepthChipIdle,
+                    ]}
+                    onPress={() => setAnalysisDepth(opt.value as AnalysisDepth)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.aiDepthChipLabel,
+                      selected ? styles.aiDepthChipLabelActive : styles.aiDepthChipLabelIdle,
+                    ]}>
+                      {t('diary.aiDepth_' + opt.key)}
+                    </Text>
+                    <Text style={[
+                      styles.aiDepthChipSub,
+                      selected ? styles.aiDepthChipSubActive : styles.aiDepthChipSubIdle,
+                    ]}>
+                      {t('diary.aiDepthShort_' + opt.key)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            {/* AI hint */}
-            {analyzeWithAI && (
+            {/* AI hint — só quando depth != off */}
+            {analysisDepth !== 'off' && (
               <Text style={styles.aiHint}>{t('mic.aiHint', { name: petName })}</Text>
             )}
+
+            <AnalysisDepthInfoModal visible={depthInfoOpen} onClose={() => setDepthInfoOpen(false)} />
 
             {/* Attachments */}
             <AttachmentsPreview attachments={attachments} onRemove={removeAttachment} />
@@ -893,6 +905,7 @@ export default function NewDiaryEntryScreen() {
           />
           <Text style={styles.analyzingSubtitle}>{t('diary.analyzingWait')}</Text>
           <Text style={styles.analyzerDisclaimer}>{t('diary.analyzerDisclaimer')}</Text>
+          <AIThinkingTicker species={pet?.species ?? 'both'} />
         </View>
       )}
 

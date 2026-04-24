@@ -22,7 +22,7 @@ const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; labe
   road_trip:     { icon: Car,       color: colors.click,  labelKey: 'travels.typeRoadTrip' },
   flight:        { icon: Plane,     color: colors.sky,     labelKey: 'travels.typeFlight' },
   local:         { icon: MapPin,    color: colors.petrol,  labelKey: 'travels.typeLocal' },
-  international: { icon: Globe,     color: colors.purple,  labelKey: 'travels.typeInternational' },
+  international: { icon: Globe,     color: colors.click,  labelKey: 'travels.typeInternational' },
   camping:       { icon: Tent,      color: colors.success, labelKey: 'travels.typeCamping' },
   other:         { icon: Navigation,color: colors.textDim, labelKey: 'travels.typeOther' },
 };

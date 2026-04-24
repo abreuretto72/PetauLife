@@ -9,7 +9,6 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   ArrowRight,
@@ -290,10 +289,7 @@ export default function RegisterScreen() {
           activeOpacity={0.8}
           style={[styles.btnWrap, !acceptedTerms && styles.btnDisabled]}
         >
-          <LinearGradient
-            colors={[colors.click, colors.clickDark]}
-            style={styles.btn}
-          >
+          <View style={[styles.btn, { backgroundColor: colors.click }]}>
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
@@ -302,7 +298,7 @@ export default function RegisterScreen() {
                 <ArrowRight size={rs(18)} color="#fff" strokeWidth={2} />
               </>
             )}
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
         {/* Login link */}

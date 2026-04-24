@@ -1,0 +1,106 @@
+{
+  "identification": {
+    "species": {
+      "value": "dog",
+      "confidence": 0.95
+    },
+    "breed": {
+      "primary": "Chihuahua",
+      "confidence": 0.9,
+      "is_mixed": false,
+      "secondary_breeds": null
+    },
+    "size": "toy",
+    "age_category": "puppy",
+    "estimated_age_months": 4,
+    "estimated_weight_kg": 1.2,
+    "sex": {
+      "value": "unknown",
+      "confidence": 0
+    },
+    "coat": {
+      "color": "chocolate_tan",
+      "pattern": "bicolor",
+      "quality": "healthy",
+      "length": "short"
+    }
+  },
+  "health": {
+    "body_condition_score": 4,
+    "body_condition": "underweight",
+    "skin_coat": [
+      {
+        "observation": "pelagem brilhante e saudável, padrão chocolate e tan típico",
+        "severity": "normal",
+        "confidence": 0.8
+      }
+    ],
+    "eyes": [
+      {
+        "observation": "olhos alertas e brilhantes, sem secreção visível",
+        "severity": "normal",
+        "confidence": 0.8
+      }
+    ],
+    "ears": [
+      {
+        "observation": "orelhas eretas típicas da raça, sem sinais de inflamação",
+        "severity": "normal",
+        "confidence": 0.8
+      }
+    ],
+    "mouth_teeth": [
+      {
+        "observation": "não visível na imagem",
+        "severity": "normal",
+        "confidence": 0
+      }
+    ],
+    "posture_body": [
+      {
+        "observation": "postura relaxada brincando com chinelo, sem sinais de dor",
+        "severity": "normal",
+        "confidence": 0.8
+      }
+    ],
+    "nails": {
+      "observation": "não claramente visíveis",
+      "needs_trimming": false
+    },
+    "hygiene": "clean",
+    "visible_parasites": false,
+    "visible_lumps": false
+  },
+  "mood": {
+    "primary": "playful",
+    "confidence": 0.85,
+    "signals": [
+      "brincando ativamente com chinelo",
+      "postura corporal relaxada",
+      "orelhas eretas e alertas"
+    ]
+  },
+  "environment": {
+    "location": "home_outdoor",
+    "accessories": [],
+    "other_animals": false,
+    "visible_risks": null
+  },
+  "alerts": [
+    {
+      "message": "Filhote aparenta estar ligeiramente abaixo do peso ideal (BCS 4/9). Monitorar ganho de peso e consultar veterinário para avaliação nutricional.",
+      "severity": "attention",
+      "category": "health"
+    }
+  ],
+  "disclaimer": "Esta análise é baseada apenas em observação visual e não substitui exame veterinário presencial. Para avaliação completa da saúde, consulte um médico veterinário.",
+  "description": "Filhote de Chihuahua apresenta BCS 4/9, sugerindo peso ligeiramente abaixo do ideal para a idade aparente de 4 meses. O comportamento lúdico e postura corporal relaxada são consistentes com bem-estar comportamental normal. A pelagem chocolate e tan apresenta qualidade saudável sem sinais de problemas dermatológicos visíveis.",
+  "toxicity_check": {
+    "has_toxic_items": false,
+    "items": null
+  },
+  "sources": [
+    "WSAVA Body Condition Score Guidelines (2021)",
+    "AAHA Canine Life Stage Guidelines (2019)"
+  ]
+}

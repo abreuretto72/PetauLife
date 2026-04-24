@@ -1,5 +1,10 @@
 /**
  * AchievementsLensContent — Pet badges, XP, and level progress.
+ *
+ * @deprecated 2026-04-24 — gamificacao saiu do escopo Elite (Pilar 3).
+ * Componente ainda existe para nao quebrar a rota /pet/[id]/achievements
+ * se algum deep link antigo chegar, mas foi removido do LensGrid e LentesTab.
+ * Nao usar em novas features.
  * Shows unlocked achievements grouped by category + XP progress bar.
  */
 
@@ -40,7 +45,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 const RARITY_COLOR: Record<string, string> = {
   common:    colors.textDim,
   rare:      colors.petrol,
-  epic:      colors.purple,
+  epic:      colors.click,
   legendary: colors.warning,
 };
 

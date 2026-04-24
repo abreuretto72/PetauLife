@@ -209,11 +209,11 @@ export function OCRSubcard({
   });
 
   return (
-    <View style={[styles.subcard, { borderColor: colors.purple + '30' }]}>
+    <View style={[styles.subcard, { borderColor: colors.click + '30' }]}>
       {/* Header */}
       <View style={styles.subcardHeader}>
-        <FileText size={rs(12)} color={colors.purple} strokeWidth={1.8} />
-        <Text style={[styles.subcardLabel, { color: colors.purple }]}>{t('diary.ocrAnalysis').toUpperCase()}</Text>
+        <FileText size={rs(12)} color={colors.click} strokeWidth={1.8} />
+        <Text style={[styles.subcardLabel, { color: colors.click }]}>{t('diary.ocrAnalysis').toUpperCase()}</Text>
         {docType && docType !== 'other' && (
           <View style={styles.ocrDocTypeBadge}>
             <Text style={styles.ocrDocTypeText}>{docType.replace(/_/g, ' ').toUpperCase()}</Text>

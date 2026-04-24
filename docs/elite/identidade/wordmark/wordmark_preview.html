@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>auExpert — Wordmark Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0F1923;
+    color: #E8EDF2;
+    padding: 64px 32px;
+    min-height: 100vh;
+  }
+
+  .wrapper {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 64px;
+    text-align: center;
+  }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: 0.5px;
+    color: #E8DDD1;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #8FA3B8;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .theme-toggle {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 32px;
+  }
+
+  .theme-toggle button {
+    background: transparent;
+    border: 1px solid #1E3248;
+    color: #8FA3B8;
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+  }
+
+  .theme-toggle button:hover {
+    border-color: #D17547;
+    color: #D17547;
+  }
+
+  .theme-toggle button.active {
+    border-color: #D17547;
+    color: #D17547;
+    background: rgba(209, 117, 71, 0.08);
+  }
+
+  .variation {
+    margin-bottom: 80px;
+    padding: 64px 48px;
+    border: 1px solid #1E3248;
+    border-radius: 12px;
+    background: #0F1923;
+    transition: background 0.3s;
+  }
+
+  body.light .variation {
+    background: #F7F4EF;
+    border-color: #E8DDD1;
+  }
+
+  .variation-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #5E7A94;
+    margin-bottom: 8px;
+  }
+
+  .variation-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 20px;
+    color: #8FA3B8;
+    margin-bottom: 48px;
+  }
+
+  body.light .variation-name {
+    color: #5E7A94;
+  }
+
+  .wordmark {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    color: #D17547;
+    font-size: 160px;
+    line-height: 1;
+    letter-spacing: -2px;
+    padding: 32px 0;
+  }
+
+  /* Variação A — editorial */
+  .wordmark-a .au {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .wordmark-a .expert {
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* Variação B — clássica */
+  .wordmark-b .au {
+    font-style: normal;
+    font-weight: 400;
+  }
+  .wordmark-b .expert {
+    font-style: normal;
+    font-weight: 700;
+  }
+
+  /* Variação C — sussurrada */
+  .wordmark-c {
+    font-style: italic;
+  }
+  .wordmark-c .au {
+    font-weight: 400;
+  }
+  .wordmark-c .expert {
+    font-weight: 600;
+  }
+
+  .sizes {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-around;
+    gap: 32px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid #1E3248;
+  }
+
+  body.light .sizes {
+    border-top-color: #E8DDD1;
+  }
+
+  .size {
+    text-align: center;
+  }
+
+  .size-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #5E7A94;
+    margin-top: 12px;
+  }
+
+  .size-large .wordmark { font-size: 72px; padding: 8px 0; }
+  .size-normal .wordmark { font-size: 48px; padding: 8px 0; }
+  .size-small .wordmark { font-size: 32px; padding: 8px 0; }
+
+  footer {
+    text-align: center;
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid #1E3248;
+    color: #5E7A94;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  footer a {
+    color: #D17547;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body class="dark">
+<div class="wrapper">
+
+  <header>
+    <h1>auExpert</h1>
+    <div class="subtitle">Wordmark · Cormorant Garamond · #D17547</div>
+    <div class="theme-toggle">
+      <button class="active" onclick="setTheme('dark')">Fundo escuro (#0F1923)</button>
+      <button onclick="setTheme('light')">Fundo claro (#F7F4EF)</button>
+    </div>
+  </header>
+
+  <!-- Variação A -->
+  <section class="variation">
+    <div class="variation-label">Variação A</div>
+    <div class="variation-name">editorial — itálico 500 + semibold 600</div>
+    <div class="wordmark wordmark-a"><span class="au">au</span><span class="expert">Expert</span></div>
+    <div class="sizes">
+      <div class="size size-large">
+        <div class="wordmark wordmark-a"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Large · login/splash</div>
+      </div>
+      <div class="size size-normal">
+        <div class="wordmark wordmark-a"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Normal · header</div>
+      </div>
+      <div class="size size-small">
+        <div class="wordmark wordmark-a"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Small · drawer/footer</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Variação B -->
+  <section class="variation">
+    <div class="variation-label">Variação B</div>
+    <div class="variation-name">clássica — regular 400 + bold 700</div>
+    <div class="wordmark wordmark-b"><span class="au">au</span><span class="expert">Expert</span></div>
+    <div class="sizes">
+      <div class="size size-large">
+        <div class="wordmark wordmark-b"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Large · login/splash</div>
+      </div>
+      <div class="size size-normal">
+        <div class="wordmark wordmark-b"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Normal · header</div>
+      </div>
+      <div class="size size-small">
+        <div class="wordmark wordmark-b"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Small · drawer/footer</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Variação C -->
+  <section class="variation">
+    <div class="variation-label">Variação C</div>
+    <div class="variation-name">sussurrada — itálico 400 + itálico 600</div>
+    <div class="wordmark wordmark-c"><span class="au">au</span><span class="expert">Expert</span></div>
+    <div class="sizes">
+      <div class="size size-large">
+        <div class="wordmark wordmark-c"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Large · login/splash</div>
+      </div>
+      <div class="size size-normal">
+        <div class="wordmark wordmark-c"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Normal · header</div>
+      </div>
+      <div class="size size-small">
+        <div class="wordmark wordmark-c"><span class="au">au</span><span class="expert">Expert</span></div>
+        <div class="size-label">Small · drawer/footer</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    auExpert · Multiverso Digital<br>
+    Tipografia <a href="https://fonts.google.com/specimen/Cormorant+Garamond" target="_blank">Cormorant Garamond</a> — licença OFL (gratuita para uso comercial)<br>
+    Cor da marca: #D17547 (âmbar terroso) · Fundo escuro: #0F1923 · Fundo claro: #F7F4EF
+  </footer>
+
+</div>
+
+<script>
+  function setTheme(theme) {
+    document.body.className = theme;
+    document.querySelectorAll('.theme-toggle button').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+</body>
+</html>

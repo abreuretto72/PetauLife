@@ -75,7 +75,7 @@ O app se chama "Uma inteligência única para o seu pet". A IA deve trabalhar AN
 │   Mensagem na voz do     │  ← sistema 500, 15px, center
 │   pet, simples e leve    │
 │  [Cancelar] [Confirmar]  │  ← apenas no confirm()
-│       — seu pet          │  ← sistema 400, SEM italic
+│  (sem assinatura textual)│  ← patinha + container declaram autoria
 └──────────────────────────┘
 ```
 
@@ -84,7 +84,7 @@ Balão centralizado. Backdrop `rgba(11, 18, 25, 0.6)` — foco total.
 ### Dois métodos
 
 **1. `toast(texto, tipo)`** — mensagem simples
-- Patinha + texto + assinatura "— seu pet"
+- Patinha + texto (sem assinatura textual — patinha colorida declara autoria)
 - Fecha com X, toque no backdrop, ou automaticamente em 4s
 - Uso: `toast(t('toast.petCreated', { name }), 'success')`
 
@@ -100,7 +100,7 @@ Balão centralizado. Backdrop `rgba(11, 18, 25, 0.6)` — foco total.
 - Nunca `Alert.alert()` do RN
 - Nunca mensagem no topo da tela — sempre balão centralizado
 - Todas as mensagens via i18n (chaves `toast.*`, `errors.*`)
-- Tom: voz do pet, leve, carinhoso — nunca técnico
+- Tom: registro Elite — 3ª pessoa literária, factual, sem exclamação performática, sem onomatopeia, sem vocativo fofinho, sem assinatura
 - Ver `auexpert-i18n` para estrutura de chaves e voz do pet
 
 ### Patinhas disponíveis
@@ -130,7 +130,7 @@ Toda mensagem de erro deve ser:
 - Curta (1-2 frases no máximo)
 - Orientada à ação (o que o tutor pode fazer)
 - Empática (nunca culpar o tutor)
-- Na voz do pet (ver `auexpert-i18n`)
+- No registro Elite — 3ª pessoa literária, factual (ver `auexpert-i18n`)
 
 ### Tabela de tradução (OBRIGATÓRIA)
 

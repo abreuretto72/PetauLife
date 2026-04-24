@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  auExpert adaptive icon — Android FOREGROUND layer.
+  Canvas 432×432. Safe zone = circle de 264×264 centralizado (content não pode
+  ser cortado em máscaras circulares/squircle). O Android sobrepõe esta camada
+  sobre a background. NÃO incluir fundo aqui (fica transparente).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,500&display=swap');
+      .au { font-family: 'Playfair Display', Didot, Georgia, serif; font-weight: 500; font-style: italic; }
+    ]]></style>
+  </defs>
+
+  <!-- Safe zone guide (comentário — não renderizar em produção): círculo de 264px no centro -->
+
+  <!-- Wordmark "au" centralizado dentro da safe zone. Font-size 230 mantém bem
+       dentro dos 264px seguros mesmo em máscaras redondas. -->
+  <text x="216" y="300"
+        text-anchor="middle"
+        class="au"
+        font-size="260"
+        fill="#F5F1F8"
+        letter-spacing="-3">au</text>
+
+  <!-- Accent jade -->
+  <rect x="180" y="320" width="72" height="4" rx="2" fill="#4FA89E" opacity="0.9"/>
+</svg>

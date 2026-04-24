@@ -169,7 +169,7 @@ export const EVENT_TYPE_CONFIG: Record<TimelineEventType, { color: string; icon:
   audio_analysis:  { color: colors.rose,   icon: Mic },
   photo_analysis:  { color: colors.success, icon: Camera },
   video_analysis:  { color: colors.sky,    icon: Video },
-  capsule:         { color: colors.purple, icon: Gift },
+  capsule:         { color: colors.ai, icon: Gift },
   connection:      { color: colors.petrol, icon: Heart },
   scheduled_event: { color: colors.petrol, icon: Calendar },
 };
@@ -234,10 +234,55 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
   if (timelineType === 'audio_analysis' && !(e.pet_audio_analysis as { pattern_notes?: string } | null)?.pattern_notes) {
     timelineType = 'diary';
   }
+  // Cards especializados (audio_analysis / video_analysis) só renderizam o
+  // bloco da mídia + narração + tags. NÃO renderizam o REGISTRADO/lentes.
+  // Se a entry tem classifications RICAS além do mood ('plan', 'expense',
+  // 'vaccine', 'medication', etc.), cair pra DiaryCard que mostra as lentes.
+  // Caso contrário a lente de gasto/plano somia quando o tutor falava sobre
+  // o pet enquanto anexava um áudio.
+  const RICH_CLASSIFICATION_TYPES = new Set([
+    'plan', 'expense', 'vaccine', 'medication', 'consultation', 'exam',
+    'surgery', 'emergency', 'symptom', 'weight', 'clinical_metric',
+    'allergy', 'food', 'grooming', 'boarding', 'pet_sitter', 'dog_walker',
+    'training', 'insurance', 'funeral_plan', 'purchase', 'place_visit',
+    'documentation', 'lost_found', 'travel', 'memorial', 'adoption',
+    'achievement', 'connection', 'partner',
+  ]);
+  if (timelineType === 'audio_analysis' || timelineType === 'video_analysis') {
+    const cls = ((e.classifications as Array<{ type: string; confidence: number }> | null) ?? [])
+      .filter((c) => c.confidence >= 0.5);
+    const hasRichContent = cls.some((c) => RICH_CLASSIFICATION_TYPES.has(c.type));
+    if (hasRichContent) {
+      console.log('[E2T]', String(entry.id).slice(-8), '→ falling back to DiaryCard | richTypes:',
+        cls.filter((c) => RICH_CLASSIFICATION_TYPES.has(c.type)).map((c) => c.type).join(','));
+      timelineType = 'diary';
+    }
+  }
   // Registration entries must use DiaryCard (which renders RegistrationAnalysisSubcard).
   // PhotoAnalysisCard doesn't know about is_registration_entry.
   if (entry.is_registration_entry) {
     timelineType = 'diary';
+  }
+
+  // ── DIAG: shape que sai do cache do React Query e entra na conversão ──
+  // Log ÚNICO por entry: tipo de classifications + presença de modules.
+  // Crítico pra detectar JSONB-as-string ou JOIN não-populado pelo refetch.
+  {
+    const er = entry as unknown as Record<string, unknown>;
+    const cls = er.classifications;
+    const exp = er.expenses;
+    const isClsArr = Array.isArray(cls);
+    const isExpArr = Array.isArray(exp);
+    if (cls != null || exp != null) {
+      console.log('[E2T]', String(entry.id).slice(-8),
+        '| cls:', isClsArr ? `arr(${(cls as unknown[]).length})` : `${typeof cls}${typeof cls === 'string' ? `(${(cls as string).length})` : ''}`,
+        '| exp:', isExpArr ? `arr(${(exp as unknown[]).length})` : `${typeof exp}`,
+        '| vac:', Array.isArray(er.vaccines) ? `arr(${(er.vaccines as unknown[]).length})` : `${typeof er.vaccines}`,
+        '| consult:', Array.isArray(er.consultations) ? `arr(${(er.consultations as unknown[]).length})` : `${typeof er.consultations}`);
+      if (cls != null && !isClsArr) {
+        console.warn('[E2T]', String(entry.id).slice(-8), 'classifications NOT ARRAY — first chars:', typeof cls === 'string' ? (cls as string).slice(0, 100) : JSON.stringify(cls).slice(0, 100));
+      }
+    }
   }
 
   return {

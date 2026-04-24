@@ -29,7 +29,7 @@ const SPECIES_ICON: Record<string, React.ElementType> = {
 
 const SPECIES_COLOR: Record<string, string> = {
   dog: colors.click,
-  cat: colors.purple,
+  cat: colors.click,
   bird: colors.sky,
   rabbit: colors.success,
   other: colors.petrol,
@@ -157,7 +157,7 @@ export function FriendsLensContent({ petId }: FriendsLensContentProps) {
     return (
       <View>
         <View style={styles.emptyCard}>
-          <Sparkles size={rs(24)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(24)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.emptyTitle}>{t('friends.emptyTitle')}</Text>
           <Text style={styles.emptyHint}>{t('friends.emptyHint')}</Text>
         </View>

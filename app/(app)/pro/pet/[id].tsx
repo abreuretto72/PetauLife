@@ -87,7 +87,7 @@ function ProContextBadge({ role }: { role: string }) {
   const { t } = useTranslation();
   return (
     <View style={styles.contextBadge}>
-      <Shield size={rs(13)} color={colors.purple} strokeWidth={2} />
+      <Shield size={rs(13)} color={colors.click} strokeWidth={2} />
       <Text style={styles.contextBadgeText}>
         {t('pro.petView.contextBadge', {
           role: t(`pro.patients.roles.${role}`, { defaultValue: role }),
@@ -432,8 +432,8 @@ function ClinicalTab({
       {medications.length > 0 ? (
         <View style={styles.section}>
           <SectionHeader
-            icon={<Pill size={rs(16)} color={colors.purple} strokeWidth={1.8} />}
-            color={colors.purple}
+            icon={<Pill size={rs(16)} color={colors.click} strokeWidth={1.8} />}
+            color={colors.click}
             title={t('health.tabMedications')}
             count={medications.length}
           />
@@ -442,7 +442,7 @@ function ClinicalTab({
               key={m.id}
               header={
                 <View style={styles.cardHeader}>
-                  <Pill size={rs(14)} color={colors.purple} strokeWidth={1.8} />
+                  <Pill size={rs(14)} color={colors.click} strokeWidth={1.8} />
                   <View style={styles.cardHeaderInfo}>
                     <Text style={styles.cardHeaderTitle}>{m.name}</Text>
                     <Text style={styles.cardHeaderSub} numberOfLines={1}>
@@ -849,7 +849,7 @@ export default function ProPetViewScreen() {
   }
 
   const isDog = patient.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -880,7 +880,7 @@ export default function ProPetViewScreen() {
               {isDog ? (
                 <Dog size={rs(28)} color={colors.click} strokeWidth={1.8} />
               ) : (
-                <Cat size={rs(28)} color={colors.purple} strokeWidth={1.8} />
+                <Cat size={rs(28)} color={colors.click} strokeWidth={1.8} />
               )}
             </>
           )}
@@ -1045,14 +1045,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: rs(10),
     paddingVertical: rs(6),
     borderRadius: rs(radii.md),
-    backgroundColor: colors.purple + '1F',
+    backgroundColor: colors.click + '1F',
     borderWidth: rs(1),
-    borderColor: colors.purple + '40',
+    borderColor: colors.click + '40',
   },
   contextBadgeText: {
     fontFamily: 'Sora_500Medium',
     fontSize: fs(11),
-    color: colors.purple,
+    color: colors.click,
     flex: 1,
     letterSpacing: rs(0.2),
   },
@@ -1131,16 +1131,16 @@ const styles = StyleSheet.create({
   // Overview
   briefingBox: {
     padding: rs(spacing.md),
-    backgroundColor: colors.purple + '0F',
+    backgroundColor: colors.click + '0F',
     borderRadius: rs(radii.card),
     borderLeftWidth: rs(3),
-    borderLeftColor: colors.purple,
+    borderLeftColor: colors.click,
     marginBottom: rs(spacing.md),
   },
   briefingLabel: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(10),
-    color: colors.purple,
+    color: colors.click,
     letterSpacing: rs(1),
     textTransform: 'uppercase',
     marginBottom: rs(4),

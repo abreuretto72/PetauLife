@@ -220,6 +220,42 @@ export async function callAnthropicWithFallback(opts: CallOpts): Promise<Anthrop
       const errorType = parsed?.error?.type ?? parsed?.type;
       const errorMessage = parsed?.error?.message;
 
+      // DIAG pós-erro: registra body COMPLETO do erro da Anthropic
+      // + shape do payload que CAUSOU o erro, para auditoria depois.
+      if (diagClient) {
+        const payloadForLog: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(payload)) {
+          payloadForLog[k] = {
+            type: Array.isArray(v) ? 'array' : typeof v,
+            value_preview: typeof v === 'string'
+              ? (v.length > 200 ? v.slice(0, 200) + '…' : v)
+              : Array.isArray(v)
+                ? v.slice(0, 3)
+                : typeof v === 'object'
+                  ? Object.keys(v as object)
+                  : v,
+          };
+        }
+        diagClient.from('edge_function_diag_logs').insert({
+          function_name: functionName,
+          request_id: requestId,
+          level: 'error',
+          message: `[anthropic] ${response.status} from "${model}"`,
+          payload: {
+            http_status: response.status,
+            error_type: errorType ?? null,
+            error_message: errorMessage ?? null,
+            body_raw: body.slice(0, 4000),
+            model_attempt: model,
+            model_type: typeof model,
+            model_is_array: Array.isArray(model),
+            stripped_so_far: [...strippedParams],
+            self_heal_attempts: selfHealAttempts,
+            payload_shape: payloadForLog,
+          },
+        }).then(() => {}, (e) => console.error('[resilience] post-error diag insert failed:', e));
+      }
+
       // ── Camada 1: tentar self-heal (param deprecated no mesmo modelo) ──
       if (errorType === 'invalid_request_error' && selfHealAttempts < MAX_SELF_HEAL_ATTEMPTS_PER_MODEL) {
         const deprecatedParam = extractDeprecatedParam(errorMessage);

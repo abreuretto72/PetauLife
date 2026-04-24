@@ -22,7 +22,7 @@ interface Props {
 }
 
 const ROLE_CONFIG: Record<InviteMemberRole, { labelKey: string; color: string }> = {
-  co_parent: { labelKey: 'members.roles.co_parent', color: colors.purple },
+  co_parent: { labelKey: 'members.roles.co_parent', color: colors.click },
   caregiver: { labelKey: 'members.roles.caregiver', color: colors.petrol },
   viewer:    { labelKey: 'members.roles.viewer',    color: colors.textDim },
 };

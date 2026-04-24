@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   evalGenerating: { flexDirection: 'row', alignItems: 'center', gap: rs(6), marginTop: rs(2) },
   evalGeneratingText: { fontSize: fs(11), color: colors.textDim, fontStyle: 'italic', flex: 1 },
   evalScoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: rs(2) },
-  evalScore: { fontSize: fs(22), fontWeight: '800', color: colors.purple },
+  evalScore: { fontSize: fs(22), fontWeight: '800', color: colors.click },
   evalScoreMax: { fontSize: fs(11), color: colors.textDim },
   evalSummary: { fontSize: fs(11), color: colors.textSec, marginTop: rs(4), lineHeight: fs(15) },
   evalCons: { fontSize: fs(10), color: colors.warning, marginTop: rs(4), fontWeight: '600' },

@@ -1,0 +1,300 @@
+{
+  "pet": {
+    "name": "Tiao",
+    "breed_app": "Poodle Toy (possivel cruza com Bichon Frise)",
+    "species": "dog"
+  },
+  "superficial": {
+    "json": {
+      "breed": "Provavelmente Bichon Frisé ou mistura com Poodle/Maltês",
+      "size": "small",
+      "age_category": "adult",
+      "body_condition": "ideal",
+      "mood": "calm",
+      "coat": "Pelagem branca, encaracolada e densa, aparentemente bem tosada e limpa.",
+      "observations": [
+        "Olhar atento e expressivo, postura relaxada no sofá.",
+        "Leve coloração avermelhada/amarronzada abaixo dos olhos, sugestiva de manchas de lágrima (tear stains).",
+        "Pelagem ao redor da boca levemente amarelada, possivelmente por saliva ou resíduos de alimentação.",
+        "Adereço decorativo (botão/broche) preso ao pelo da cabeça — atenção para não puxar a pele."
+      ],
+      "alerts": [
+        {
+          "message": "As manchas sob os olhos podem indicar lacrimejamento excessivo; vale observar se há irritação ou secreção e comentar com o veterinário em consulta de rotina.",
+          "severity": "info"
+        },
+        {
+          "message": "Acessórios presos ao pelo podem causar desconforto ou tracionar a pele; recomenda-se retirá-los quando o tutor não estiver por perto.",
+          "severity": "info"
+        }
+      ],
+      "description": "Cãozinho de porte pequeno, pelagem branca e encaracolada, aparentando estar em boa condição corporal e tranquilo. Nota-se leve mancha lacrimal sob os olhos, achado comum em raças de pelo branco. Sem sinais evidentes de desconforto na imagem, mas uma avaliação presencial é sempre recomendada para confirmação."
+    },
+    "ms": 15811,
+    "input_tokens": 2157,
+    "output_tokens": 609,
+    "text_chars": 1405,
+    "stop_reason": "end_turn"
+  },
+  "elite": {
+    "json": {
+      "identification": {
+        "breed": {
+          "primary": "Bichon Frisé (possível cruza com Poodle Toy - 'Poochon'/Maltipoo)",
+          "confidence": 0.72,
+          "is_mixed": true
+        },
+        "size": "small",
+        "age_category": "adult",
+        "estimated_age_months": 48,
+        "estimated_weight_kg": 5.5,
+        "coat": {
+          "color": "branco",
+          "pattern": "sólido com leve tonalidade creme ao redor dos olhos e focinho",
+          "quality": "pelagem encaracolada, aparentemente limpa e bem tosada, sem matting visível",
+          "length": "medium"
+        }
+      },
+      "health": {
+        "body_condition_score": 5,
+        "body_condition": "ideal",
+        "muscle_condition_score": "normal",
+        "skin_coat": [
+          {
+            "observation": "Manchas lacrimais (epífora crônica) amarelo-acastanhadas nos cantos mediais dos olhos",
+            "severity": "attention",
+            "rationale": "coloração evidente do pelo periocular, típica de porfirinas salivares/lacrimais em raças brancas",
+            "clinical_significance": "Pode refletir drenagem lacrimal anormal (estenose de pontos lacrimais, conformação braquicefálica leve), irritação conjuntival crônica, alergias ou desequilíbrios de microbiota; em Bichons é achado comum mas merece exame oftalmológico se aumentar"
+          },
+          {
+            "observation": "Leve coloração amarelada perioral/submandibular (barba)",
+            "severity": "attention",
+            "rationale": "pigmentação por porfirinas salivares e/ou umidade crônica no pelo",
+            "clinical_significance": "Pode indicar lambedura aumentada, sialorreia leve, doença periodontal subjacente ou dermatite perioral por umidade (intertrigo)"
+          },
+          {
+            "observation": "Pelagem branca homogênea sem alopecia, descamação ou eritema aparente",
+            "severity": "normal",
+            "rationale": "pelo íntegro, sem seborreia visível nem áreas depiladas",
+            "clinical_significance": "Indicativo de barreira cutânea preservada no momento; ausência de sinais de atopia em flagrante"
+          }
+        ],
+        "eyes": [
+          {
+            "observation": "Olhos simétricos, brilhantes, sem secreção mucopurulenta ativa; leve umidade no canto medial",
+            "severity": "attention",
+            "rationale": "reflexo especular preservado em ambos olhos; pigmentação periocular sugere lacrimejamento recorrente",
+            "clinical_significance": "Conformação Bichon predispõe a ceratoconjuntivite seca (KCS), entrópio leve e estenose de ducto nasolacrimal — teste de Schirmer e fluoresceína são indicados em consulta de rotina"
+          },
+          {
+            "observation": "Esclera clara sem injeção vascular franca",
+            "severity": "normal",
+            "rationale": "ausência de hiperemia conjuntival marcada",
+            "clinical_significance": "Torna conjuntivite aguda menos provável neste momento"
+          }
+        ],
+        "ears": [
+          {
+            "observation": "Pavilhões pendulares com pelagem densa, sem eritema externo ou exsudato visível",
+            "severity": "attention",
+            "rationale": "orelha pendular encaracolada visível, sem sinais externos de otite",
+            "clinical_significance": "Raças de pelo encaracolado e canal auditivo pilificado (Bichon/Poodle) têm maior incidência de otite externa ceruminosa e por Malassezia por retenção de umidade — inspeção otoscópica periódica é essencial"
+          }
+        ],
+        "mouth_teeth": [
+          {
+            "observation": "Dentição não totalmente visível; focinho fechado com leve umidade",
+            "severity": "attention",
+            "periodontal_grade": "indeterminado (não visualizado diretamente; raça de alto risco)",
+            "rationale": "ausência de visualização direta das arcadas",
+            "clinical_significance": "Bichons/Poodles toy têm apinhamento dentário e alta prevalência de doença periodontal graus 2-3 já aos 3-4 anos; recomenda-se avaliação odontológica completa com radiografia"
+          }
+        ],
+        "posture_body": [
+          {
+            "observation": "Decúbito esternal relaxado, membros anteriores estendidos simetricamente, cabeça erguida",
+            "severity": "normal",
+            "rationale": "distribuição de peso simétrica, sem proteção de membro ou cifose",
+            "clinical_significance": "Não sugere dor musculoesquelética aguda; porém raças toy têm predisposição a luxação patelar e doença do disco intervertebral — avaliação dinâmica (marcha) é complementar"
+          },
+          {
+            "observation": "Ausência de sinais de dispneia ou esforço respiratório",
+            "severity": "normal",
+            "rationale": "narinas abertas, postura relaxada, sem uso de musculatura acessória",
+            "clinical_significance": "Torna processos cardiorrespiratórios agudos improváveis no momento"
+          }
+        ]
+      },
+      "mood": {
+        "primary": "calmo com leve alerta atento",
+        "confidence": 0.82,
+        "arousal_level": "low",
+        "signals": [
+          "olhar direto suave",
+          "corpo relaxado em decúbito",
+          "orelhas em posição neutra",
+          "ausência de ofegação",
+          "pupilas normais sem 'whale eye'"
+        ],
+        "body_language_reading": "O cão apresenta linguagem corporal de relaxamento confiante em ambiente seguro: decúbito esternal com patas estendidas para frente ('sploot' parcial), musculatura facial distendida, comissura labial neutra sem tensão perioral. O olhar é direto mas suave, sem esclera exposta (ausência de whale eye), indicando ausência de estresse agudo. As orelhas pendem naturalmente sem estarem colapsadas contra o crânio, sugerindo estado emocional positivo. A presença do adesivo/enfeite na cabeça sem tentativa de remoção sugere habituação ao manuseio humano e baixa reatividade tátil.",
+        "stress_indicators": [
+          "nenhum indicador agudo identificado",
+          "possível leve vigilância pela direção do olhar para a câmera"
+        ],
+        "welfare_flags": [
+          "Domínio Ambiental: ambiente adequado (superfície macia, caminha própria visível)",
+          "Domínio Comportamental: vínculo humano-animal aparentemente positivo",
+          "Domínio Mental: estado afetivo neutro a positivo"
+        ]
+      },
+      "alerts": [
+        {
+          "message": "Manchas lacrimais bilaterais sugerem epífora crônica — merece investigação oftalmológica",
+          "severity": "attention",
+          "category": "health",
+          "time_frame": "avaliação oftalmológica de rotina em 2-4 semanas",
+          "why_it_matters": "Epífora persistente em raças brancas pode refletir obstrução do ducto nasolacrimal, entrópio, KCS inicial ou irritação conjuntival alérgica; além do componente estético, a umidade crônica favorece dermatite perilacrimal e proliferação de Malassezia",
+          "what_to_monitor": [
+            "aumento do volume de secreção",
+            "mudança de coloração para esverdeada/purulenta",
+            "piscar excessivo ou blefaroespasmo",
+            "esfregar a face em superfícies",
+            "eritema cutâneo periocular"
+          ],
+          "red_flags": [
+            "olho fechado persistentemente",
+            "secreção mucopurulenta",
+            "opacidade corneana",
+            "dor ocular evidente"
+          ]
+        },
+        {
+          "message": "Risco periodontal elevado típico de raças toy — checagem odontológica recomendada",
+          "severity": "attention",
+          "category": "care",
+          "time_frame": "avaliação odontológica em consulta de rotina dentro de 1-3 meses",
+          "why_it_matters": "Bichons e mistos Poodle apresentam apinhamento dentário por maxila reduzida, acelerando formação de placa, cálculo e doença periodontal; doença periodontal não tratada tem repercussão sistêmica (bacteremia, nefropatia, hepatopatia)",
+          "what_to_monitor": [
+            "halitose",
+            "acúmulo de tártaro visível na linha gengival",
+            "gengiva avermelhada ou sangrante",
+            "perda de apetite ou mastigação unilateral",
+            "salivação aumentada"
+          ],
+          "red_flags": [
+            "dente móvel",
+            "fístula oronasal",
+            "espirros após comer",
+            "recusa alimentar completa"
+          ]
+        },
+        {
+          "message": "Conformação auricular de alto risco para otite — higiene preventiva regular",
+          "severity": "info",
+          "category": "care",
+          "time_frame": "inspeção auricular semanal; limpeza com produto veterinário conforme orientação",
+          "why_it_matters": "Orelhas pendulares com canal pilificado criam microambiente úmido e pouco ventilado, favorecendo Malassezia pachydermatis e bactérias; otite crônica não tratada pode evoluir para otite média e estenose do canal",
+          "what_to_monitor": [
+            "coceira/balançar de cabeça",
+            "odor acre",
+            "cerúmen escuro",
+            "eritema do pavilhão interno",
+            "sensibilidade ao toque na base da orelha"
+          ],
+          "red_flags": [
+            "head tilt persistente",
+            "nistagmo",
+            "dor intensa à palpação",
+            "exsudato purulento"
+          ]
+        }
+      ],
+      "description": "Trata-se de um cão adulto de pequeno porte compatível com Bichon Frisé (possivelmente mistura com Poodle toy), em BCS 5/9 ideal segundo WSAVA, com massa muscular preservada e pelagem branca bem mantida, tosada em padrão 'puppy cut'. O exame visual indireto revela epífora crônica bilateral evidenciada por manchas de porfirinas nos cantos mediais dos olhos e discreta pigmentação perioral, achados frequentes em raças brancas braquicefálicas leves. Postura de decúbito esternal relaxado, simetria de membros, ausência de dispneia ou sinais de dor (escala UNESP-Botucatu sugestiva de escore baixo, compatível com 0-2/10). O estado mental é calmo-atento, com linguagem corporal de bem-estar positivo, vínculo humano-animal aparentemente seguro e enriquecimento ambiental adequado (caminha e superfície confortável). Não se visualizam lesões dermatológicas primárias ou secundárias, alopecia ou massas. Os principais pontos de vigilância são oftalmológicos (drenagem lacrimal), odontológicos (risco periodontal da raça) e auriculares (conformação pendular com canal pilificado). No geral, o paciente apresenta-se clinicamente estável à avaliação fotográfica, com achados subclínicos de manejo preventivo.",
+      "clinical_reasoning": "Observo um cão branco de pelagem encaracolada com conformação craniofacial compatível com Bichon/Poodle toy, combinado com manchas lacrimais bilaterais simétricas e discreta pigmentação perioral. Somado à predisposição genética dessas raças a estenose do ducto nasolacrimal, ceratoconjuntivite seca e apinhamento dentário, o quadro é consistente com epífora crônica de baixo grau e risco periodontal latente, achados comuns e manejáveis em rotina. A ausência de blefaroespasmo, secreção purulenta, hiperemia conjuntival ou sinais de dor torna processos inflamatórios agudos pouco prováveis neste momento. A linguagem corporal relaxada e o BCS ideal sustentam a interpretação de um paciente sistemicamente estável cuja vigilância deve focar em prevenção oftalmológica, odontológica e auricular próprias da raça.",
+      "differential_considerations": [
+        {
+          "hypothesis": "Epífora idiopática por estenose/agenesia de pontos lacrimais",
+          "likelihood": "moderate",
+          "distinguishing_features": "teste de Jones (fluoresceína com passagem nasal) negativo sustenta o diagnóstico; ausência de outros sinais inflamatórios",
+          "recommended_test": "teste de fluoresceína com observação de passagem nasal, cateterização do ducto nasolacrimal sob sedação"
+        },
+        {
+          "hypothesis": "Ceratoconjuntivite seca precoce (KCS)",
+          "likelihood": "low",
+          "distinguishing_features": "secreção mucoide espessa, opacidade/pigmentação corneana, blefaroespasmo — não evidentes aqui",
+          "recommended_test": "Teste de Schirmer (valor <15 mm/min sugestivo)"
+        },
+        {
+          "hypothesis": "Entrópio/distiquíase leve",
+          "likelihood": "low",
+          "distinguishing_features": "visualização de cílios aberrantes ou inversão palpebral sob exame com biomicroscopia",
+          "recommended_test": "biomicroscopia com lâmpada de fenda, coloração com fluoresceína para úlceras"
+        },
+        {
+          "hypothesis": "Dermatite alérgica atópica subclínica (estágio inicial)",
+          "likelihood": "low",
+          "distinguishing_features": "prurido facial/podal, eritema interdigital, otite recorrente — não aparentes na foto",
+          "recommended_test": "histórico de prurido, citologia cutânea, teste alérgico intradérmico se clínica evoluir"
+        },
+        {
+          "hypothesis": "Doença periodontal grau 1-2 subclínica",
+          "likelihood": "moderate",
+          "distinguishing_features": "halitose, gengivite marginal, cálculo supragengival — requer visualização oral direta",
+          "recommended_test": "exame oral completo consciente + radiografia dentária intraoral sob anestesia"
+        }
+      ],
+      "breed_specific_context": "Bichons Frisés e cruzas com Poodle apresentam predisposições relevantes: (1) oftalmológicas — epífora crônica por estenose do ducto nasolacrimal, KCS, catarata hereditária e atrofia progressiva de retina; (2) odontológicas — apinhamento por mandíbula reduzida com doença periodontal precoce; (3) ortopédicas — luxação medial de patela (LMP graus 1-4) e doença de Legg-Calvé-Perthes; (4) dermatológicas — atopia canina e otite por Malassezia em canais pilificados; (5) urológicas — urolitíase por oxalato de cálcio; (6) endócrinas — predisposição a hiperadrenocorticismo e diabetes em idades avançadas. Os achados visíveis de manchas lacrimais e conformação auricular alinham-se diretamente com esse perfil.",
+      "age_specific_context": "Em um adulto estimado em aproximadamente 4 anos, a fisiologia está em seu platô de maturidade: sistema imune competente, metabolismo estável e risco oncológico ainda baixo. É a janela ideal para estabelecer baseline laboratorial (hemograma, bioquímico, urinálise, T4) e radiográfico dentário, permitindo detecção precoce de progressão periodontal, sinais subclínicos de doença valvular mitral (início típico em pequenos porte a partir dos 5-7 anos) e cálculos urinários. Achados oculares nesta faixa etária geralmente refletem condição congênita/conformacional mais do que degenerativa.",
+      "follow_up_questions": [
+        "Há histórico de coceira, lambedura de patas ou esfregar o focinho em superfícies?",
+        "O lacrimejamento é constante ou piora em épocas específicas (sazonalidade alérgica)?",
+        "Qual a frequência de escovação dental e já houve profilaxia odontológica?",
+        "Há balançar de cabeça, coceira nas orelhas ou odor auricular?",
+        "Existe claudicação intermitente, 'pulinho' ao correr ou relutância em subir/descer?",
+        "Qual a dieta atual (tipo, marca, porção) e há petiscos frequentes?",
+        "Status vacinal, antiparasitário e castração?",
+        "Frequência e características das fezes (escala Bristol) e urina?"
+      ],
+      "recommendations": {
+        "immediate": [
+          "Limpeza diária suave da região periocular com solução oftálmica fisiológica ou produto veterinário específico para manchas lacrimais (sem ácido bórico em mucosa)",
+          "Secagem cuidadosa da barba após bebida/alimentação para reduzir umidade perioral",
+          "Inspeção visual das orelhas e dentes nesta semana — fotografar achados se houver"
+        ],
+        "short_term": [
+          "Consulta clínica geral em 2-4 semanas com foco em exame oftalmológico (Schirmer, fluoresceína) e oral",
+          "Hemograma, perfil bioquímico, urinálise e T4 de baseline se ainda não realizados no último ano",
+          "Iniciar protocolo de escovação dental diária com creme enzimático veterinário (nunca pasta humana)",
+          "Avaliação ortopédica para rastreio de luxação patelar (palpação específica)",
+          "Higiene auricular quinzenal com ceruminolítico veterinário, evitando cotonetes profundos"
+        ],
+        "preventive": [
+          "Tosas higiênicas regulares (periocular, perianal, patas, canal auditivo) a cada 4-6 semanas",
+          "Dieta premium adequada ao porte toy com controle calórico para manter BCS 4-5/9",
+          "Vermifugação e antiparasitário externo conforme região epidemiológica",
+          "Profilaxia odontológica anual com radiografia intraoral sob anestesia a partir dos 4-5 anos",
+          "Rastreio anual para urolitíase (urinálise + densidade + sedimento) em raças predispostas a oxalato",
+          "Enriquecimento ambiental e exercício diário moderado compatível com articulações toy"
+        ]
+      },
+      "prognostic_outlook": "Prognóstico geral excelente a bom: paciente em condição corporal ideal, sem sinais agudos de doença e com achados consistentes com manejo preventivo de rotina. Com cuidados oftalmológicos, odontológicos e auriculares proativos adequados à raça, a expectativa é de qualidade de vida preservada e longevidade típica (13-15 anos) sem complicações sistêmicas precoces.",
+      "sources": [
+        "WSAVA Global Nutrition Committee — Body Condition Score 2021",
+        "WSAVA Global Dental Guidelines 2020",
+        "AVDC Nomenclature — Periodontal Disease Staging",
+        "UNESP-Botucatu Multidimensional Composite Pain Scale",
+        "Mellor DJ et al. — Five Domains Model of Animal Welfare (2020)",
+        "Gelatt KN — Veterinary Ophthalmology, 6th ed. (epífora e estenose nasolacrimal)",
+        "Miller WH, Griffin CE, Campbell KL — Muller & Kirk's Small Animal Dermatology, 7th ed.",
+        "ACVIM Consensus — Canine Periodontal Disease",
+        "Gough A, Thomas A, O'Neill D — Breed Predispositions to Disease in Dogs and Cats, 3rd ed."
+      ]
+    },
+    "ms": 111769,
+    "input_tokens": 3486,
+    "output_tokens": 6702,
+    "text_chars": 16227,
+    "stop_reason": "end_turn"
+  },
+  "generated_at": "2026-04-24T13:32:47.598767"
+}

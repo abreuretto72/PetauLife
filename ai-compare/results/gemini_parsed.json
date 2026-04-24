@@ -1,0 +1,107 @@
+{
+  "identification": {
+    "species": {
+      "value": "dog",
+      "confidence": 1
+    },
+    "breed": {
+      "primary": "Chihuahua",
+      "confidence": 0.95,
+      "is_mixed": false,
+      "secondary_breeds": null
+    },
+    "size": "small",
+    "age_category": "adult",
+    "estimated_age_months": 24,
+    "estimated_weight_kg": 2.5,
+    "sex": {
+      "value": "female",
+      "confidence": 0.5
+    },
+    "coat": {
+      "color": "chocolate and tan",
+      "pattern": "solid",
+      "quality": "healthy",
+      "length": "short"
+    }
+  },
+  "health": {
+    "body_condition_score": 4,
+    "body_condition": "underweight",
+    "skin_coat": [
+      {
+        "observation": "coat appears healthy and shiny",
+        "severity": "normal",
+        "confidence": 0.9
+      }
+    ],
+    "eyes": [
+      {
+        "observation": "clear, no visible discharge",
+        "severity": "normal",
+        "confidence": 0.9
+      }
+    ],
+    "ears": [
+      {
+        "observation": "erect, alert",
+        "severity": "normal",
+        "confidence": 0.9
+      }
+    ],
+    "mouth_teeth": [
+      {
+        "observation": "chewing on rubber footwear",
+        "severity": "attention",
+        "confidence": 0.8
+      }
+    ],
+    "posture_body": [
+      {
+        "observation": "lateral recumbency, relaxed",
+        "severity": "normal",
+        "confidence": 0.9
+      }
+    ],
+    "nails": {
+      "observation": "length appropriate",
+      "needs_trimming": false
+    },
+    "hygiene": "clean",
+    "visible_parasites": false,
+    "visible_lumps": false
+  },
+  "mood": {
+    "primary": "playful",
+    "confidence": 0.9,
+    "signals": [
+      "engaged with toy",
+      "relaxed posture"
+    ]
+  },
+  "environment": {
+    "location": "home_indoor",
+    "accessories": [],
+    "other_animals": false,
+    "visible_risks": [
+      "Potential ingestion of rubber/plastic components from footwear"
+    ]
+  },
+  "alerts": [
+    {
+      "message": "O hábito de mastigar calçados de borracha pode levar à ingestão de corpos estranhos e obstrução gastrointestinal.",
+      "severity": "attention",
+      "category": "safety"
+    }
+  ],
+  "disclaimer": "Esta análise é baseada em observação visual e não substitui o exame clínico veterinário presencial.",
+  "description": "Mana apresenta um escore de condição corporal (BCS) 4/9, sugerindo um peso levemente abaixo do ideal, e demonstra um comportamento lúdico e relaxado. O maior risco identificado é a interação com o calçado, que representa um perigo de ingestão de corpo estranho; recomenda-se a substituição por brinquedos seguros para cães para evitar riscos de obstrução gastrointestinal.",
+  "toxicity_check": {
+    "has_toxic_items": false,
+    "items": null
+  },
+  "sources": [
+    "WSAVA Body Condition Score Guidelines (2021)",
+    "ASPCA Animal Poison Control Center"
+  ]
+}

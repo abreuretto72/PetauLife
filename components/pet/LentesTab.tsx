@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import {
   ClipboardList, UtensilsCrossed, Receipt, Heart,
-  Trophy, Smile, Plane,
+  Smile, Plane,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -24,7 +24,7 @@ import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { spacing, radii } from '../../constants/spacing';
 import PawIcon from '../PawIcon';
-import { useLensExpenses, useLensNutrition, useLensFriends, useLensPlans, useLensAchievements, useLensMoodTrend, useLensTravel } from '../../hooks/useLens';
+import { useLensExpenses, useLensNutrition, useLensFriends, useLensPlans, useLensMoodTrend, useLensTravel } from '../../hooks/useLens';
 import { useVaccines } from '../../hooks/useHealth';
 
 // ── Badge formatting helpers ──────────────────────────────────────────────────
@@ -87,7 +87,6 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
   const { data: nutrition } = useLensNutrition(petId);
   const { data: friends } = useLensFriends(petId);
   const { data: plans } = useLensPlans(petId);
-  const { data: achievements } = useLensAchievements(petId);
   const { data: happiness } = useLensMoodTrend(petId);
   const { data: travels } = useLensTravel(petId);
   // ── Badge values ─────────────────────────────────────────────────────────
@@ -114,11 +113,6 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
   // Friends
   const friendsBadge = friends != null
     ? `${friends.length} ${t('lenses.badgeFriends')}`
-    : null;
-
-  // Achievements
-  const achBadge = achievements
-    ? `${achievements.achievements.length} ${t('lenses.badgeBadges')} · ${t('lenses.badgeLevel')} ${achievements.level}`
     : null;
 
   // Happiness
@@ -176,26 +170,21 @@ export default function LentesTab({ petId, petName, overdueVaccines }: LentesTab
           onPress={() => nav('friends')}
         />
 
-        {/* Row 3: Conquistas · Felicidade */}
-        <LensCard
-          icon={Trophy} color={colors.warning}
-          label={t('lenses.achievements')} badge={achBadge}
-          onPress={() => nav('achievements')}
-        />
+        {/* Row 3: Felicidade · Viagens */}
         <LensCard
           icon={Smile} color={colors.success}
           label={t('lenses.happiness')} badge={happinessBadge}
           onPress={() => nav('happiness')}
         />
-
-        {/* Row 4: Viagens · Planos */}
         <LensCard
           icon={Plane} color={colors.sky}
           label={t('lenses.travels')} badge={travelBadge}
           onPress={() => nav('travel')}
         />
+
+        {/* Row 4: Planos (full-width) */}
         <LensCard
-          icon={Heart} color={colors.rose}
+          icon={Heart} color={colors.rose} fullWidth
           label={t('lenses.plans')} badge={plansBadge}
           onPress={() => nav('plans')}
         />

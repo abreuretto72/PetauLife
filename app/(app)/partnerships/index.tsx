@@ -62,7 +62,7 @@ function roleColor(role: AccessRole): string {
     case 'vet_tech':
       return colors.petrol;
     case 'trainer':
-      return colors.purple;
+      return colors.click;
     case 'ong_member':
       return colors.rose;
     default:
@@ -117,7 +117,7 @@ interface PartnerGrantCardProps {
 const PartnerGrantCard = React.memo<PartnerGrantCardProps>(({ grant, onRevoke, isRevoking }) => {
   const { t } = useTranslation();
   const isDog = grant.pet_species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
   const rc = roleColor(grant.role);
   const expiryLabel = formatRelativeExpiry(grant.expires_at, t);
 
@@ -206,7 +206,7 @@ interface PendingInviteCardProps {
 const PendingInviteCard = React.memo<PendingInviteCardProps>(({ invite, onCancel, isCancelling }) => {
   const { t } = useTranslation();
   const isDog = invite.pet_species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
   const rc = roleColor(invite.role);
   const expiryLabel = formatRelativeExpiry(invite.expires_at, t);
 

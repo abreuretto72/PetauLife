@@ -46,7 +46,7 @@ export default function DicasScreen() {
         {/* Score hero */}
         <View style={s.scoreCard}>
           <View style={s.scoreIconWrap}>
-            <Sparkles size={rs(32)} color={colors.purple} />
+            <Sparkles size={rs(32)} color={colors.ai} />
           </View>
           <Text style={s.scoreLabel}>{t('nutrition.dicasScoreTitle')}</Text>
           {eval_ ? (
@@ -94,9 +94,9 @@ export default function DicasScreen() {
             {/* Recommendation */}
             {eval_.recommendation && (
               <>
-                <SectionLabel icon={<TrendingUp size={rs(13)} color={colors.purple} />} label={t('nutrition.dicasRecommendation')} />
-                <View style={[s.listCard, { backgroundColor: colors.purpleSoft }]}>
-                  <Text style={[s.listText, { color: colors.purple }]}>{eval_.recommendation}</Text>
+                <SectionLabel icon={<TrendingUp size={rs(13)} color={colors.click} />} label={t('nutrition.dicasRecommendation')} />
+                <View style={[s.listCard, { backgroundColor: colors.clickSoft }]}>
+                  <Text style={[s.listText, { color: colors.click }]}>{eval_.recommendation}</Text>
                 </View>
               </>
             )}
@@ -182,16 +182,16 @@ const s = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: rs(12) },
   loadingText: { fontSize: fs(14), color: colors.textSec },
   scoreCard: {
-    backgroundColor: colors.purpleSoft, borderRadius: rs(18), padding: rs(24),
-    alignItems: 'center', gap: rs(8), borderWidth: 1, borderColor: colors.purple + '30',
+    backgroundColor: colors.clickSoft, borderRadius: rs(18), padding: rs(24),
+    alignItems: 'center', gap: rs(8), borderWidth: 1, borderColor: colors.click + '30',
   },
   scoreIconWrap: {
     width: rs(64), height: rs(64), borderRadius: rs(32),
     backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center',
     marginBottom: rs(4),
   },
-  scoreLabel: { fontSize: fs(11), fontWeight: '700', color: colors.purple, letterSpacing: 1.2 },
-  scoreValue: { fontSize: fs(36), fontWeight: '800', color: colors.purple },
+  scoreLabel: { fontSize: fs(11), fontWeight: '700', color: colors.click, letterSpacing: 1.2 },
+  scoreValue: { fontSize: fs(36), fontWeight: '800', color: colors.click },
   scoreEmpty: { fontSize: fs(14), color: colors.textDim, fontStyle: 'italic' },
   scoreSummary: { fontSize: fs(14), color: colors.text, textAlign: 'center', lineHeight: rs(22), marginTop: rs(4) },
   sectionRow: { flexDirection: 'row', alignItems: 'center', gap: rs(6) },

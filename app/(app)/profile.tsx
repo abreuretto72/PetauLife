@@ -279,7 +279,7 @@ export default function ProfileScreen() {
           {[
             { label: t('tutor.statPets'), value: pets.length, icon: <Heart size={rs(16)} color={colors.click} strokeWidth={1.8} />, color: colors.click },
             { label: t('tutor.statDiary'), value: 0, icon: <BookOpen size={rs(16)} color={colors.click} strokeWidth={1.8} />, color: colors.click },
-            { label: t('tutor.statAnalysis'), value: 0, icon: <ScanEye size={rs(16)} color={colors.purple} strokeWidth={1.8} />, color: colors.purple },
+            { label: t('tutor.statAnalysis'), value: 0, icon: <ScanEye size={rs(16)} color={colors.click} strokeWidth={1.8} />, color: colors.click },
             { label: t('tutor.statVaccines'), value: '—', icon: <ShieldCheck size={rs(16)} color={colors.success} strokeWidth={1.8} />, color: colors.success },
           ].map((st, i) => (
             <View key={i} style={s.statBox}>
@@ -292,7 +292,7 @@ export default function ProfileScreen() {
         {/* ── Meus Pets ── */}
         <Text style={s.sectionLabel}>{t('pets.myPets').toUpperCase()}</Text>
         {pets.map((pet) => {
-          const petColor = pet.species === 'dog' ? colors.click : colors.purple;
+          const petColor = pet.species === 'dog' ? colors.click : colors.click;
           return (
             <TouchableOpacity key={pet.id} style={s.petRow} activeOpacity={0.7} onPress={() => router.push(`/pet/${pet.id}` as never)}>
               {pet.avatar_url ? (

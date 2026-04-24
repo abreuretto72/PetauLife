@@ -85,14 +85,14 @@ const LENSES: LensItem[] = [
   { type: 'food',            Icon: UtensilsCrossed,   color: colors.success },
   { type: 'plan',            Icon: CreditCard,        color: colors.petrol },
   { type: 'mood',            Icon: SmilePlus,         color: colors.click },
-  { type: 'moment',          Icon: Sparkles,          color: colors.purple },
+  { type: 'moment',          Icon: Sparkles,          color: colors.ai },
   { type: 'connection',      Icon: Heart,             color: colors.rose },
   { type: 'travel',          Icon: MapPin,            color: colors.sky },
   { type: 'expense',         Icon: DollarSign,        color: colors.warning },
   { type: 'boarding',        Icon: Home,              color: colors.petrol },
   { type: 'dog_walker',      Icon: PersonStanding,    color: colors.click },
   { type: 'grooming',        Icon: Scissors,          color: colors.petrol },
-  { type: 'photo_analysis',  Icon: Camera,            color: colors.purple },
+  { type: 'photo_analysis',  Icon: Camera,            color: colors.ai },
 ];
 
 type TabId = 'faq' | 'panel';

@@ -23,6 +23,7 @@ import { VideoSubcard } from './VideoSubcard';
 import { AudioSubcard } from './AudioSubcard';
 import { OCRSubcard } from './OCRSubcard';
 import { ProcessingChecklist } from './ProcessingChecklist';
+import { AIThinkingTicker } from '../../AIThinkingTicker';
 import { RegistrationAnalysisSubcard } from './RegistrationAnalysisSubcard';
 import {
   type DiaryCardProps,
@@ -39,6 +40,16 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
   const currentUserId = currentUser?.id;
   const isCreator = !!currentUserId && event.registeredBy === currentUserId;
   console.log('[CARD]', event.id.slice(-8), '| fotos:', event.photos?.length ?? 0, '| narration:', !!event.narration, '| photoAnalysis:', !!event.photoAnalysisData, '| videoUrl:', !!event.videoUrl, '| classif:', event.classifications?.length ?? 0, '| modules:', !!event.modules);
+  // ── DIAG: detalhe de classifications + modules pra depurar lente sumida ──
+  if ((event.classifications?.length ?? 0) > 0 || event.modules) {
+    const types = event.classifications?.map((c) => `${c.type}(${c.confidence})`).join(',') ?? 'none';
+    const m = event.modules;
+    console.log('[CARD-DETAIL]', event.id.slice(-8),
+      '| classifTypes:', types,
+      '| filtered>=0.5:', event.classifications?.filter((c) => c.confidence >= 0.5).length ?? 0,
+      '| modules.expenses:', Array.isArray(m?.expenses) ? `arr(${m!.expenses.length})` : (m?.expenses != null ? typeof m.expenses : 'null'),
+      '| modules.vaccines:', Array.isArray(m?.vaccines) ? `arr(${m!.vaccines.length})` : (m?.vaccines != null ? typeof m.vaccines : 'null'));
+  }
   console.log('[CARD-MEDIA]', event.id?.slice(0,8),
     'mediaAnalyses:', event.mediaAnalyses?.length ?? 0,
     'types:', event.mediaAnalyses?.map((m: any) => m.type).join(',') ?? 'none',
@@ -89,6 +100,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
           content={event.content}
           t={t}
         />
+        <AIThinkingTicker species="both" />
       </View>
     );
   }
@@ -212,7 +224,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
             );
             if (media.type === 'photo') return <PhotoSubcard key={idx} media={media} t={t} />;
             if (media.type === 'video') return <VideoSubcard key={idx} media={media} t={t} />;
-            if (media.type === 'audio') return <AudioSubcard key={idx} media={media} t={t} />;
+            if (media.type === 'audio') return <AudioSubcard key={idx} media={media} classifications={event.classifications} t={t} />;
             if (media.type === 'document') {
               // Skip OCR subcard when doc type is "other" and no fields were extracted
               // (e.g. user submitted a photo of their pet instead of a document)
@@ -269,6 +281,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
                 petAudioAnalysis: event.petAudioAnalysis,
                 analysis: null,
               }}
+              classifications={event.classifications}
               t={t}
             />
           )}

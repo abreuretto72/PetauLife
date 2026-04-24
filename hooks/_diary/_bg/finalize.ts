@@ -6,8 +6,7 @@
  *   - Await all postSave promises
  *   - Fetch freshEntry from DB with 5-way FK joins (expenses, vaccines,
  *     consultations, clinical_metrics, medications)
- *   - Fire-and-forget side effects: generateEmbedding, updatePetRAG,
- *     checkAndAwardAchievements (via dynamic import)
+ *   - Fire-and-forget side effects: generateEmbedding, updatePetRAG
  *   - Mark SQLite pending entry as synced
  *   - Build finalEntry (freshEntry from DB, or manual fallback construction)
  *   - cacheEntry for offline reads
@@ -111,9 +110,6 @@ export async function finalize(opts: {
     : (text ?? '');
   generateEmbedding(petId, 'diary', entryId, embeddingText, 0.5, userId).catch(() => {});
   updatePetRAG(petId, userId, entryId, classification.classifications ?? []).catch(() => {});
-  import('../../../lib/achievements').then(({ checkAndAwardAchievements }) => {
-    checkAndAwardAchievements(petId, userId, entryId).catch(() => {});
-  }).catch(() => {});
 
   // Mark SQLite pending entry as synced
   updatePendingStatus(tempId, 'synced');
@@ -170,11 +166,35 @@ export async function finalize(opts: {
   // Do NOT invalidate diary immediately — an instant refetch could overwrite
   // the cache with a stale row if any write is still propagating. Schedule it
   // after 3 s so the card shows correct data right away.
+  // ── DIAG pré-setQueryData: shape do finalEntry que vai pro cache ──
+  {
+    const fe = finalEntry as unknown as Record<string, unknown>;
+    const cls = fe.classifications;
+    const exp = fe.expenses;
+    console.log('[S7-DIAG] finalEntry.id:', fe.id);
+    console.log('[S7-DIAG] finalEntry.classifications | typeof:', typeof cls,
+      '| isArray:', Array.isArray(cls),
+      '| length:', Array.isArray(cls) ? (cls as unknown[]).length : (typeof cls === 'string' ? `STRING(${(cls as string).length})` : 'n/a'),
+      '| firstChars:', typeof cls === 'string' ? (cls as string).slice(0, 80) : (Array.isArray(cls) ? JSON.stringify(cls).slice(0, 120) : 'null'));
+    console.log('[S7-DIAG] finalEntry.expenses | typeof:', typeof exp,
+      '| isArray:', Array.isArray(exp),
+      '| length:', Array.isArray(exp) ? (exp as unknown[]).length : 'n/a',
+      '| first:', Array.isArray(exp) && exp.length > 0 ? JSON.stringify(exp[0]).slice(0, 120) : 'none');
+  }
   console.log('[S7] setQueryData com finalEntry | photoAnalysisData:', !!(finalEntry as unknown as Record<string,unknown>)?.photo_analysis_data);
   qc.setQueryData<import('../../../types/database').DiaryEntry[]>(queryKey as unknown as ['pets', string, 'diary'], (old) => {
     const withoutTemp = (old ?? []).filter((e) => !e.id.startsWith('temp-'));
     return [finalEntry, ...withoutTemp];
   });
+  // ── DIAG pós-setQueryData: confirmar que cache contém a entry com shape correto ──
+  {
+    const cache = qc.getQueryData(queryKey as unknown as ['pets', string, 'diary']) as unknown[] | undefined;
+    const inCache = cache?.find((e) => (e as Record<string, unknown>).id === entryId) as Record<string, unknown> | undefined;
+    console.log('[S7-DIAG] cache after set | totalEntries:', cache?.length ?? 0,
+      '| hasNewEntry:', !!inCache,
+      '| newEntry.classifications.length:', Array.isArray(inCache?.classifications) ? (inCache!.classifications as unknown[]).length : `not-array(${typeof inCache?.classifications})`,
+      '| newEntry.expenses.length:', Array.isArray(inCache?.expenses) ? (inCache!.expenses as unknown[]).length : `not-array(${typeof inCache?.expenses})`);
+  }
   // Refetch silencioso após 5s — não zera cache se o banco retornar vazio
   setTimeout(() => {
     qc.fetchQuery({

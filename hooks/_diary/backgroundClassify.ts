@@ -81,6 +81,7 @@ export async function backgroundClassifyAndSave(opts: {
   hasVideo?: boolean;
   docBase64?: string;     // inline base64 of a scanned document (upload + OCR in parallel with main classify)
   skipAI?: boolean;       // skip AI pipeline — upload media + save entry with manual defaults
+  analysisDepth?: 'off' | 'fast' | 'balanced' | 'deep';   // nível do prompt enviado às EFs
   /** Per-routine AI analysis flags. When absent, defaults to all-enabled (backward compat). */
   aiFlags?: AIAnalysisFlags;
   /** Toast function from useToast() — passed from the hook so background fn can show notifications. */
@@ -305,6 +306,7 @@ export async function backgroundClassifyAndSave(opts: {
           photosBase64: !textForClassify?.trim() ? analysisFramesCapped : undefined,
           language: i18n.language,
           authHeader,
+      analysisDepth: opts.analysisDepth,
         }),
         { status: 'skipped', reason: aiFlags.narrateText ? 'no_input' : 'toggle_off' },
       ),
@@ -324,6 +326,7 @@ export async function backgroundClassifyAndSave(opts: {
                 petBreed:        opts.petBreed ?? null,
                 language:        i18n.language,
                 authHeader,
+                analysisDepth:   opts.analysisDepth,
                 onFrameComplete: (idx) => {
                   // Só conta fotos do tutor — frames de vídeo são invisíveis para o tutor.
                   if (idx < tutorPhotoCount) {
@@ -351,6 +354,7 @@ export async function backgroundClassifyAndSave(opts: {
           thumbnailFrameBase64: videoFramesBase64[0] ?? null,
           language:             i18n.language,
           authHeader,
+          analysisDepth:        opts.analysisDepth,
         }),
         { status: 'skipped', reason: aiFlags.analyzeVideo ? 'no_input' : 'toggle_off' },
       ),
@@ -366,6 +370,7 @@ export async function backgroundClassifyAndSave(opts: {
           durationSeconds: audioDuration ?? null,
           language:        i18n.language,
           authHeader,
+          analysisDepth:   opts.analysisDepth,
         }),
         { status: 'skipped', reason: aiFlags.analyzeAudio ? 'no_input' : 'toggle_off' },
       ),
@@ -381,6 +386,7 @@ export async function backgroundClassifyAndSave(opts: {
           docBase64: docBase64ForAI!,
           language:  i18n.language,
           authHeader,
+          analysisDepth: opts.analysisDepth,
         }),
         { status: 'skipped', reason: aiFlags.analyzeOCR ? 'no_input' : 'toggle_off' },
       ),

@@ -133,7 +133,7 @@ export default function CardapioHistoryScreen() {
       <SafeAreaView style={s.safeArea}>
         <Header onBack={() => router.back()} title={t('nutrition.cardapioHistoryTitle')} />
         <View style={s.centered}>
-          <ActivityIndicator color={colors.purple} size="large" />
+          <ActivityIndicator color={colors.click} size="large" />
         </View>
       </SafeAreaView>
     );

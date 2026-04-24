@@ -53,7 +53,7 @@ supabase/functions/
     supabase.ts       ← createSupabaseClient(req)
     cors.ts           ← corsHeaders + OPTIONS handler
   analyze-photo/      ← análise de foto/imagem (vision)
-  narrate-entry/      ← narração IA na voz do pet
+  narrate-entry/      ← narração IA em 3ª pessoa literária (registro Elite)
   classify-entry/     ← classificação de texto + gastos
   generate-embedding/ ← embeddings para RAG
   anonymize-entry/    ← anonimização LGPD

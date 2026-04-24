@@ -45,34 +45,38 @@ diary.*      → diário e narração
 health.*     → saúde, vacinas, alergias
 ai.*         → análises de IA, insights
 settings.*   → configurações, preferências
-toast.*      → mensagens de balão (voz do pet)
-errors.*     → mensagens de erro (voz do pet)
+toast.*      → mensagens de balão (registro Elite, 3ª pessoa factual)
+errors.*     → mensagens de erro (registro Elite, 3ª pessoa factual)
 ```
 
 Arquivos: `i18n/pt-BR.json`, `i18n/en-US.json`, `i18n/es-MX.json`, `i18n/es-AR.json`, `i18n/pt-PT.json`.
 
 Ao adicionar uma chave nova: **adicionar em TODOS os 5 arquivos simultaneamente**. Nunca em apenas um.
 
-## Tom das mensagens — voz do pet
+## Tom das mensagens — registro Elite (2026-04-23)
 
-Mensagens de `toast.*` e `errors.*` são escritas como se fosse **o pet falando com o tutor**. Nunca técnico, nunca frio.
+Mensagens de `toast.*` e `errors.*` são escritas em **registro literário factual**, inspirado em Clarice Lispector de "Laços de Família" — contemplativo, preciso, sem derrame emocional. Nunca 1ª pessoa do pet falando com o tutor, nunca cartoon.
 
-**Características:**
+**Regras invioláveis:**
 
-- Leve, carinhoso, bem-humorado
-- 3ª pessoa do pet no sujeito, mas direcionado ao tutor ("te reconheci", "calma, humano")
-- Assinatura: "— seu pet" (PT-BR) / "— your pet" (EN-US) / "— tu mascota" (ES) etc.
-- Exclamações suaves: "Eba!", "Xi!", "Opa!", "Calma, humano!"
+- **3ª pessoa, voz impessoal ou passiva.** Nunca "Eu", "Posso", "I'll", "Let me".
+- **Sem exclamação performática** (`!`). Só em casos genuinamente comemorativos — raríssimo em toast/erro.
+- **Sem onomatopeia**: "Eba", "Xi", "Opa", "Ué", "Yay", "Oops", "Hmm", "Hey".
+- **Sem vocativo fofinho**: "humano", "hein?", "né?", "tá?", "viu?".
+- **Sem assinatura textual** "— seu pet" / "— your pet". A composição visual do balão (patinha + container) declara autoria.
+- **Frases curtas.** Um ponto final por ideia.
+- **Imperativo polido**: "Tente" (não "Tenta"), "Verifique" (não "Confere"), "Aguarde" (não "Espera").
 
 **Exemplos de tom:**
 
-| Situação | ❌ Técnico | ✅ Voz do pet |
+| Situação | ❌ Cartoon (antigo) | ✅ Elite (atual) |
 |---|---|---|
-| Entrada salva | "Entry saved successfully" | "Eba! Anotei essa no nosso diário." |
-| Erro ao salvar | "Failed to save entry" | "Opa! Algo travou. Tenta de novo pra mim?" |
-| Login biométrico OK | "Authentication successful" | "Te reconheci! Pode entrar." |
-| Logout (confirmação) | "Are you sure you want to log out?" | "Quer mesmo sair? Vou sentir sua falta!" |
-| Vacina vencida | "Vaccine expired" | "Xi, aquela vacininha tá atrasada. Vamos agendar?" |
+| Entrada salva | "Eba! Anotei essa no nosso diário." | "Registrado." |
+| Erro ao salvar | "Opa! Algo travou. Tenta de novo pra mim?" | "Não foi possível salvar. Tente novamente." |
+| Login biométrico OK | "Te reconheci! Pode entrar." | "Reconhecido. Bem-vindo de volta." |
+| Logout (confirmação) | "Quer mesmo sair? Vou sentir sua falta!" | "Deseja sair?" |
+| Vacina vencida | "Xi, aquela vacininha tá atrasada. Vamos agendar?" | "A vacina {{name}} de {{pet}} está vencida." |
+| Sem conexão | "Opa, caí da rede! Verifica o Wi-Fi..." | "A conexão caiu. Verifique a rede e tente de novo." |
 
 ## Narração gerada pela IA — 3ª pessoa
 
@@ -147,5 +151,5 @@ t('pets.count', { count: pets.length })
    ```
 2. Qualquer texto PT-BR ou EN-US direto no código → mover para i18n
 3. Se for mensagem de erro → usar `getErrorMessage()` (ver `auexpert-ui-patterns`)
-4. Se for toast → usar chave `toast.*` na voz do pet
+4. Se for toast → usar chave `toast.*` no registro Elite (3ª pessoa, factual, sem exclamação)
 5. Verificar que a chave foi adicionada em TODOS os 5 arquivos de locale

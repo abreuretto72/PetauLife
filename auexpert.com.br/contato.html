@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contato · auExpert</title>
+<meta name="description" content="Fale com o time auExpert — suporte, parcerias, imprensa e dúvidas gerais." />
+<meta name="theme-color" content="#0D0E16" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Playfair+Display:ital,wght@0,500;1,500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0D0E16; --bg-card: #161826; --bg-deep: #08090F;
+  --border: #232538; --border-light: #2E314A;
+  --click: #8F7FA8; --click-light: #A89BC0;
+  --click-soft: rgba(143,127,168,0.1); --click-border: rgba(143,127,168,0.3);
+  --ai: #4FA89E; --ai-text: #7CC5BA;
+  --text: #F0EDF5; --text-sec: #A89FB5; --text-dim: #6B6478;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  font-size: 16px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+.nav {
+  border-bottom: 0.5px solid var(--border);
+  padding: 20px 0;
+  position: sticky; top: 0;
+  background: rgba(13,14,22,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10;
+}
+.nav-inner { display: flex; align-items: center; justify-content: space-between; }
+.logo {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px; font-weight: 500;
+  text-decoration: none; color: var(--text);
+}
+.logo .au { font-style: italic; }
+.logo .expert { color: var(--text-sec); }
+.back-link { color: var(--text-sec); text-decoration: none; font-size: 14px; }
+.back-link:hover { color: var(--click-light); }
+main { padding: 56px 0 80px; }
+h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(30px, 4.5vw, 42px);
+  font-weight: 500;
+  line-height: 1.2;
+  margin-bottom: 14px;
+}
+.lead {
+  font-size: 17px;
+  color: var(--text-sec);
+  margin-bottom: 40px;
+  max-width: 580px;
+  line-height: 1.6;
+}
+
+.channels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 56px;
+}
+.channel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+}
+.channel-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ai);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.channel-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+.channel-desc {
+  font-size: 14px;
+  color: var(--text-sec);
+  margin-bottom: 14px;
+  line-height: 1.55;
+}
+.channel-link {
+  color: var(--click-light);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+.channel-link:hover { color: var(--click); }
+
+.section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22px; font-weight: 500;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 32px;
+}
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-sec);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 18px 0 8px;
+}
+label:first-child { margin-top: 0; }
+input, textarea, select {
+  width: 100%;
+  background: var(--bg-deep);
+  border: 0.5px solid var(--border-light);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+textarea { min-height: 130px; resize: vertical; line-height: 1.55; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--click);
+  box-shadow: 0 0 0 3px rgba(143,127,168,0.15);
+}
+input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all .15s ease;
+  background: var(--click);
+  color: var(--bg);
+  font-family: inherit;
+  margin-top: 24px;
+}
+.btn:hover { background: var(--click-light); transform: translateY(-1px); }
+
+.success {
+  display: none;
+  background: rgba(127,168,134,0.12);
+  border: 0.5px solid rgba(127,168,134,0.3);
+  color: #9DC2A3;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+.success.active { display: block; }
+
+footer {
+  border-top: 0.5px solid var(--border);
+  padding: 32px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="logo"><span class="au">au</span><span class="expert">Expert</span></a>
+    <a href="/" class="back-link">← Voltar</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+    <h1>Fale com a gente.</h1>
+    <p class="lead">Suporte, parcerias, imprensa ou qualquer conversa sobre o auExpert. Respondemos em até 2 dias úteis.</p>
+
+    <div class="channels">
+      <div class="channel">
+        <div class="channel-label">Suporte</div>
+        <div class="channel-title">Dúvidas do app</div>
+        <p class="channel-desc">Problema técnico, bug, conta ou qualquer coisa que não funcione como esperado.</p>
+        <a href="mailto:suporte@auexpert.com.br" class="channel-link">suporte@auexpert.com.br →</a>
+      </div>
+
+      <div class="channel">
+        <div class="channel-label">Privacidade</div>
+        <div class="channel-title">Dados &amp; LGPD</div>
+        <p class="channel-desc">Acesso, correção, exclusão de dados ou dúvidas sobre como tratamos suas informações.</p>
+        <a href="mailto:privacidade@auexpert.com.br" class="channel-link">privacidade@auexpert.com.br →</a>
+      </div>
+
+      <div class="channel">
+        <div class="channel-label">Parcerias</div>
+        <div class="channel-title">Clínicas &amp; parceiros</div>
+        <p class="channel-desc">Veterinário, pet shop, petsitter ou marca que quer integrar com o auExpert.</p>
+        <a href="mailto:parcerias@auexpert.com.br" class="channel-link">parcerias@auexpert.com.br →</a>
+      </div>
+
+      <div class="channel">
+        <div class="channel-label">Imprensa</div>
+        <div class="channel-title">Jornalistas &amp; mídia</div>
+        <p class="channel-desc">Pauta, entrevista, material de divulgação ou background sobre o produto.</p>
+        <a href="mailto:imprensa@auexpert.com.br" class="channel-link">imprensa@auexpert.com.br →</a>
+      </div>
+    </div>
+
+    <h2 class="section-title">Ou escreva aqui.</h2>
+    <form id="contactForm" onsubmit="handleContact(event)">
+      <label for="nome">Nome</label>
+      <input type="text" id="nome" name="nome" required autocomplete="name" placeholder="Seu nome" />
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required autocomplete="email" placeholder="seuemail@exemplo.com" />
+
+      <label for="assunto">Assunto</label>
+      <select id="assunto" name="assunto" required>
+        <option value="">Selecione</option>
+        <option value="suporte">Suporte técnico</option>
+        <option value="privacidade">Privacidade / LGPD</option>
+        <option value="parceria">Parceria</option>
+        <option value="imprensa">Imprensa</option>
+        <option value="outro">Outro</option>
+      </select>
+
+      <label for="mensagem">Mensagem</label>
+      <textarea id="mensagem" name="mensagem" required placeholder="Conte o que você precisa..."></textarea>
+
+      <button type="submit" class="btn">Enviar mensagem →</button>
+
+      <div class="success" id="successMsg">
+        ✓ Mensagem recebida. Respondemos em até 2 dias úteis.
+      </div>
+    </form>
+  </div>
+</main>
+
+<footer>
+  © 2026 Multiverso Digital · auExpert
+</footer>
+
+<script>
+function handleContact(e) {
+  e.preventDefault();
+  // TODO: substituir por POST real para endpoint (ex: Supabase, Formspree, Resend).
+  // Por enquanto, apenas confirma localmente.
+  console.log('Contact:', {
+    nome:     document.getElementById('nome').value,
+    email:    document.getElementById('email').value,
+    assunto:  document.getElementById('assunto').value,
+    mensagem: document.getElementById('mensagem').value,
+  });
+  document.getElementById('contactForm').reset();
+  document.getElementById('successMsg').classList.add('active');
+  setTimeout(() => document.getElementById('successMsg').classList.remove('active'), 6000);
+  return false;
+}
+</script>
+</body>
+</html>

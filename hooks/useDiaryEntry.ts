@@ -44,6 +44,11 @@ export function useDiaryEntry(petId: string) {
         'pdf_upload',
         i18n.language,
         params.pdfBase64,
+        undefined,  // audioUrl
+        undefined,  // audioDurationSeconds
+        undefined,  // videoUrl
+        undefined,  // headers
+        'deep',     // pdf_upload = contexto clínico rico, sempre deep
       );
     },
   });
@@ -151,6 +156,12 @@ export function useDiaryEntry(petId: string) {
         params.photosBase64,
         params.inputType,
         i18n.language,
+        undefined,  // pdfBase64
+        undefined,  // audioUrl
+        undefined,  // audioDurationSeconds
+        undefined,  // videoUrl
+        undefined,  // headers
+        params.analysisDepth ?? 'fast',
       );
     },
   });
@@ -276,11 +287,6 @@ export function useDiaryEntry(petId: string) {
       saveToModule(petId, user!.id, entryId, classification, qc).catch((err) =>
         console.warn('[useDiaryEntry] saveToModule failed (non-critical):', err),
       );
-
-      // Check and award achievements (non-blocking, best-effort)
-      import('../lib/achievements').then(({ checkAndAwardAchievements }) => {
-        checkAndAwardAchievements(petId, user!.id, entryId).catch(() => {});
-      }).catch(() => {});
 
       return {
         id: entryId,
@@ -467,6 +473,7 @@ export function useDiaryEntry(petId: string) {
       hasVideo: params.hasVideo,
       docBase64: params.docBase64,
       skipAI: params.skipAI,
+      analysisDepth: params.analysisDepth,
       species: petSpecies,
       petName: cachedPets.find(p => p.id === petId)?.name ?? undefined,
       petBreed: cachedPets.find(p => p.id === petId)?.breed ?? undefined,

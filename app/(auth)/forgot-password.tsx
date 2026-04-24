@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ArrowRight, ChevronLeft, Mail, Send } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -120,10 +119,7 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.8}
               style={styles.btnWrap}
             >
-              <LinearGradient
-                colors={[colors.click, colors.clickDark]}
-                style={styles.btn}
-              >
+              <View style={[styles.btn, { backgroundColor: colors.click }]}>
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
@@ -134,7 +130,7 @@ export default function ForgotPasswordScreen() {
                     <ArrowRight size={rs(18)} color="#fff" strokeWidth={2} />
                   </>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -40,7 +40,7 @@ export default function PetHeader({ pet, onSettings }: PetHeaderProps) {
   const { i18n } = useTranslation();
   const isEnglish = i18n.language === 'en-US' || i18n.language === 'en';
   const isDog = pet.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
 
   const moodData = pet.current_mood
     ? moods.find((m) => m.id === pet.current_mood)

@@ -1,0 +1,39 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "{\n  \"identification\": {\n    \"species\": { \"value\": \"dog\", \"confidence\": 1.0 },\n    \"breed\": { \"primary\": \"Chihuahua\", \"confidence\": 0.95, \"is_mixed\": false, \"secondary_breeds\": null },\n    \"size\": \"small\",\n    \"age_category\": \"adult\",\n    \"estimated_age_months\": 24,\n    \"estimated_weight_kg\": 2.5,\n    \"sex\": { \"value\": \"female\", \"confidence\": 0.5 },\n    \"coat\": { \"color\": \"chocolate and tan\", \"pattern\": \"solid\", \"quality\": \"healthy\", \"length\": \"short\" }\n  },\n  \"health\": {\n    \"body_condition_score\": 4,\n    \"body_condition\": \"underweight\",\n    \"skin_coat\": [{ \"observation\": \"coat appears healthy and shiny\", \"severity\": \"normal\", \"confidence\": 0.9 }],\n    \"eyes\": [{ \"observation\": \"clear, no visible discharge\", \"severity\": \"normal\", \"confidence\": 0.9 }],\n    \"ears\": [{ \"observation\": \"erect, alert\", \"severity\": \"normal\", \"confidence\": 0.9 }],\n    \"mouth_teeth\": [{ \"observation\": \"chewing on rubber footwear\", \"severity\": \"attention\", \"confidence\": 0.8 }],\n    \"posture_body\": [{ \"observation\": \"lateral recumbency, relaxed\", \"severity\": \"normal\", \"confidence\": 0.9 }],\n    \"nails\": { \"observation\": \"length appropriate\", \"needs_trimming\": false },\n    \"hygiene\": \"clean\",\n    \"visible_parasites\": false,\n    \"visible_lumps\": false\n  },\n  \"mood\": {\n    \"primary\": \"playful\",\n    \"confidence\": 0.9,\n    \"signals\": [\"engaged with toy\", \"relaxed posture\"]\n  },\n  \"environment\": {\n    \"location\": \"home_indoor\",\n    \"accessories\": [],\n    \"other_animals\": false,\n    \"visible_risks\": [\"Potential ingestion of rubber/plastic components from footwear\"]\n  },\n  \"alerts\": [{ \"message\": \"O hábito de mastigar calçados de borracha pode levar à ingestão de corpos estranhos e obstrução gastrointestinal.\", \"severity\": \"attention\", \"category\": \"safety\" }],\n  \"disclaimer\": \"Esta análise é baseada em observação visual e não substitui o exame clínico veterinário presencial.\",\n  \"description\": \"Mana apresenta um escore de condição corporal (BCS) 4/9, sugerindo um peso levemente abaixo do ideal, e demonstra um comportamento lúdico e relaxado. O maior risco identificado é a interação com o calçado, que representa um perigo de ingestão de corpo estranho; recomenda-se a substituição por brinquedos seguros para cães para evitar riscos de obstrução gastrointestinal.\",\n  \"toxicity_check\": {\n    \"has_toxic_items\": false,\n    \"items\": null\n  },\n  \"sources\": [\"WSAVA Body Condition Score Guidelines (2021)\", \"ASPCA Animal Poison Control Center\"]\n}",
+            "thoughtSignature": "EjQKMgEMOdbHUosFFt5kGLMmhxVcZ5B4Iu+BBfwuDmPFNclVI3nfEQfOGY62g6JRwq+03HyO"
+          }
+        ],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 2343,
+    "candidatesTokenCount": 721,
+    "totalTokenCount": 3064,
+    "promptTokensDetails": [
+      {
+        "modality": "IMAGE",
+        "tokenCount": 1100
+      },
+      {
+        "modality": "TEXT",
+        "tokenCount": 1243
+      }
+    ]
+  },
+  "modelVersion": "gemini-3.1-flash-lite-preview",
+  "responseId": "jU3paaHgAobQz7IPxcyiiA4",
+  "_meta": {
+    "model": "gemini-3.1-flash-lite-preview",
+    "latencyMs": 4538,
+    "httpStatus": 200
+  }
+}

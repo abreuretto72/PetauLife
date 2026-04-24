@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
 import { rs, fs } from '../../hooks/useResponsive';
@@ -55,23 +54,18 @@ export const Button: React.FC<ButtonProps> = ({
   );
 
   if (isPrimary || isDanger) {
-    const gradientColors = isDanger
-      ? [colors.danger, '#C0392B'] as const
-      : [colors.click, colors.clickDark] as const;
-
     return (
       <TouchableOpacity
         onPress={onPress}
         disabled={disabled || loading}
         activeOpacity={0.8}
-        style={[styles.base, disabled && styles.disabled]}
+        style={[
+          styles.base,
+          isDanger ? styles.danger : styles.primary,
+          disabled && styles.disabled,
+        ]}
       >
-        <LinearGradient
-          colors={gradientColors}
-          style={[styles.base, styles.gradient]}
-        >
-          {content}
-        </LinearGradient>
+        {content}
       </TouchableOpacity>
     );
   }
@@ -94,12 +88,21 @@ const styles = StyleSheet.create({
     height: rs(52),
     overflow: 'hidden',
   },
-  gradient: {
+  primary: {
+    backgroundColor: colors.click,
     shadowColor: colors.click,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  danger: {
+    backgroundColor: colors.danger,
+    shadowColor: colors.danger,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 4,
   },
   secondary: {
     backgroundColor: colors.card,

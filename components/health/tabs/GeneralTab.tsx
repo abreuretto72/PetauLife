@@ -51,7 +51,7 @@ export function GeneralTab({
       {/* AI Health Score Card */}
       <View style={styles.scoreCard}>
         <View style={styles.scoreCardHeader}>
-          <Sparkles size={rs(16)} color={colors.purple} strokeWidth={1.8} />
+          <Sparkles size={rs(16)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.scoreCardTitle}>{t('health.aiHealthScore')}</Text>
           <Text style={styles.scoreCardSub}>{t('health.updatedToday')}</Text>
         </View>
@@ -139,8 +139,8 @@ export function GeneralTab({
           label={t('health.totalConsultations')}
         />
         <StatCard
-          icon={<Pill size={rs(18)} color={colors.purple} strokeWidth={1.8} />}
-          iconColor={colors.purple}
+          icon={<Pill size={rs(18)} color={colors.click} strokeWidth={1.8} />}
+          iconColor={colors.click}
           value={medications.length}
           label={t('health.totalMedications')}
         />

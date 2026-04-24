@@ -1,9 +1,13 @@
 /**
  * achievements — Catalog, stats, and client-side award logic.
  *
- * After each diary save, call checkAndAwardAchievements() to detect and
- * unlock any newly earned badges. The DB UNIQUE constraint on (pet_id,
- * achievement_key) makes it safe to call repeatedly.
+ * @deprecated 2026-04-24 — gamificacao saiu do escopo Elite (Pilar 3 do plano).
+ * Funcoes ainda sao exportadas para nao quebrar testes e scripts/check-i18n-keys,
+ * mas `checkAndAwardAchievements()` virou no-op (retorna [] imediatamente).
+ * A tabela `achievements` no Supabase fica intacta (migration 019 preservada)
+ * caso queira ser reaproveitada numa retrospectiva anual no futuro.
+ *
+ * Ver: docs/elite/gamification-deprecation-audit.md
  */
 import { supabase } from './supabase';
 
@@ -482,38 +486,6 @@ export async function checkAndAwardAchievements(
   userId: string,
   diaryEntryId: string,
 ): Promise<AwardedAchievement[]> {
-  const [stats, alreadyUnlocked] = await Promise.all([
-    getPetStats(petId),
-    supabase
-      .from('achievements')
-      .select('achievement_key')
-      .eq('pet_id', petId)
-      .then((r) => new Set((r.data ?? []).map((a) => a.achievement_key as string))),
-  ]);
-
-  const toUnlock = ACHIEVEMENT_CATALOG.filter(
-    (a) => !alreadyUnlocked.has(a.key) && a.evaluate(stats)
-  );
-
-  if (toUnlock.length === 0) return [];
-
-  const rows = toUnlock.map((a) => ({
-    pet_id: petId,
-    user_id: userId,
-    diary_entry_id: diaryEntryId,
-    achievement_key: a.key,
-    // Persist i18n keys (not localized strings) so display renders in the
-    // current UI language regardless of when the row was inserted.
-    title: a.titleKey,
-    description: a.descKey,
-    category: a.category,
-    xp_reward: a.xp,
-    rarity: a.rarity,
-    icon_name: a.icon,
-  }));
-
-  // upsert with ignoreDuplicates to handle race conditions gracefully
-  await supabase.from('achievements').upsert(rows, { ignoreDuplicates: true });
-
-  return toUnlock.map((a) => ({ key: a.key, title: a.titleKey, xp: a.xp, rarity: a.rarity }));
+  // @deprecated no-op — gamificacao fora de escopo Elite
+  return [];
 }

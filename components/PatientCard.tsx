@@ -41,7 +41,7 @@ function roleColor(role: AccessRole): string {
     case 'vet_tech':
       return colors.petrol;
     case 'trainer':
-      return colors.purple;
+      return colors.click;
     case 'ong_member':
       return colors.rose;
     default:
@@ -68,7 +68,7 @@ function formatRelativeExpiry(expiresAt: string | null, t: (k: string, p?: Recor
 const PatientCard: React.FC<PatientCardProps> = ({ patient, onPress }) => {
   const { t } = useTranslation();
   const isDog = patient.species === 'dog';
-  const petColor = isDog ? colors.click : colors.purple;
+  const petColor = isDog ? colors.click : colors.click;
   const rc = roleColor(patient.role);
 
   const location = [patient.tutor_city, patient.tutor_country]
@@ -93,7 +93,7 @@ const PatientCard: React.FC<PatientCardProps> = ({ patient, onPress }) => {
               {isDog ? (
                 <Dog size={rs(32)} color={colors.click} strokeWidth={1.8} />
               ) : (
-                <Cat size={rs(32)} color={colors.purple} strokeWidth={1.8} />
+                <Cat size={rs(32)} color={colors.click} strokeWidth={1.8} />
               )}
             </>
           )}

@@ -14,7 +14,7 @@ export default function TermsScreen() {
 
   const items = [
     { icon: <User size={rs(20)} color={colors.click} strokeWidth={1.8} />, text: t('legal.termsUse'), color: colors.click },
-    { icon: <Sparkles size={rs(20)} color={colors.purple} strokeWidth={1.8} />, text: t('legal.termsAi'), color: colors.purple },
+    { icon: <Sparkles size={rs(20)} color={colors.ai} strokeWidth={1.8} />, text: t('legal.termsAi'), color: colors.ai },
     { icon: <FileText size={rs(20)} color={colors.petrol} strokeWidth={1.8} />, text: t('legal.termsContent'), color: colors.petrol },
     { icon: <Bell size={rs(20)} color={colors.warning} strokeWidth={1.8} />, text: t('legal.termsChanges'), color: colors.warning },
   ];
