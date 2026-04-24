@@ -1,7 +1,7 @@
 # auExpert Edge Functions Codemap
 
-**Last Updated:** 2026-04-11
-**Status:** Production — 4 Core Functions + 3 Utility Functions
+**Last Updated:** 2026-04-23
+**Status:** Production — 4 Core Functions + 3 Utility Functions + 1 Admin Function (delete-pet)
 
 ---
 
@@ -466,6 +466,175 @@ supabase functions logs classify-diary-entry --live
 
 ---
 
+## Admin Functions
+
+### `delete-pet` — Cascade Soft Delete (NEW 2026-04-22)
+
+**Location:** `supabase/functions/delete-pet/index.ts`
+
+**Purpose:** Safely delete a pet and all its associated records with soft-delete cascade.
+
+**Responsibility:**
+- Verify the authenticated user owns the pet
+- Soft-delete (is_active = false) across 18 related tables
+- Log success/errors for audit trail
+- Handle table-level errors gracefully (non-fatal)
+
+**Input:**
+```typescript
+{
+  pet_id: string;  // UUID of pet to delete
+}
+```
+
+**Output (Success):**
+```typescript
+{
+  success: true,
+  pet_name: string;  // Name of deleted pet
+}
+```
+
+**Output (Error):**
+```typescript
+{
+  error: string;        // Error message
+  details?: string;     // Additional context (optional)
+}
+```
+
+**Errors:**
+| Code | Condition |
+|------|-----------|
+| 400 | `pet_id` not provided |
+| 401 | Missing/invalid Bearer token |
+| 404 | Pet not found or user doesn't own it |
+| 500 | Cascade update failed on pet itself |
+
+**Auth:** Bearer token (mobile user's session)
+
+**Tables affected:**
+```typescript
+const PET_RELATED_TABLES = [
+  'diary_entries',
+  'mood_logs',
+  'photo_analyses',
+  'vaccines',
+  'allergies',
+  'pet_embeddings',
+  'scheduled_events',
+  'pet_insights',
+  'clinical_metrics',
+  'expenses',
+  'medications',
+  'consultations',
+  'surgeries',
+  'exams',
+  'nutrition_records',
+  'pet_connections',
+  'pet_plans',
+  'achievements',
+  'travels',
+];
+```
+
+**Behavior:**
+1. Validate Bearer token via `auth.getUser(token)`
+2. Fetch pet: `SELECT id, name, user_id FROM pets WHERE id = pet_id AND user_id = auth.uid AND is_active = true`
+3. For each table in `PET_RELATED_TABLES`:
+   - `UPDATE table SET is_active = false WHERE pet_id = pet_id`
+   - Log error but continue (non-fatal — table may not exist or lack column)
+4. Finally: `UPDATE pets SET is_active = false, updated_at = NOW() WHERE id = pet_id`
+5. If pet update fails → return 500 error
+6. If pet update succeeds → return 200 + pet_name (even if some tables had errors)
+
+**Client-side call** (`lib/api.ts`):
+```typescript
+export async function deletePet(petId: string): Promise<{ success: true; pet_name: string }> {
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+
+  if (!token) throw new Error('No auth token');
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/delete-pet`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ pet_id: petId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete pet');
+  }
+
+  return response.json();
+}
+```
+
+**UI Integration** (`app/(app)/pet/[id]/settings.tsx`):
+```typescript
+const handleDeletePet = async () => {
+  // 1. Show confirmation dialog
+  const confirmed = await confirm({
+    text: t('settings.deletePetConfirm', { name: pet.name }),
+    type: 'danger',
+  });
+
+  if (!confirmed) return;
+
+  // 2. Show loading
+  setIsDeleting(true);
+
+  try {
+    // 3. Call API
+    await api.deletePet(petId);
+
+    // 4. Success feedback
+    toast(t('toast.petDeleted', { name: pet.name }), 'success');
+
+    // 5. Invalidate cache + navigate
+    qc.invalidateQueries({ queryKey: ['pets'] });
+    router.replace('/');
+  } catch (error) {
+    toast(getErrorMessage(error), 'error');
+  } finally {
+    setIsDeleting(false);
+  }
+};
+```
+
+**Logging:**
+```typescript
+// Success
+[delete-pet] SUCCESS — petId: "abc-123" petName: "Mana" userId: "user-456" tableErrors: []
+
+// Partial success (some table errors)
+[delete-pet] SUCCESS — petId: "abc-123" petName: "Mana" userId: "user-456" tableErrors: ["surgeries", "travels"]
+
+// Critical error
+[delete-pet] error: Failed to delete pet table
+```
+
+**Testing:**
+```bash
+# Deploy function
+supabase functions deploy delete-pet
+
+# Test with curl (using real JWT)
+curl -X POST http://localhost:54321/functions/v1/delete-pet \
+  -H "Authorization: Bearer {real_jwt_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"pet_id": "test-uuid"}'
+
+# Monitor logs
+supabase functions logs delete-pet --live
+```
+
+---
+
 ## Related Docs
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System design + JWT auth details
@@ -476,4 +645,4 @@ supabase functions logs classify-diary-entry --live
 ---
 
 **Maintained by:** Development team  
-**Last Reviewed:** 2026-04-11
+**Last Reviewed:** 2026-04-23
