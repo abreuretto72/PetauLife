@@ -61,6 +61,7 @@ export const persistExam: Persister = async (extracted, ctx) => {
       professional: vetName,
       location:     labName,
       defaultTime:  '08:00',
+      allDay:       false,  // 2026-04-23: force specific-time event even when tutor omitted hour
     });
   }
 

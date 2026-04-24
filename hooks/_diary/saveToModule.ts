@@ -117,6 +117,28 @@ export async function saveToModule(
     if (!persister) continue;  // no-op for unhandled types (emergency, symptom, …)
 
     const extracted = (cls.extracted_data ?? {}) as Record<string, unknown>;
+
+    // Past-date-with-future-intent guard (added April 2026, confirmed bug with
+    // Leo's "agendei…2016" entry). When the classifier detects that the tutor
+    // used a scheduling verb (marcar/agendar/vou levar/etc.) but the resolved
+    // date is in the past, we SKIP all persistence for this classification.
+    // The contradiction is always a tutor input error — silently writing a
+    // past-dated consultation / vaccine / exam misleads the tutor (who expects
+    // the event in the agenda) and pollutes the prontuário.
+    //
+    // The classification is preserved intact inside diary_entries.classifications
+    // so the UI can surface the warning and the tutor can edit the entry to
+    // fix the date. After editing, the classifier runs again and — if the date
+    // is now valid — the persister writes normally.
+    //
+    // See `supabase/functions/classify-diary-entry/modules/_classifier/prompts/system.ts`
+    // — section "CASO ESPECIAL — CONTRADIÇÃO ENTRE VERBO E DATA".
+    const warning = (extracted as { validation_warning?: { type?: string } }).validation_warning;
+    if (warning?.type === 'past_date_with_future_intent') {
+      console.log('[MOD] skip persist — past_date_with_future_intent:', cls.type, JSON.stringify(warning));
+      continue;
+    }
+
     const ctx: PersistContext = {
       petId,
       userId,

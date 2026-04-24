@@ -1,4 +1,25 @@
 /**
+ * Parse a date string as LOCAL time.
+ *
+ * CRITICAL — evita o bug clássico de "pular um dia" em timezones a oeste de UTC
+ * (Brasil UTC-3). Se a entrada é "yyyy-mm-dd" (date only, sem hora), o construtor
+ * `new Date(str)` do JS interpreta como UTC midnight. Convertido para horário
+ * local no Brasil, vira o dia ANTERIOR às 21h — quebrando validação de datas
+ * como 01/01/2014 (vira 31/12/2013 local → getMonth() devolve dezembro → falha).
+ *
+ * - "yyyy-mm-dd"   → parseado como meia-noite LOCAL (correto)
+ * - ISO timestamp  → delegado ao Date constructor (já traz timezone explícito)
+ */
+function parseDateLocal(dateStr: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  if (match) {
+    const [, y, m, d] = match;
+    return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+  }
+  return new Date(dateStr);
+}
+
+/**
  * Formats a date string to a localized short format.
  * Examples: "27 mar 2026", "15 jan 2026"
  */
@@ -7,7 +28,7 @@ export function formatDate(
   locale: string = 'pt-BR',
 ): string {
   if (!dateStr) return '—';
-  const date = new Date(dateStr);
+  const date = parseDateLocal(dateStr);
   if (isNaN(date.getTime())) return '—';
   return date.toLocaleDateString(locale, {
     day: 'numeric',
@@ -24,7 +45,7 @@ export function formatRelativeDate(
   locale: string = 'pt-BR',
 ): string {
   if (!dateStr) return '—';
-  const date = new Date(dateStr);
+  const date = parseDateLocal(dateStr);
   if (isNaN(date.getTime())) return '—';
 
   const now = new Date();
@@ -149,11 +170,29 @@ export function parseDateInput(input: string, locale: string): string | null {
     dd = digits.slice(0, 2); mm = digits.slice(2, 4); yyyy = digits.slice(4, 8);
   }
 
-  const d = new Date(`${yyyy}-${mm}-${dd}`);
+  // IMPORTANTE — construtor numérico usa timezone LOCAL. NUNCA usar
+  // `new Date("yyyy-mm-dd")` aqui (interpreta como UTC midnight → em
+  // timezones a oeste de UTC vira o dia anterior e quebra a validação
+  // em datas como 01/01/2014).
+  const y = parseInt(yyyy, 10);
+  const m = parseInt(mm, 10);
+  const dy = parseInt(dd, 10);
+  if (!y || !m || !dy) return null;
+  if (m < 1 || m > 12) return null;
+  if (dy < 1 || dy > 31) return null;
+  if (y < 1900 || y > 2200) return null;
+
+  const d = new Date(y, m - 1, dy);
   if (isNaN(d.getTime())) return null;
   if (d > new Date()) return null;
-  // Validate day/month match (catches stuff like 31/02)
-  if (d.getMonth() + 1 !== parseInt(mm, 10)) return null;
+  // Validate day/month/year match (catches overflow like 31/02 → 03/03)
+  if (
+    d.getFullYear() !== y ||
+    d.getMonth() + 1 !== m ||
+    d.getDate() !== dy
+  ) {
+    return null;
+  }
   return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -169,7 +208,10 @@ export function isoToDateInput(isoDate: string, locale: string): string {
 
 /** Calculate age in months from ISO date string */
 export function calcAgeMonths(isoDate: string): number {
-  const birth = new Date(isoDate);
+  // parseDateLocal garante que "yyyy-mm-dd" seja interpretado como meia-noite
+  // LOCAL e não UTC — impede o bug de sub-idade em timezones a oeste de UTC.
+  const birth = parseDateLocal(isoDate);
+  if (isNaN(birth.getTime())) return 0;
   const now = new Date();
   return (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
 }

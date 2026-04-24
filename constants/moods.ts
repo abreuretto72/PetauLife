@@ -19,9 +19,9 @@ export interface Mood {
 }
 
 export const moods: Mood[] = [
-  { id: 'ecstatic', label: 'Eufórico', label_en: 'Ecstatic', color: colors.gold, score: 100 },
+  { id: 'ecstatic', label: 'Eufórico', label_en: 'Ecstatic', color: colors.warning, score: 100 },
   { id: 'happy', label: 'Feliz', label_en: 'Happy', color: colors.success, score: 85 },
-  { id: 'playful', label: 'Brincalhão', label_en: 'Playful', color: colors.accent, score: 80 },
+  { id: 'playful', label: 'Brincalhão', label_en: 'Playful', color: colors.click, score: 80 },
   { id: 'calm', label: 'Calmo', label_en: 'Calm', color: colors.petrol, score: 65 },
   { id: 'tired', label: 'Cansado', label_en: 'Tired', color: colors.textDim, score: 40 },
   { id: 'anxious', label: 'Ansioso', label_en: 'Anxious', color: colors.warning, score: 30 },

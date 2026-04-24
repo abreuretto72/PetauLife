@@ -69,7 +69,8 @@ export const persistVaccine: Persister = async (extracted, ctx) => {
     title:        `${i18n.t('ai.default.vaccine')} · ${vaccineName}`,
     professional: vetName,
     location:     clinicName,
-    defaultTime:  '09:00',
+    defaultTime:  '08:00',
+    allDay:       false,  // 2026-04-23: force specific-time event even when tutor omitted hour
   });
 
   // Revaccination reminder at `next_due` (pre-existing behavior, unchanged).

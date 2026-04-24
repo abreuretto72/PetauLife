@@ -187,6 +187,64 @@ describe('parseDateInput', () => {
   it('returns null for impossible month (month 13 in en-US mm first)', () => {
     expect(parseDateInput('13/01/2020', 'en-US')).toBeNull();
   });
+
+  // ─── REGRESSÃO — bug timezone UTC midnight (2026-04-22) ────────────
+  // Em timezones a oeste de UTC (Brasil UTC-3), `new Date("yyyy-mm-dd")`
+  // era interpretado como UTC midnight → convertido para local virava o
+  // dia ANTERIOR às 21h, derrubando a validação getMonth() para toda
+  // data que cai no dia 1 de qualquer mês. Os testes abaixo garantem
+  // que nenhuma data válida é rejeitada por erro de fuso.
+
+  describe('regression: day-1 dates must never be rejected (timezone bug)', () => {
+    it('accepts 01/01/2014 (the bug the user reported)', () => {
+      expect(parseDateInput('01/01/2014', 'pt-BR')).toBe('2014-01-01');
+    });
+
+    it('accepts day 1 of EVERY month across pt-BR', () => {
+      for (let m = 1; m <= 12; m++) {
+        const mm = String(m).padStart(2, '0');
+        expect(parseDateInput(`01/${mm}/2010`, 'pt-BR')).toBe(`2010-${mm}-01`);
+      }
+    });
+
+    it('accepts day 1 of EVERY month across en-US', () => {
+      for (let m = 1; m <= 12; m++) {
+        const mm = String(m).padStart(2, '0');
+        expect(parseDateInput(`${mm}/01/2010`, 'en-US')).toBe(`2010-${mm}-01`);
+      }
+    });
+
+    it('accepts day 1 of EVERY month across ja-JP (ymd)', () => {
+      for (let m = 1; m <= 12; m++) {
+        const mm = String(m).padStart(2, '0');
+        expect(parseDateInput(`2010/${mm}/01`, 'ja-JP')).toBe(`2010-${mm}-01`);
+      }
+    });
+
+    it('accepts leap day 29/02/2020', () => {
+      expect(parseDateInput('29/02/2020', 'pt-BR')).toBe('2020-02-29');
+    });
+
+    it('rejects non-leap 29/02/2021', () => {
+      expect(parseDateInput('29/02/2021', 'pt-BR')).toBeNull();
+    });
+
+    it('rejects 31/04 (April has 30 days)', () => {
+      expect(parseDateInput('31/04/2020', 'pt-BR')).toBeNull();
+    });
+
+    it('rejects 00/01 (day zero)', () => {
+      expect(parseDateInput('00/01/2020', 'pt-BR')).toBeNull();
+    });
+
+    it('rejects 01/00 (month zero)', () => {
+      expect(parseDateInput('01/00/2020', 'pt-BR')).toBeNull();
+    });
+
+    it('rejects year before 1900 as overflow guard', () => {
+      expect(parseDateInput('01/01/1800', 'pt-BR')).toBeNull();
+    });
+  });
 });
 
 // ── isoToDateInput ────────────────────────────────────────────────────────────

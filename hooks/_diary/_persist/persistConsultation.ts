@@ -82,7 +82,8 @@ export const persistConsultation: Persister = async (extracted, ctx) => {
     title:        consultationTitle,
     professional: vetName,
     location:     clinicName,
-    defaultTime:  '09:00',
+    defaultTime:  '08:00',
+    allDay:       false,  // 2026-04-23: force specific-time event even when tutor omitted hour — tutor expects 08:00, not all-day
   });
 
   // Return-visit reminder.
@@ -104,7 +105,8 @@ export const persistConsultation: Persister = async (extracted, ctx) => {
       location:     clinicName,
       dateField:    'return_date',
       timeField:    'return_time',
-      defaultTime:  '09:00',
+      defaultTime:  '08:00',
+      allDay:       false,  // 2026-04-23: same reason as the parent consultation — specific time, never all-day
     });
   }
 

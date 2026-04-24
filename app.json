@@ -5,12 +5,12 @@
     "scheme": "auexpert",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon_app_ok.png",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/images/icon_app_ok.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0F1923"
+      "backgroundColor": "#0D0E16"
     },
     "ios": {
       "supportsTablet": true,
@@ -44,13 +44,13 @@
         }
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#0F1923",
-        "foregroundImage": "./assets/images/icon_app_ok.png"
+        "backgroundColor": "#8F7FA8",
+        "foregroundImage": "./assets/images/adaptive-icon.png"
       },
       "splash": {
-        "image": "./assets/images/icon_app_ok.png",
+        "image": "./assets/images/splash-icon.png",
         "resizeMode": "contain",
-        "backgroundColor": "#0F1923"
+        "backgroundColor": "#0D0E16"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -63,7 +63,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -73,8 +73,8 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0F1923",
-          "image": "./assets/images/icon_app_ok.png",
+          "backgroundColor": "#0D0E16",
+          "image": "./assets/images/splash-icon.png",
           "imageWidth": 220
         }
       ],
@@ -87,8 +87,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon_app_ok.png",
-          "color": "#E8813A"
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#8F7FA8"
         }
       ],
       [
