@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+// Componente interno que usa useSearchParams — precisa estar dentro de Suspense
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const [email, setEmail] = useState('');
@@ -38,68 +39,77 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="font-display text-4xl mb-2 text-text">
-            <span className="italic text-ametista">au</span>Expert
-          </h1>
-          <p className="text-text-muted text-sm tracking-widest uppercase">
-            Painel administrativo
-          </p>
-          <div className="h-px w-16 mx-auto mt-6 bg-gradient-to-r from-ametista to-jade" />
+    <div className="w-full max-w-md">
+      <div className="text-center mb-8">
+        <h1 className="font-display text-4xl mb-2 text-text">
+          <span className="italic text-ametista">au</span>Expert
+        </h1>
+        <p className="text-text-muted text-sm tracking-widest uppercase">
+          Painel administrativo
+        </p>
+        <div className="h-px w-16 mx-auto mt-6 bg-gradient-to-r from-ametista to-jade" />
+      </div>
+
+      <form
+        onSubmit={handleLogin}
+        className="bg-bg-card border border-border rounded-2xl p-8 space-y-5"
+      >
+        <div>
+          <label className="block text-xs uppercase tracking-wider text-ametista font-medium mb-2">
+            Email
+          </label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="w-full bg-bg-deep border border-border rounded-lg px-4 py-3 text-text focus:border-jade focus:outline-none"
+            placeholder="admin@auexpert.com.br"
+          />
         </div>
 
-        <form
-          onSubmit={handleLogin}
-          className="bg-bg-card border border-border rounded-2xl p-8 space-y-5"
+        <div>
+          <label className="block text-xs uppercase tracking-wider text-ametista font-medium mb-2">
+            Senha
+          </label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full bg-bg-deep border border-border rounded-lg px-4 py-3 text-text focus:border-jade focus:outline-none"
+          />
+        </div>
+
+        {error && (
+          <div className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">
+            {error}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-ametista hover:bg-ametista/90 text-bg-deep font-semibold py-3 rounded-lg transition disabled:opacity-50"
         >
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-ametista font-medium mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full bg-bg-deep border border-border rounded-lg px-4 py-3 text-text focus:border-jade focus:outline-none"
-              placeholder="admin@auexpert.com.br"
-            />
-          </div>
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
+      </form>
 
-          <div>
-            <label className="block text-xs uppercase tracking-wider text-ametista font-medium mb-2">
-              Senha
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full bg-bg-deep border border-border rounded-lg px-4 py-3 text-text focus:border-jade focus:outline-none"
-            />
-          </div>
+      <p className="text-center text-text-dim text-xs mt-8 font-mono uppercase tracking-wider">
+        Seu pet merece inteligência.
+      </p>
+    </div>
+  );
+}
 
-          {error && (
-            <div className="text-danger text-sm bg-danger/10 border border-danger/30 rounded-lg p-3">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-ametista hover:bg-ametista/90 text-bg-deep font-semibold py-3 rounded-lg transition disabled:opacity-50"
-          >
-            {loading ? 'Entrando…' : 'Entrar'}
-          </button>
-        </form>
-
-        <p className="text-center text-text-dim text-xs mt-8 font-mono uppercase tracking-wider">
-          Seu pet merece inteligência.
-        </p>
-      </div>
+// Página exportada com Suspense wrapper — resolve o erro de prerender
+export default function LoginPage() {
+  return (
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <Suspense fallback={<div className="text-text-muted">Carregando…</div>}>
+        <LoginForm />
+      </Suspense>
     </main>
   );
 }
