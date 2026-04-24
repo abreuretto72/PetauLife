@@ -326,6 +326,11 @@ export const DiaryModuleCard = React.memo(({ classification, moduleRow, onUpdate
 
   if (!summary && classification.type === 'moment') return null;
   if (!summary && !label) return null;
+  // Esconder card sem conteúdo útil: se não há summary E não há nada pra editar/expandir,
+  // o card só mostra um título isolado (ex: "SINTOMA" vazio). Vira ruído visual.
+  // Cards com moduleRow + canEdit ficam mesmo sem summary porque o tutor pode expandir
+  // e adicionar dados manualmente.
+  if (!summary && !canEdit) return null;
   if (isDeleted) return null;
 
   return (

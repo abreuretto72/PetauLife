@@ -66,14 +66,45 @@ export { resolveLanguage } from './_classifier/constants.ts';
  */
 export async function classifyEntry(input: ClassifyInput): Promise<ClassifyResult> {
   const lang = resolveLanguage(input.language);
-  const systemPrompt = input.input_type === 'pet_audio'
+  let systemPrompt = input.input_type === 'pet_audio'
     ? buildPetAudioPrompt(input.petContext, lang, input.audio_duration_seconds)
     : buildSystemPrompt(input.petContext, lang, input.input_type, input.text);
 
+  // ── Depth→max_tokens + user-prompt suffix com instrução de profundidade ──
+  // Aplicam-se APENAS ao input_type text/gallery (caminho principal do diário).
+  // Outros types (pdf/ocr/video/pet_audio) continuam com seu próprio max_tokens
+  // abaixo, e recebem o suffix mas sem alterar a lógica do input_type.
+  const DEPTH_MAX_TOKENS: Record<string, number> = {
+    off:      MAX_TOKENS,   // não deveria chegar aqui (client pula a EF quando off)
+    fast:     2000,
+    balanced: 3500,
+    deep:     6000,
+  };
+  const DEPTH_SUFFIX: Record<string, string> = {
+    off: '',
+    fast: '\n\n[DEPTH=FAST] Compact mode: classifications com type+confidence apenas (nada de extracted_data rico), narração 1-2 frases (máx 30 palavras), mood+urgency+tags (máx 3). Omita clinical_metrics, suggestions, validation_warning.',
+    balanced: '\n\n[DEPTH=BALANCED] Standard mode: classifications com extracted_data essencial (campos-chave por tipo, sem rationale), narração 80-120 palavras, mood+urgency+clinical_metrics básicos, suggestions (2-3 itens curtos). Omita validation_warning avançado.',
+    deep: '\n\n[DEPTH=DEEP] Specialist-grade: extracted_data rico com rationale, narração até 150 palavras com contexto RAG, clinical_metrics completos, suggestions estruturadas, validation_warning quando aplicável.',
+  };
+  const depth = input.analysisDepth ?? 'balanced';
+  const depthSuffix = DEPTH_SUFFIX[depth] ?? DEPTH_SUFFIX.balanced;
+  const depthMax = DEPTH_MAX_TOKENS[depth] ?? DEPTH_MAX_TOKENS.balanced;
+
   let messages: ClaudeMessage[];
-  let maxTokens = MAX_TOKENS;
+  let maxTokens = depthMax;
 
   const aiConfig = await getAIConfig();
+  // Apply DEPTH suffix ONLY to Claude paths (text/photos/PDF/OCR). Gemini paths
+  // (pet_audio + video) have their own structured prompts that demand specific
+  // JSON fields (pet_audio_analysis, video_analysis); the FAST suffix saying
+  // "no rich extracted_data" makes Gemini drop those structured blocks
+  // entirely, falling back to {sound_type:'other', emotional_state:'unknown'}.
+  // Verified 2026-04-24 with sample dog bark: Deep → "bark/stressed", Fast → fallback.
+  const isGeminiPath = input.input_type === 'pet_audio' || input.input_type === 'video';
+  if (!isGeminiPath) {
+    systemPrompt += depthSuffix;  // sinaliza o depth pro modelo — mantém caching do prefix
+  }
+  console.log('[classifier] depth:', depth, '| isGeminiPath:', isGeminiPath, '| suffixApplied:', !isGeminiPath, '| maxTokens:', depthMax);
   let rawText: string;
   let tokensUsed: number;
 
