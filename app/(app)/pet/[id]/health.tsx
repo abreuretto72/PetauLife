@@ -17,8 +17,8 @@ import {
 import { rs } from '../../../../hooks/useResponsive';
 import { colors } from '../../../../constants/colors';
 import { radii } from '../../../../constants/spacing';
-import { styles } from './_health/styles';
-import { BloodTypeInfoModal } from './_health/BloodTypeInfoModal';
+import { styles } from '../../../../components/health/styles';
+import { BloodTypeInfoModal } from '../../../../components/health/BloodTypeInfoModal';
 import {
   GeneralTab,
   VaccinesTab,
@@ -28,7 +28,7 @@ import {
   SurgeriesTab,
   MetricsTab,
   ExpensesTab,
-} from './_health/tabs';
+} from '../../../../components/health/tabs';
 import { usePet } from '../../../../hooks/usePets';
 import { useVaccines, useAllergies, useExams, useMedications, useConsultations, useSurgeries, useMetrics, useExpensesMutations } from '../../../../hooks/useHealth';
 import { Skeleton } from '../../../../components/Skeleton';
@@ -114,7 +114,7 @@ export default function HealthScreen() {
   }, [vaccines]);
 
   const isDog = pet?.species === 'dog';
-  const petColor = isDog ? colors.accent : colors.purple;
+  const petColor = isDog ? colors.click : colors.purple;
 
   const healthLabel = useMemo(() => {
     const s = pet?.health_score;
@@ -284,7 +284,7 @@ export default function HealthScreen() {
         {/* Keep header visible during load so layout doesn't jump */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-            <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+            <ChevronLeft size={rs(22)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {pet?.name ?? '...'}
@@ -296,14 +296,14 @@ export default function HealthScreen() {
               activeOpacity={0.7}
               accessibilityLabel={t('pdfCommon.printOrSave')}
             >
-              <FileText size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+              <FileText size={rs(20)} color={colors.click} strokeWidth={1.8} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerBtn}
               onPress={() => router.push(`/pet/${id}/prontuario` as never)}
               activeOpacity={0.7}
             >
-              <ClipboardList size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+              <ClipboardList size={rs(20)} color={colors.click} strokeWidth={1.8} />
             </TouchableOpacity>
           </View>
         </View>
@@ -344,7 +344,7 @@ export default function HealthScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+          <ChevronLeft size={rs(22)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {pet?.name ?? '...'}
@@ -356,14 +356,14 @@ export default function HealthScreen() {
             activeOpacity={0.7}
             accessibilityLabel={t('pdfCommon.printOrSave')}
           >
-            <FileText size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+            <FileText size={rs(20)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerBtn}
             onPress={() => router.push(`/pet/${id}/prontuario` as never)}
             activeOpacity={0.7}
           >
-            <ClipboardList size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+            <ClipboardList size={rs(20)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
         </View>
       </View>
@@ -402,8 +402,8 @@ export default function HealthScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.accent}
-              colors={[colors.accent]}
+              tintColor={colors.click}
+              colors={[colors.click]}
               progressBackgroundColor={colors.card}
             />
           }

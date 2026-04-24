@@ -13,10 +13,10 @@ import {
   Info,
   Syringe,
 } from 'lucide-react-native';
-import { rs } from '../../../../../../hooks/useResponsive';
-import { colors } from '../../../../../../constants/colors';
-import type { Pet, Vaccine, Allergy } from '../../../../../../types/database';
-import { HealthScoreCircle } from '../../../../../../components/HealthScoreCircle';
+import { rs } from '../../../hooks/useResponsive';
+import { colors } from '../../../constants/colors';
+import type { Pet, Vaccine, Allergy } from '../../../types/database';
+import { HealthScoreCircle } from '../../../components/HealthScoreCircle';
 import { styles } from '../styles';
 import { StatCard, SeverityBadge } from '../components';
 
@@ -79,7 +79,7 @@ export function GeneralTab({
           {pet.blood_type ?? t('health.bloodTypeUnknown')}
         </Text>
         <TouchableOpacity onPress={onShowBloodTypeInfo} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Info size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+          <Info size={rs(18)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
       </View>
 

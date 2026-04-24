@@ -12,8 +12,8 @@ import {
   ThermometerSun, Utensils, AlertTriangle, Scissors, Activity,
   ShoppingBag, MapPin, PawPrint, Sparkles,
 } from 'lucide-react-native';
-import { colors } from '../../../../../../constants/colors';
-import { rs, fs } from '../../../../../../hooks/useResponsive';
+import { colors } from '../../../constants/colors';
+import { rs, fs } from '../../../hooks/useResponsive';
 
 export function PainelLentes({ t }: { t: (k: string, opts?: Record<string, unknown>) => string }) {
   const LENTES = [
@@ -21,17 +21,17 @@ export function PainelLentes({ t }: { t: (k: string, opts?: Record<string, unkno
     { icon: <Stethoscope   size={rs(14)} color={colors.petrol}  strokeWidth={1.8} />, color: colors.petrol,  labelKey: 'mic.lenteConsulta',     descKey: 'mic.lenteConsultaDesc' },
     { icon: <FlaskConical  size={rs(14)} color={colors.sky}     strokeWidth={1.8} />, color: colors.sky,     labelKey: 'mic.lenteExame',        descKey: 'mic.lenteExameDesc' },
     { icon: <Pill          size={rs(14)} color={colors.purple}  strokeWidth={1.8} />, color: colors.purple,  labelKey: 'mic.lenteMedicamento',  descKey: 'mic.lenteMedicamentoDesc' },
-    { icon: <Scale         size={rs(14)} color={colors.accent}  strokeWidth={1.8} />, color: colors.accent,  labelKey: 'mic.lentePeso',         descKey: 'mic.lentePesoDesc' },
+    { icon: <Scale         size={rs(14)} color={colors.click}  strokeWidth={1.8} />, color: colors.click,  labelKey: 'mic.lentePeso',         descKey: 'mic.lentePesoDesc' },
     { icon: <DollarSign    size={rs(14)} color={colors.warning} strokeWidth={1.8} />, color: colors.warning, labelKey: 'mic.lenteGasto',        descKey: 'mic.lenteGastoDesc' },
     { icon: <ThermometerSun size={rs(14)} color={colors.danger} strokeWidth={1.8} />, color: colors.danger,  labelKey: 'mic.lenteSintoma',      descKey: 'mic.lenteSintomaDesc' },
     { icon: <Utensils      size={rs(14)} color={colors.success} strokeWidth={1.8} />, color: colors.success, labelKey: 'mic.lenteAlimentacao',  descKey: 'mic.lenteAlimentacaoDesc' },
     { icon: <AlertTriangle size={rs(14)} color={colors.warning} strokeWidth={1.8} />, color: colors.warning, labelKey: 'mic.lenteAlergia',      descKey: 'mic.lenteAlergiaDesc' },
     { icon: <Scissors      size={rs(14)} color={colors.petrol}  strokeWidth={1.8} />, color: colors.petrol,  labelKey: 'mic.lenteCirurgia',     descKey: 'mic.lenteCirurgiaDesc' },
     { icon: <Activity      size={rs(14)} color={colors.rose}    strokeWidth={1.8} />, color: colors.rose,    labelKey: 'mic.lenteMetrica',      descKey: 'mic.lenteMetricaDesc' },
-    { icon: <ShoppingBag   size={rs(14)} color={colors.accent}  strokeWidth={1.8} />, color: colors.accent,  labelKey: 'mic.lenteCompra',       descKey: 'mic.lenteCompraDesc' },
+    { icon: <ShoppingBag   size={rs(14)} color={colors.click}  strokeWidth={1.8} />, color: colors.click,  labelKey: 'mic.lenteCompra',       descKey: 'mic.lenteCompraDesc' },
     { icon: <MapPin        size={rs(14)} color={colors.sky}     strokeWidth={1.8} />, color: colors.sky,     labelKey: 'mic.lenteViagem',       descKey: 'mic.lenteViagemDesc' },
-    { icon: <PawPrint      size={rs(14)} color={colors.accent}  strokeWidth={1.8} />, color: colors.accent,  labelKey: 'mic.lenteConexao',      descKey: 'mic.lenteConexaoDesc' },
-    { icon: <Sparkles      size={rs(14)} color={colors.gold}    strokeWidth={1.8} />, color: colors.gold,    labelKey: 'mic.lenteMomento',      descKey: 'mic.lenteMomentoDesc' },
+    { icon: <PawPrint      size={rs(14)} color={colors.click}  strokeWidth={1.8} />, color: colors.click,  labelKey: 'mic.lenteConexao',      descKey: 'mic.lenteConexaoDesc' },
+    { icon: <Sparkles      size={rs(14)} color={colors.warning}    strokeWidth={1.8} />, color: colors.warning,    labelKey: 'mic.lenteMomento',      descKey: 'mic.lenteMomentoDesc' },
   ];
 
   return (

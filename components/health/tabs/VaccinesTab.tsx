@@ -2,10 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Syringe, AlertCircle, Check } from 'lucide-react-native';
-import { rs } from '../../../../../../hooks/useResponsive';
-import { colors } from '../../../../../../constants/colors';
-import { formatDate } from '../../../../../../utils/format';
-import type { Vaccine } from '../../../../../../types/database';
+import { rs } from '../../../hooks/useResponsive';
+import { colors } from '../../../constants/colors';
+import { formatDate } from '../../../utils/format';
+import type { Vaccine } from '../../../types/database';
 import { styles } from '../styles';
 import { EmptyState, ExpandableCard, InfoRow, ProgressBar } from '../components';
 

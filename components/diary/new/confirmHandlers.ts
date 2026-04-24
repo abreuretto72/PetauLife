@@ -9,8 +9,8 @@
  * five useCallback handlers (photo, gallery, video, audio, document).
  */
 import { useCallback } from 'react';
-import type { SubmitEntryParams } from '../../../../../../hooks/useDiaryEntry';
-import type { DocType } from '../../../../../../components/diary/CapturePreview';
+import type { SubmitEntryParams } from '../../../hooks/useDiaryEntry';
+import type { DocType } from '../../../components/diary/CapturePreview';
 
 type UseConfirmHandlersParams = {
   captureCaption: string;

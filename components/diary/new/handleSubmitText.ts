@@ -17,8 +17,8 @@
  * useCallback handler.
  */
 import { useCallback } from 'react';
-import type { Attachment } from '../../../../../../components/diary/AttachmentThumb';
-import type { SubmitEntryParams } from '../../../../../../hooks/useDiaryEntry';
+import type { Attachment } from '../../../components/diary/AttachmentThumb';
+import type { SubmitEntryParams } from '../../../hooks/useDiaryEntry';
 
 type UseHandleSubmitTextParams = {
   tutorText: string;

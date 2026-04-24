@@ -11,7 +11,7 @@
  */
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getErrorMessage } from '../../../../../../utils/errorMessages';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import { PREVIEW_STEPS, type Step } from './types';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';

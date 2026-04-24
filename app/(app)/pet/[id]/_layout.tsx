@@ -53,7 +53,7 @@ export default function PetTabLayout() {
       {showNav && (
         <View style={s.header}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <ChevronLeft size={rs(22)} color={colors.accent} strokeWidth={1.8} />
+            <ChevronLeft size={rs(22)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
           <Text style={s.headerTitle} numberOfLines={1}>{pet?.name ?? '...'}</Text>
           <View style={s.backBtn} />
@@ -81,7 +81,7 @@ export default function PetTabLayout() {
                 >
                   <Icon
                     size={rs(20)}
-                    color={isActive ? colors.accent : colors.textDim}
+                    color={isActive ? colors.click : colors.textDim}
                     strokeWidth={isActive ? 2 : 1.8}
                   />
                   <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>
@@ -148,7 +148,7 @@ const s = StyleSheet.create({
     gap: rs(4),
   },
   tabActive: {
-    backgroundColor: colors.accent + '20',
+    backgroundColor: colors.click + '20',
   },
   tabLabel: {
     fontFamily: 'Sora_500Medium',
@@ -156,7 +156,7 @@ const s = StyleSheet.create({
     color: colors.textDim,
   },
   tabLabelActive: {
-    color: colors.accent,
+    color: colors.click,
     fontFamily: 'Sora_600SemiBold',
   },
 });

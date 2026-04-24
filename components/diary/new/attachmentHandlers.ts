@@ -14,9 +14,9 @@ import { useCallback, type MutableRefObject } from 'react';
 import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import type { Attachment } from '../../../../../../components/diary/AttachmentThumb';
-import { MEDIA_LIMITS } from '../../../../../../constants/media';
-import { getErrorMessage } from '../../../../../../utils/errorMessages';
+import type { Attachment } from '../../../components/diary/AttachmentThumb';
+import { MEDIA_LIMITS } from '../../../constants/media';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import { compressPhoto } from './compressPhoto';
 import type { Step } from './types';
 

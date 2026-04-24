@@ -42,16 +42,16 @@ import {
   AudioPreviewStep, DocumentPreviewStep,
 } from '../../../../../components/diary/CapturePreview';
 import type { DocType } from '../../../../../components/diary/CapturePreview';
-import { styles } from './_new/styles';
-import { DotsText } from './_new/DotsText';
-import { PainelLentes } from './_new/PainelLentes';
-import { type Step, FULLSCREEN_STEPS } from './_new/types';
-import { useSTT, SpeechModule } from './_new/stt';
-import { useAnimations } from './_new/animations';
-import { useConfirmHandlers } from './_new/confirmHandlers';
-import { useAttachmentHandlers } from './_new/attachmentHandlers';
-import { useHandleSubmitText } from './_new/handleSubmitText';
-import { useEditHandlers } from './_new/editHandlers';
+import { styles } from '../../../../../components/diary/new/styles';
+import { DotsText } from '../../../../../components/diary/new/DotsText';
+import { PainelLentes } from '../../../../../components/diary/new/PainelLentes';
+import { type Step, FULLSCREEN_STEPS } from '../../../../../components/diary/new/types';
+import { useSTT, SpeechModule } from '../../../../../components/diary/new/stt';
+import { useAnimations } from '../../../../../components/diary/new/animations';
+import { useConfirmHandlers } from '../../../../../components/diary/new/confirmHandlers';
+import { useAttachmentHandlers } from '../../../../../components/diary/new/attachmentHandlers';
+import { useHandleSubmitText } from '../../../../../components/diary/new/handleSubmitText';
+import { useEditHandlers } from '../../../../../components/diary/new/editHandlers';
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -397,7 +397,7 @@ export default function NewDiaryEntryScreen() {
       {!FULLSCREEN_STEPS.includes(step) && (
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
-            <ChevronLeft size={rs(20)} color={colors.accent} strokeWidth={2} />
+            <ChevronLeft size={rs(20)} color={colors.click} strokeWidth={2} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
             {isEditing ? t('diary.editEntry') : t('diary.newEntry')}
@@ -408,7 +408,7 @@ export default function NewDiaryEntryScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.helpBtn} onPress={() => setShowHelp(true)} activeOpacity={0.7}>
-              <HelpCircle size={rs(20)} color={colors.accent} strokeWidth={1.8} />
+              <HelpCircle size={rs(20)} color={colors.click} strokeWidth={1.8} />
             </TouchableOpacity>
           )}
         </View>
@@ -526,7 +526,7 @@ export default function NewDiaryEntryScreen() {
               }}
               activeOpacity={0.7}
             >
-              <Music2 size={rs(24)} color={colors.gold} strokeWidth={1.8} />
+              <Music2 size={rs(24)} color={colors.warning} strokeWidth={1.8} />
               <View>
                 <Text style={{ fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.text }}>
                   {t('mic.audioChoiceFile')}
@@ -593,11 +593,11 @@ export default function NewDiaryEntryScreen() {
             {helpTab === 'uso' && (
               <>
                 {[
-                  { icon: <Mic size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpMic'), desc: t('mic.helpMicDesc') },
-                  { icon: <Camera size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpFoto'), desc: t('mic.helpFotoDesc'), limit: t('mic.helpFotoLimit', { max: MEDIA_LIMITS.photo.maxSizeMB, count: MEDIA_LIMITS.photo.maxCount }) },
-                  { icon: <Video size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpVideo'), desc: t('mic.helpVideoDesc'), limit: t('mic.helpVideoLimit', { maxSec: MEDIA_LIMITS.video.maxDurationSec, maxMB: MEDIA_LIMITS.video.maxSizeMB }) },
+                  { icon: <Mic size={rs(22)} color={colors.click} strokeWidth={1.8} />, title: t('mic.helpMic'), desc: t('mic.helpMicDesc') },
+                  { icon: <Camera size={rs(22)} color={colors.click} strokeWidth={1.8} />, title: t('mic.helpFoto'), desc: t('mic.helpFotoDesc'), limit: t('mic.helpFotoLimit', { max: MEDIA_LIMITS.photo.maxSizeMB, count: MEDIA_LIMITS.photo.maxCount }) },
+                  { icon: <Video size={rs(22)} color={colors.click} strokeWidth={1.8} />, title: t('mic.helpVideo'), desc: t('mic.helpVideoDesc'), limit: t('mic.helpVideoLimit', { maxSec: MEDIA_LIMITS.video.maxDurationSec, maxMB: MEDIA_LIMITS.video.maxSizeMB }) },
                   { icon: <Ear size={rs(22)} color={colors.rose} strokeWidth={1.8} />, title: t('mic.helpSom'), desc: t('mic.helpSomDesc'), limit: t('mic.helpAudioLimit', { max: MEDIA_LIMITS.audio.maxDurationSec }) },
-                  { icon: <ImageIcon size={rs(22)} color={colors.accent} strokeWidth={1.8} />, title: t('mic.helpGaleria'), desc: t('mic.helpGaleriaDesc') },
+                  { icon: <ImageIcon size={rs(22)} color={colors.click} strokeWidth={1.8} />, title: t('mic.helpGaleria'), desc: t('mic.helpGaleriaDesc') },
                 ].map((item, idx) => (
                   <View key={idx} style={styles.helpItem}>
                     <View style={styles.helpItemIcon}>{item.icon}</View>
@@ -700,8 +700,8 @@ export default function NewDiaryEntryScreen() {
               <Switch
                 value={analyzeWithAI}
                 onValueChange={setAnalyzeWithAI}
-                trackColor={{ false: colors.border, true: colors.accent + '50' }}
-                thumbColor={analyzeWithAI ? colors.accent : colors.textDim}
+                trackColor={{ false: colors.border, true: colors.click + '50' }}
+                thumbColor={analyzeWithAI ? colors.click : colors.textDim}
               />
             </View>
 
@@ -720,11 +720,11 @@ export default function NewDiaryEntryScreen() {
             {/* 4 attachment buttons: Câmera · Fotos+Vídeos · Áudio · Som do pet */}
             <View style={styles.attachRow}>
               <TouchableOpacity style={styles.attachThumb} onPress={handleAttachTakePhoto} activeOpacity={0.7}>
-                <Camera size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                <Camera size={rs(18)} color={colors.click} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.takePhoto')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.attachThumb} onPress={handleAttachMedia} activeOpacity={0.7}>
-                <ImageIcon size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                <ImageIcon size={rs(18)} color={colors.click} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.addMedia')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -735,7 +735,7 @@ export default function NewDiaryEntryScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <Mic size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                <Mic size={rs(18)} color={colors.click} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.addAudio')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -743,7 +743,7 @@ export default function NewDiaryEntryScreen() {
                 onPress={handleSelectScanner}
                 activeOpacity={0.7}
               >
-                <ScanLine size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                <ScanLine size={rs(18)} color={colors.click} strokeWidth={1.8} />
                 <Text style={styles.attachLabel}>{t('mic.scanner')}</Text>
               </TouchableOpacity>
             </View>
@@ -759,7 +759,7 @@ export default function NewDiaryEntryScreen() {
               >
                 {isListening
                   ? <Square size={rs(24)} color="#fff" strokeWidth={2} fill="#fff" />
-                  : <Mic size={rs(28)} color={colors.accent} strokeWidth={1.8} />
+                  : <Mic size={rs(28)} color={colors.click} strokeWidth={1.8} />
                 }
               </TouchableOpacity>
             </Animated.View>
@@ -800,7 +800,7 @@ export default function NewDiaryEntryScreen() {
                 onPress={isListening ? stopListening : startListening}
                 activeOpacity={0.7}
               >
-                <Mic size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                <Mic size={rs(18)} color={colors.click} strokeWidth={1.8} />
               </TouchableOpacity>
             </View>
             {interimText.length > 0 && (
@@ -818,15 +818,15 @@ export default function NewDiaryEntryScreen() {
 
                 <View style={styles.attachRow}>
                   <TouchableOpacity style={styles.attachBtn} onPress={handleAttachTakePhoto} activeOpacity={0.7}>
-                    <Camera size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                    <Camera size={rs(18)} color={colors.click} strokeWidth={1.8} />
                     <Text style={styles.attachLabel}>{t('mic.takePhoto')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.attachBtn} onPress={handleAttachMedia} activeOpacity={0.7}>
-                    <ImageIcon size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                    <ImageIcon size={rs(18)} color={colors.click} strokeWidth={1.8} />
                     <Text style={styles.attachLabel}>{t('mic.addMedia')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.attachBtn} onPress={handleAttachAudio} activeOpacity={0.7}>
-                    <Music2 size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                    <Music2 size={rs(18)} color={colors.click} strokeWidth={1.8} />
                     <Text style={styles.attachLabel}>{t('mic.addAudio')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -837,7 +837,7 @@ export default function NewDiaryEntryScreen() {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Ear size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+                    <Ear size={rs(18)} color={colors.click} strokeWidth={1.8} />
                     <Text style={styles.attachLabel}>{t('mic.addPetAudio')}</Text>
                   </TouchableOpacity>
                 </View>
@@ -883,7 +883,7 @@ export default function NewDiaryEntryScreen() {
               styles.analyzingPawContainer,
               { transform: [{ scale: pawAnim }] },
             ]}>
-              <PawPrint size={rs(48)} color={colors.accent} strokeWidth={1.6} />
+              <PawPrint size={rs(48)} color={colors.click} strokeWidth={1.6} />
             </Animated.View>
           </View>
           <DotsText

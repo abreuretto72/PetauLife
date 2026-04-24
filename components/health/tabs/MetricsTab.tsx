@@ -2,8 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp } from 'lucide-react-native';
-import { rs } from '../../../../../../hooks/useResponsive';
-import MetricsCharts from '../../../../../../components/lenses/MetricsCharts';
+import { rs } from '../../../hooks/useResponsive';
+import MetricsCharts from '../../../components/lenses/MetricsCharts';
 import { styles } from '../styles';
 
 interface Props {

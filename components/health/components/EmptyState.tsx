@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { FileText } from 'lucide-react-native';
-import { rs } from '../../../../../../hooks/useResponsive';
-import { colors } from '../../../../../../constants/colors';
+import { rs } from '../../../hooks/useResponsive';
+import { colors } from '../../../constants/colors';
 import { styles } from '../styles';
 
 // ──────────────────────────────────────────

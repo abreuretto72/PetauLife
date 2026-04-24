@@ -2,8 +2,8 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Droplet, X } from 'lucide-react-native';
-import { rs } from '../../../../../hooks/useResponsive';
-import { colors } from '../../../../../constants/colors';
+import { rs } from '../../hooks/useResponsive';
+import { colors } from '../../constants/colors';
 import { styles } from './styles';
 
 interface Props {
@@ -24,7 +24,7 @@ export function BloodTypeInfoModal({ visible, onClose, isDog }: Props) {
             <Droplet size={rs(20)} color={colors.danger} strokeWidth={1.8} />
             <Text style={styles.btTitle}>{t('health.bloodTypeTitle')}</Text>
             <TouchableOpacity onPress={onClose} style={{ marginLeft: 'auto' }}>
-              <X size={rs(18)} color={colors.accent} strokeWidth={1.8} />
+              <X size={rs(18)} color={colors.click} strokeWidth={1.8} />
             </TouchableOpacity>
           </View>
 

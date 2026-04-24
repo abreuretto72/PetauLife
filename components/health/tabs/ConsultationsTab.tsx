@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { BookOpen } from 'lucide-react-native';
-import { rs } from '../../../../../../hooks/useResponsive';
-import { colors } from '../../../../../../constants/colors';
-import { formatDate } from '../../../../../../utils/format';
+import { rs } from '../../../hooks/useResponsive';
+import { colors } from '../../../constants/colors';
+import { formatDate } from '../../../utils/format';
 import { styles } from '../styles';
 import { EmptyState, ExpandableCard, InfoRow } from '../components';
 

@@ -5,9 +5,9 @@
  * imported back into new.tsx via `import { styles } from './_new/styles'`.
  */
 import { StyleSheet } from 'react-native';
-import { colors } from '../../../../../../constants/colors';
-import { rs, fs } from '../../../../../../hooks/useResponsive';
-import { spacing, radii } from '../../../../../../constants/spacing';
+import { colors } from '../../../constants/colors';
+import { rs, fs } from '../../../hooks/useResponsive';
+import { spacing, radii } from '../../../constants/spacing';
 
 export const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
@@ -42,7 +42,7 @@ export const styles = StyleSheet.create({
   helpBtn: {
     width: rs(40), height: rs(40),
     borderRadius: rs(radii.lg),
-    backgroundColor: colors.accentGlow,
+    backgroundColor: colors.clickSoft,
     alignItems: 'center', justifyContent: 'center',
   },
   helpBackdrop: {
@@ -239,10 +239,10 @@ export const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     width: rs(36), height: rs(36),
     borderRadius: rs(radii.lg),
-    backgroundColor: colors.accentGlow,
+    backgroundColor: colors.clickSoft,
     alignItems: 'center', justifyContent: 'center',
   },
-  inlineMicActive: { backgroundColor: colors.accentMed },
+  inlineMicActive: { backgroundColor: colors.clickRing },
   interimText: {
     color: colors.textDim, fontSize: fs(13),
     fontFamily: 'Sora_400Regular',
@@ -251,10 +251,10 @@ export const styles = StyleSheet.create({
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: rs(spacing.xs),
-    backgroundColor: colors.accent,
+    backgroundColor: colors.click,
     paddingVertical: rs(spacing.md),
     borderRadius: rs(radii.xl),
-    shadowColor: colors.accent,
+    shadowColor: colors.click,
     shadowOffset: { width: 0, height: rs(4) },
     shadowOpacity: 0.3, shadowRadius: rs(12), elevation: 6,
   },
@@ -309,7 +309,7 @@ export const styles = StyleSheet.create({
     width: rs(4),
     height: rs(40),
     borderRadius: rs(3),
-    backgroundColor: colors.accent,
+    backgroundColor: colors.click,
   },
   transcriptionCard: {
     backgroundColor: colors.card,
@@ -391,8 +391,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   micBtnActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accentDark,
+    backgroundColor: colors.click,
+    borderColor: colors.clickDark,
   },
   recordBtn: {
     flex: 1,
@@ -400,10 +400,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: rs(spacing.xs),
-    backgroundColor: colors.accent,
+    backgroundColor: colors.click,
     paddingVertical: rs(spacing.md),
     borderRadius: rs(radii.xl),
-    shadowColor: colors.accent,
+    shadowColor: colors.click,
     shadowOffset: { width: 0, height: rs(4) },
     shadowOpacity: 0.3,
     shadowRadius: rs(12),
@@ -431,15 +431,15 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     width: rs(140), height: rs(140),
     borderRadius: rs(70),
-    borderWidth: 2, borderColor: colors.accent,
+    borderWidth: 2, borderColor: colors.click,
   },
   analyzingPawContainer: {
     width: rs(96), height: rs(96),
     borderRadius: rs(48),
-    backgroundColor: colors.accentGlow,
-    borderWidth: 1.5, borderColor: colors.accent + '40',
+    backgroundColor: colors.clickSoft,
+    borderWidth: 1.5, borderColor: colors.click + '40',
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.accent,
+    shadowColor: colors.click,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4, shadowRadius: rs(20),
     elevation: 8,

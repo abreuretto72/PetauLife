@@ -4,9 +4,9 @@
  */
 
 import { StyleSheet } from 'react-native';
-import { colors } from '../../../../../constants/colors';
-import { rs, fs } from '../../../../../hooks/useResponsive';
-import { radii, spacing } from '../../../../../constants/spacing';
+import { colors } from '../../constants/colors';
+import { rs, fs } from '../../hooks/useResponsive';
+import { radii, spacing } from '../../constants/spacing';
 
 export const styles = StyleSheet.create({
   root: {
@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabItemActive: {
-    backgroundColor: colors.accent + '18',
+    backgroundColor: colors.click + '18',
   },
   tabLabel: {
     fontFamily: 'Sora_600SemiBold',
@@ -67,7 +67,7 @@ export const styles = StyleSheet.create({
     color: colors.textDim,
   },
   tabLabelActive: {
-    color: colors.accent,
+    color: colors.click,
   },
 
   // ── Add button ──
@@ -76,11 +76,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: rs(8),
-    backgroundColor: colors.accent,
+    backgroundColor: colors.click,
     borderRadius: radii.xl,
     paddingVertical: rs(14),
     marginBottom: spacing.md,
-    shadowColor: colors.accent,
+    shadowColor: colors.click,
     shadowOffset: { width: 0, height: rs(4) },
     shadowOpacity: 0.25,
     shadowRadius: rs(12),
@@ -311,7 +311,7 @@ export const styles = StyleSheet.create({
   btSectionLabel: {
     fontFamily: 'Sora_700Bold',
     fontSize: fs(12),
-    color: colors.accent,
+    color: colors.click,
     letterSpacing: 0.5,
     marginBottom: rs(8),
   },
