@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-21
-**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships + Professional Module Fase 1)
+**Last Updated:** 2026-04-23
+**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships + Professional Module Fase 1 + Diary & Health Component Refactor + Agenda Actions + Pet Deletion)
 
 ---
 
@@ -13,7 +13,48 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ---
 
-## Latest Changes (2026-04-21)
+## Latest Changes (2026-04-23)
+
+### Component Architecture Refactoring
+- **Diary New Entry:** Moved from `app/(app)/pet/[id]/diary/_new/` to `components/diary/new/`
+  - **New structure:** `components/diary/new/` with 11 utility modules (attachmentHandlers, confirmHandlers, editHandlers, handleSubmitText, stt, animations, compressPhoto, types, styles, DotsText, PainelLentes)
+  - Decouples diary logic from routing layer, enables code reuse and easier testing
+  
+- **Health Module:** Moved from `app/(app)/pet/[id]/_health/` to `components/health/`
+  - **New structure:** `components/health/` with `BloodTypeInfoModal.tsx`, `components/` and `tabs/` subdirectories
+  - Centralizes health UI logic for reuse across screens
+
+### Agenda Actions System — New Hook (`hooks/useAgendaActions.ts`)
+- **Mutations:** `confirm`, `markDone`, `cancel`, `reschedule`, `silenceReminders`
+- **Auto-invalidation:** Updates React Query cache for `['pets', petId, 'lens', 'agenda']`
+- **Notification integration:** Calls `scheduleAgendaReminders()`, `cancelAgendaReminders()`, `silenceEventReminders()`, `unsilenceEvent()`
+- **Usage:** `const { confirm, reschedule, silenceReminders } = useAgendaActions(petId, petName)`
+
+### Agenda Lens Improvements (`components/lenses/AgendaLensContent.tsx`)
+- **Calendar dots:** Colored dots per day showing event priorities (vaccine, exam, medication, etc.)
+- **Month navigation:** Chevron left/right to browse months
+- **Day detail panel:** Scrollable list of events for selected day (always visible below calendar)
+- **Action buttons:** Confirm, reschedule, cancel, silence reminders inline on each event
+- **Safe area:** Fixed SafeAreaView padding to prevent bottom nav overlap
+- **i18n keys:** New `agenda.actionConfirm`, `agenda.actionReschedule`, `agenda.actionCancel`, `agenda.actionSilence`
+
+### Pet Deletion Edge Function (2026-04-22)
+- **New function:** `supabase/functions/delete-pet/`
+- **Behavior:** Soft-delete cascade across 18 related tables (diary_entries, vaccines, expenses, etc.)
+- **Auth:** Bearer token validation via `auth.getUser(token)`
+- **Logging:** Success/error logs with petName, userId, affected tables
+- **Error handling:** Non-fatal table-level errors (some tables may not have `is_active` column)
+- **Related code:** `lib/api.ts:deletePet()` calls this function
+
+### i18n Additions (2026-04-23)
+- **Agenda keys** (pt-BR, en-US): Action labels, reminder notifications, weekday abbreviations
+- **Notification reminders:** `agenda_24h_title`, `agenda_1h_title`, `agenda_now_title`, `agenda_allday_title`
+- **Lens labels:** `agenda.actionConfirm`, `agenda.actionReschedule`, `agenda.actionCancel`, `agenda.actionSilence`
+- See [I18N.md § Agenda Keys](./I18N.md#agenda-keys-2026-04-23) for complete list
+
+---
+
+## Previous Changes (2026-04-21)
 
 ### Professional Module — Fase 1 (Core Infrastructure)
 - **New Tables:** `professionals`, `access_grants`, `role_permissions`, `professional_signatures`, `access_audit_log`

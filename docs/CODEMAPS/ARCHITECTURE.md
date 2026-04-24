@@ -1,7 +1,7 @@
 # auExpert Architecture Codemap
 
-**Last Updated:** 2026-04-21
-**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships + Professional Module Fase 1
+**Last Updated:** 2026-04-23
+**Status:** MVP Phase — Diário Inteligente + Co-Tutores + OCR + Audio/Video Analysis + Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + AI Chat PDF Export + Partnerships + Professional Module Fase 1 + Component Refactoring (Diary, Health) + Agenda Actions + Pet Deletion
 
 ---
 
@@ -275,6 +275,261 @@ Response: { narration: "Eca! Que dia legal..." }  // 1ª pessoa do pet
 - 7 dias antes de vencimento → push
 - 1 dia antes → push
 - No dia → push
+
+---
+
+## Component Refactoring — 2026-04-23
+
+### Diary New Entry — Moved to Component Layer
+
+**Old structure:** `app/(app)/pet/[id]/diary/_new/` (screen-level directory)
+**New structure:** `components/diary/new/` (reusable component library)
+
+**Files in `components/diary/new/`:**
+```
+components/diary/new/
+├── animations.ts              — Reanimated + Lottie animation configs
+├── attachmentHandlers.ts      — Camera, Video, Audio, DocumentScanner handlers
+├── compressPhoto.ts          — WebP compression utility
+├── confirmHandlers.ts        — Publication flow (saving, toast, navigation)
+├── editHandlers.ts           — Text field edit + STT continuation
+├── handleSubmitText.ts       — Main submission logic with offline queue
+├── stt.ts                    — Speech-to-text utilities (expo-speech-recognition)
+├── types.ts                  — TypeScript interfaces for diary state
+├── styles.ts                 — StyleSheet.create() for components
+├── DotsText.tsx              — Progress indicator component (loading dots)
+├── PainelLentes.tsx          — Lens panel UI component (20 lentes preview)
+```
+
+**Benefits of moving to components/:**
+1. **Code reuse:** Diary logic can be imported in other screens (co-parent view, professional view)
+2. **Testability:** Utilities are pure functions, easier to mock and test
+3. **Maintainability:** Clear separation of concerns (handlers, styles, types, animations)
+4. **Performance:** Component-level code splitting, lazy loading of attachmentHandlers
+
+**Integration point:**
+- Screen file: `app/(app)/pet/[id]/diary.tsx` (entry point)
+- Imports: `import { NewEntryFlow } from '../../../components/diary/new'`
+- No logic change in `useDiaryEntry()` hook — still responsible for mutations
+
+**Key exports from `components/diary/new/`:**
+- `handleSubmitText()` — async, returns optimistic UI state + triggers background IA
+- `attachmentHandlers: { photoHandler, videoHandler, audioHandler, documentHandler }`
+- `animationConfigs` — Reanimated + Lottie specs
+- Styles + Types exported for consumer components
+
+---
+
+### Health Module — Moved to Component Layer
+
+**Old structure:** `app/(app)/pet/[id]/_health/` (screen-level directory)
+**New structure:** `components/health/` (reusable health UI components)
+
+**Files in `components/health/`:**
+```
+components/health/
+├── BloodTypeInfoModal.tsx    — Modal showing blood type reference (dogs, cats)
+├── components/               — Subcomponents (tabs, cards, modals)
+│   ├── VaccineTabContent.tsx
+│   ├── AllergiesTabContent.tsx
+│   ├── MedicationTabContent.tsx
+│   ├── ConsultationTabContent.tsx
+│   ├── SurgeryTabContent.tsx
+│   └── ExamTabContent.tsx
+├── tabs/                     — Tab-specific logic
+│   ├── useVaccineTab.ts     — useQuery + useMutation for vaccines
+│   ├── useAllergyTab.ts     — Allergies management
+│   ├── useMedicationTab.ts  — Medications
+│   └── (others...)
+└── styles.ts                — StyleSheet.create() for all health UI
+```
+
+**Benefits:**
+1. **Decoupling:** Health tabs can be rendered anywhere (prontuário, professional view, co-parent view)
+2. **Composability:** Each tab is a standalone component + hook
+3. **Reusability:** BloodTypeInfoModal can pop up in any screen
+4. **Cleaner routing:** Main health screen is lightweight, delegates to tab components
+
+**Integration point:**
+- Screen file: `app/(app)/pet/[id]/health.tsx` (tab navigator)
+- Uses: `useVaccineTab()`, `useAllergyTab()`, etc. from `components/health/tabs/`
+- Renders: `<VaccineTabContent />`, `<AllergiesTabContent />`, etc.
+
+**Mutations still delegated to hooks:**
+- `useHealth()` → coordinator hook
+- Tab-specific hooks in `components/health/tabs/` → individual mutations
+
+---
+
+## Agenda Actions System — 2026-04-23
+
+### New Hook: `hooks/useAgendaActions.ts`
+
+**Purpose:** Centralize scheduled_events mutations with automatic notification scheduling
+
+**Mutations available:**
+```typescript
+const {
+  confirm,           // Change status to 'confirmed' + schedule reminders
+  markDone,          // Change status to 'done' + cancel reminders
+  cancel,            // Soft delete (is_active = false) + cancel reminders
+  reschedule,        // Update scheduled_for + re-schedule reminders
+  silenceReminders,  // Silence notifications for this event
+} = useAgendaActions(petId, petName);
+```
+
+**Flow example:**
+```typescript
+// User taps [Confirm] button on vaccine event
+await confirm.mutateAsync({
+  id: 'evt-123',
+  title: 'Vacina Raiva',
+  scheduled_for: '2026-04-30T10:00:00Z',
+  all_day: false,
+  sub: 'Veterinária Saúde',
+});
+// → updateScheduledEvent(id, { status: 'confirmed' })
+// → scheduleAgendaReminders(event, petName)  [background]
+// → invalidateQueries(['pets', petId, 'lens', 'agenda'])
+```
+
+**Integration with `components/lenses/AgendaLensContent.tsx`:**
+- Day detail panel renders action buttons: Confirm, Reschedule, Cancel, Silence
+- Buttons call `confirm.mutate()`, `reschedule.mutate()`, etc.
+- Mutation loading state: button becomes disabled + spinner
+- Error: toast via `getErrorMessage()`
+- Success: automatic UI refresh via React Query cache invalidation
+
+**i18n keys (NEW):**
+```
+agenda.actionConfirm     "Confirmar"
+agenda.actionReschedule  "Reagendar"
+agenda.actionCancel      "Cancelar"
+agenda.actionSilence     "Silenciar lembretes"
+```
+
+**Notification reminders (via `lib/notifications.ts`):**
+- `scheduleAgendaReminders()` — schedules 3 push notifications:
+  - 24h before: `agenda_24h_title` + `agenda_24h_body`
+  - 1h before: `agenda_1h_title` + `agenda_1h_body`
+  - At time: `agenda_now_title` + `agenda_now_body`
+  - All-day events: `agenda_allday_title` + `agenda_allday_body` at 08:00
+- `silenceEventReminders(eventId)` — marks event as silenced in AsyncStorage, prevents push
+- `unsilenceEvent(eventId)` — restores reminder scheduling (called on reschedule)
+
+---
+
+### Agenda Lens Improvements — 2026-04-23
+
+**File:** `components/lenses/AgendaLensContent.tsx` (30KB)
+
+**New features:**
+1. **Calendar dots** — Colored circles below each day indicating event count/priority
+   - Red dot: vaccine, exam, surgery, symptom (high priority)
+   - Yellow dot: medication, allergy, consultation (medium)
+   - Blue dot: expense, plan, mood, weight (low)
+   - Multiple dots: max 3 shown, fourth+ collapsed into "+N"
+
+2. **Month navigation** — Chevron left/right buttons
+   - Displays current month + year
+   - Clicking changes displayed month
+   - Selected day resets when month changes (UX consideration)
+
+3. **Day detail panel** — Scrollable list below calendar
+   - Always visible (not modal)
+   - Shows all events for selected day
+   - Sorted by scheduled_for time (all-day events first)
+   - Inline action buttons: Confirm, Reschedule, Cancel, Silence
+
+4. **Action buttons per event:**
+   - Status badge: scheduled / confirmed / done / cancelled
+   - Confirm button: enabled only if status = scheduled
+   - Reschedule button: opens DateTimePicker (new date/time + all_day toggle)
+   - Cancel button: soft delete with confirm() dialog
+   - Silence button: prevents all reminders for this event (not stored in DB, local AsyncStorage)
+
+5. **Safe area fix** — SafeAreaView padding-bottom prevents overlap with bottom nav
+   - Bottom padding: `useSafeBottom()` from `hooks/useResponsive.ts`
+
+**i18n keys (Calendar):**
+```
+agenda.wd_sun, .wd_mon, .wd_tue, etc.  — Weekday abbreviations (S, M, T, W, T, F, S)
+agenda.title                            — "Agenda" (lens title)
+agenda.noEvents                         — "Sem eventos para este mês"
+agenda.selectDay                        — "Selecione um dia para ver eventos"
+```
+
+**Related hooks:**
+- `useLensAgenda(petId)` — Query for month data + colors
+- `useLensAgendaDay(petId, date)` — Query for single day detail
+- `useAgendaActions(petId, petName)` — Mutations (confirm, reschedule, cancel, silence)
+
+---
+
+### Pet Deletion Edge Function — 2026-04-22
+
+**File:** `supabase/functions/delete-pet/index.ts`
+
+**Triggered by:**
+- `lib/api.ts:deletePet(petId)` → calls this function with Bearer token
+
+**Behavior:**
+```
+Input: POST /delete-pet
+  Authorization: Bearer {user_token}
+  Body: { pet_id: "uuid" }
+
+Processing:
+  1. Validate Bearer token via auth.getUser(token)
+  2. Verify pet belongs to authenticated user (pet.user_id = auth.uid)
+  3. Soft-delete cascade (is_active = false) on 18 related tables:
+     diary_entries, mood_logs, photo_analyses, vaccines, allergies,
+     pet_embeddings, scheduled_events, pet_insights, clinical_metrics,
+     expenses, medications, consultations, surgeries, exams,
+     nutrition_records, pet_connections, pet_plans, achievements, travels
+  4. Soft-delete the pet itself
+  5. Return success + pet_name
+
+Output:
+  Success (200):
+    { success: true, pet_name: "Mana" }
+  
+  Errors:
+    401: Missing/invalid Bearer token
+    400: pet_id not provided
+    404: Pet not found or access denied
+    500: Cascade update failed
+```
+
+**Error handling:**
+- Table-level errors logged but non-fatal
+  - Reason: Some tables may not exist, or don't have `is_active` column
+  - Example: If `surgeries` table is missing, still soft-delete other tables
+  - Console warning: `[delete-pet] surgeries update skipped: column "is_active" does not exist`
+- Always attempts to soft-delete the pet itself
+- Returns success if pet is deleted, even if some table errors occurred
+
+**Related code:**
+- `lib/api.ts:deletePet(petId)` — Client-side call
+  ```typescript
+  const response = await fetch('/delete-pet', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ pet_id: petId }),
+  });
+  ```
+- `app/(app)/pet/[id]/settings.tsx` — Danger zone button calls this
+  - Requires confirm() dialog before triggering
+  - Toast: `toast.petDeleted` (success) or error message
+
+**Testing:**
+```bash
+# After deploying function, test via:
+curl -X POST http://localhost:54321/functions/v1/delete-pet \
+  -H "Authorization: Bearer {jwt_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"pet_id": "test-uuid"}'
+```
 
 ---
 
