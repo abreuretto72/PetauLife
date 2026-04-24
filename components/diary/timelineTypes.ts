@@ -163,9 +163,9 @@ export const FILTER_TABS: FilterTab[] = [
 // ── Event type visual config ──
 
 export const EVENT_TYPE_CONFIG: Record<TimelineEventType, { color: string; icon: React.ElementType }> = {
-  month_summary:   { color: colors.accent,  icon: Calendar },
-  diary:           { color: colors.accent,  icon: BookOpen },
-  milestone:       { color: colors.gold,   icon: Trophy },
+  month_summary:   { color: colors.click,  icon: Calendar },
+  diary:           { color: colors.click,  icon: BookOpen },
+  milestone:       { color: colors.warning,   icon: Trophy },
   audio_analysis:  { color: colors.rose,   icon: Mic },
   photo_analysis:  { color: colors.success, icon: Camera },
   video_analysis:  { color: colors.sky,    icon: Video },
@@ -232,6 +232,11 @@ export function diaryEntryToEvent(entry: DiaryEntry & {
     timelineType = 'diary';
   }
   if (timelineType === 'audio_analysis' && !(e.pet_audio_analysis as { pattern_notes?: string } | null)?.pattern_notes) {
+    timelineType = 'diary';
+  }
+  // Registration entries must use DiaryCard (which renders RegistrationAnalysisSubcard).
+  // PhotoAnalysisCard doesn't know about is_registration_entry.
+  if (entry.is_registration_entry) {
     timelineType = 'diary';
   }
 

@@ -34,7 +34,7 @@ export default function AgendaPdfScreen() {
       readyTitleKey="agendaPdf.ready"
       readySubtitleKey="agendaPdf.readySubtitle"
       icon={Calendar}
-      iconColor={colors.accent}
+      iconColor={colors.click}
       isReady={!isLoading && !!pet}
       onPreview={handlePreview}
       onShare={handleShare}

@@ -152,11 +152,11 @@ function MonthHeader({
       <Text style={styles.monthPetName}>{t('agenda.title', { name: petName.toUpperCase(), context: sexContext(petSex) })}</Text>
       <View style={styles.monthNav}>
         <TouchableOpacity onPress={onPrev} style={styles.navBtn} activeOpacity={0.7}>
-          <ChevronLeft size={rs(18)} color={colors.accent} strokeWidth={2} />
+          <ChevronLeft size={rs(18)} color={colors.click} strokeWidth={2} />
         </TouchableOpacity>
         <Text style={styles.monthLabel}>{t(`agenda.month_${month}`)} {year}</Text>
         <TouchableOpacity onPress={onNext} style={styles.navBtn} activeOpacity={0.7}>
-          <ChevronRight size={rs(18)} color={colors.accent} strokeWidth={2} />
+          <ChevronRight size={rs(18)} color={colors.click} strokeWidth={2} />
         </TouchableOpacity>
       </View>
     </View>
@@ -279,7 +279,7 @@ function CategoryFilters({
     >
       {chips.map((chip) => {
         const isActive = chip.id === active;
-        const color = chip.id === 'all' ? colors.accent : CAT_COLORS[chip.id as AgendaCategory];
+        const color = chip.id === 'all' ? colors.click : CAT_COLORS[chip.id as AgendaCategory];
         return (
           <TouchableOpacity
             key={chip.id}
@@ -710,10 +710,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayToday: {
-    backgroundColor: colors.accent + '25',
+    backgroundColor: colors.click + '25',
   },
   daySelected: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.click,
   },
   dayText: {
     fontFamily: 'Sora_400Regular',
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     color: colors.textSec,
   },
   dayTextToday: {
-    color: colors.accent,
+    color: colors.click,
     fontFamily: 'Sora_700Bold',
   },
   dayTextSelected: {

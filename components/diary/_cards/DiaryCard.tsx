@@ -9,7 +9,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import {
-  AlertCircle, EyeOff, LayoutGrid, PawPrint, Pencil,
+  AlertCircle, Award, EyeOff, LayoutGrid, Pencil,
   RefreshCw, Star, User, WifiOff,
 } from 'lucide-react-native';
 import { colors } from '../../../constants/colors';
@@ -23,6 +23,7 @@ import { VideoSubcard } from './VideoSubcard';
 import { AudioSubcard } from './AudioSubcard';
 import { OCRSubcard } from './OCRSubcard';
 import { ProcessingChecklist } from './ProcessingChecklist';
+import { RegistrationAnalysisSubcard } from './RegistrationAnalysisSubcard';
 import {
   type DiaryCardProps,
   HIT,
@@ -109,7 +110,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
             onPress={() => onRetry(event.id)}
             activeOpacity={0.7}
           >
-            <RefreshCw size={rs(14)} color={colors.accent} strokeWidth={1.8} />
+            <RefreshCw size={rs(14)} color={colors.click} strokeWidth={1.8} />
             <Text style={styles.retryText}>{t('diary.retryEntry')}</Text>
           </TouchableOpacity>
         )}
@@ -121,14 +122,14 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
     <View style={styles.cardBase}>
       {event.isSpecial && (
         <View style={styles.specialHeader}>
-          <Star size={rs(14)} color={colors.gold} strokeWidth={1.8} />
+          <Star size={rs(14)} color={colors.warning} strokeWidth={1.8} />
           <Text style={styles.specialText}>{t('diary.specialMoment')}</Text>
         </View>
       )}
 
       {event.isRegistrationEntry && (
         <View style={styles.registrationBadge}>
-          <PawPrint size={rs(12)} color={colors.accent} strokeWidth={2} />
+          <Award size={rs(14)} color={colors.warning} strokeWidth={2} />
           <Text style={styles.registrationText}>{t('diary.registrationEntry')}</Text>
         </View>
       )}
@@ -150,7 +151,7 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
           <View style={styles.diaryCardActions}>
             {isCreator ? (
               <TouchableOpacity onPress={() => onEdit(event.id)} hitSlop={HIT}>
-                <Pencil size={rs(16)} color={colors.accent} strokeWidth={1.8} />
+                <Pencil size={rs(16)} color={colors.click} strokeWidth={1.8} />
               </TouchableOpacity>
             ) : (
               // Admin (owner) deactivating another tutor's diary entry
@@ -274,11 +275,16 @@ export const DiaryCard = React.memo(({ event, petName, t, getMoodData, onEdit, o
         </>
       )}
 
+      {/* Registration analysis subcard — shows breed, BCS, health obs, alerts */}
+      {event.isRegistrationEntry && event.photoAnalysisData && (
+        <RegistrationAnalysisSubcard data={event.photoAnalysisData} t={t} />
+      )}
+
       {/* Lenses subcard — AI-classified health/finance data */}
       {event.classifications && event.classifications.filter((c) => c.confidence >= 0.5).length > 0 && (
         <View style={styles.subcard}>
           <View style={styles.subcardHeader}>
-            <LayoutGrid size={rs(12)} color={colors.accent} strokeWidth={1.8} />
+            <LayoutGrid size={rs(12)} color={colors.click} strokeWidth={1.8} />
             <Text style={styles.subcardLabel}>{t('diary.registered').toUpperCase()}</Text>
           </View>
           <View style={styles.moduleList}>
