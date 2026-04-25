@@ -19,8 +19,9 @@ import {
   Pressable, ActivityIndicator, StyleSheet, AppState,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Send, ChevronLeft, UserRound, Bot, Headphones, Sparkles } from 'lucide-react-native';
+import { Send, ChevronLeft, UserRound, Bot, Headphones, Sparkles, Mic, FileText } from 'lucide-react-native';
 import { colors } from '../../constants/colors';
 import { radii, spacing } from '../../constants/spacing';
 import { rs, fs } from '../../hooks/useResponsive';
@@ -28,7 +29,13 @@ import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../../components/Toast';
 import { reportError } from '../../lib/errorReporter';
-import * as Application from 'expo-application';
+import { useSimpleSTT } from '../../hooks/useSimpleSTT';
+import PdfActionModal from '../../components/pdf/PdfActionModal';
+import { previewPdf, sharePdf } from '../../lib/pdf';
+
+// Lazy-load opcional pra evitar quebrar bundle se não instalado
+let _Application: typeof import('expo-application') | null = null;
+try { _Application = require('expo-application'); } catch { /* opcional */ }
 
 interface SupportMessage {
   id: string;
@@ -42,6 +49,7 @@ const REFRESH_INTERVAL_MS = 10_000;
 
 export default function SupportScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const userId = useAuthStore(s => s.user?.id ?? null);
@@ -53,7 +61,25 @@ export default function SupportScreen() {
   const [input, setInput]                   = useState('');
   const [loading, setLoading]               = useState(true);
   const [sending, setSending]               = useState(false);
+  const [interimText, setInterimText]       = useState('');
+  const [inputHeight, setInputHeight]       = useState(rs(44));
+  const [pdfModalVisible, setPdfModalVisible] = useState(false);
   const scrollRef                            = useRef<ScrollView>(null);
+
+  // STT — mic toggle no input
+  const stt = useSimpleSTT({
+    lang: i18n.language,
+    onTranscript: (text, isFinal) => {
+      if (isFinal) {
+        // Append no input + limpa interim
+        setInput(prev => (prev ? `${prev} ${text}`.trim() : text));
+        setInterimText('');
+      } else {
+        setInterimText(text);
+      }
+    },
+    onError: (msg) => toast(msg, 'warning'),
+  });
 
   // Carrega ou cria a conversa mais recente do tutor
   const loadConversation = useCallback(async () => {
@@ -152,7 +178,7 @@ export default function SupportScreen() {
           conversation_id: conversationId,
           message: messageText.trim(),
           locale: i18n.language,
-          app_version: Application.nativeApplicationVersion ?? undefined,
+          app_version: _Application?.nativeApplicationVersion ?? undefined,
           platform: Platform.OS,
         }),
       });
@@ -185,7 +211,81 @@ export default function SupportScreen() {
   }
 
   async function escalateToHuman() {
+    if (stt.isListening) stt.stop();
     await send(i18n.language.startsWith('pt') ? 'Quero falar com um atendente humano.' : 'I want to speak with a human agent.');
+  }
+
+  // Para o mic se trocou de tela ou desmontou
+  useEffect(() => () => stt.stop(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── PDF: monta HTML da conversa pra previewPdf/sharePdf ────────────────
+  function buildConversationHtml(): string {
+    const senderLabel = (s: SupportMessage['sender']) => (
+      s === 'user'  ? t('support.pdfSenderTutor', { defaultValue: 'Você' })
+    : s === 'ai'    ? t('support.pdfSenderAi',    { defaultValue: 'Assistente IA' })
+    : s === 'admin' ? t('support.pdfSenderAdmin', { defaultValue: 'Equipe humana' })
+    : s);
+
+    const senderColor = (s: SupportMessage['sender']) => (
+      s === 'user'  ? '#8F7FA8'   // ametista
+    : s === 'ai'    ? '#4FA89E'   // jade
+    : s === 'admin' ? '#7FA886'   // success
+    : '#666');
+
+    const fmt = (iso: string) => {
+      try { return new Date(iso).toLocaleString(i18n.language); } catch { return iso; }
+    };
+
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const messagesHtml = messages.map((m) => `
+      <div style="margin-bottom:14px; padding:10px 14px; border-left:3px solid ${senderColor(m.sender)}; background:#fafafa;">
+        <div style="font-size:11px; color:${senderColor(m.sender)}; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+          ${senderLabel(m.sender)} · <span style="color:#999; font-weight:400;">${fmt(m.created_at)}</span>
+        </div>
+        <div style="font-size:13px; color:#222; line-height:1.55; white-space:pre-wrap;">${escapeHtml(m.content)}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div style="font-size:13px; color:#333; line-height:1.6;">
+        <p style="color:#666; margin-bottom:18px;">
+          ${t('support.pdfIntro', {
+            defaultValue: 'Registro completo da conversa de suporte do tutor com a equipe auExpert (IA + humano).',
+          })}
+        </p>
+        ${messagesHtml || '<p style="color:#999; font-style:italic;">Sem mensagens registradas.</p>'}
+        <p style="margin-top:24px; color:#999; font-size:11px;">
+          Total de ${messages.length} mensagem${messages.length === 1 ? '' : 's'}.
+        </p>
+      </div>
+    `;
+  }
+
+  async function handlePdfPreview() {
+    await previewPdf({
+      title: t('support.pdfTitle', { defaultValue: 'Conversa de suporte' }),
+      subtitle: t('support.pdfSubtitle', {
+        defaultValue: '{{count}} mensagens',
+        count: messages.length,
+      }),
+      bodyHtml: buildConversationHtml(),
+      language: i18n.language,
+    });
+  }
+
+  async function handlePdfShare() {
+    const fileName = `auExpert-suporte-${new Date().toISOString().slice(0, 10)}.pdf`;
+    await sharePdf({
+      title: t('support.pdfTitle', { defaultValue: 'Conversa de suporte' }),
+      subtitle: t('support.pdfSubtitle', {
+        defaultValue: '{{count}} mensagens',
+        count: messages.length,
+      }),
+      bodyHtml: buildConversationHtml(),
+      language: i18n.language,
+    }, fileName);
   }
 
   return (
@@ -193,7 +293,7 @@ export default function SupportScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + rs(spacing.sm) }]}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <ChevronLeft size={rs(22)} color={colors.click} strokeWidth={2} />
         </Pressable>
@@ -203,16 +303,39 @@ export default function SupportScreen() {
             {escalated ? t('support.statusHuman') : iaActive ? t('support.statusAi') : t('support.statusQueued')}
           </Text>
         </View>
+
+        {/* Botão PDF — sempre renderizado, padrão do app: ícone FileText.
+            Desabilitado quando sem mensagens (gerar PDF vazio não faz sentido). */}
+        <Pressable
+          onPress={() => setPdfModalVisible(true)}
+          style={[styles.iconBtn, messages.length === 0 && styles.iconBtnDisabled]}
+          disabled={sending || messages.length === 0}
+          hitSlop={8}
+          accessibilityLabel={t('pdfCommon.printOrSave', { defaultValue: 'Imprimir ou salvar' })}
+        >
+          <FileText
+            size={rs(20)}
+            color={messages.length === 0 ? colors.textGhost : colors.click}
+            strokeWidth={1.8}
+          />
+        </Pressable>
+
+        {/* Falar com humano — versão compacta (só ícone) pra caber junto do PDF */}
         {!escalated && (
-          <Pressable onPress={escalateToHuman} style={styles.humanBtn} disabled={sending}>
-            <Headphones size={rs(16)} color={colors.click} strokeWidth={2} />
-            <Text style={styles.humanBtnLabel}>{t('support.callHuman')}</Text>
+          <Pressable
+            onPress={escalateToHuman}
+            style={styles.iconBtn}
+            disabled={sending}
+            hitSlop={8}
+          >
+            <Headphones size={rs(20)} color={colors.click} strokeWidth={1.8} />
           </Pressable>
         )}
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         style={{ flex: 1 }}
       >
         {/* Mensagens */}
@@ -232,22 +355,52 @@ export default function SupportScreen() {
           )}
         </ScrollView>
 
-        {/* Input */}
-        <View style={styles.inputBar}>
-          <TextInput
-            value={input}
-            onChangeText={setInput}
-            placeholder={t('support.inputPlaceholder')}
-            placeholderTextColor={colors.placeholder}
-            style={styles.input}
-            multiline
-            editable={!sending}
-            onSubmitEditing={() => send(input)}
-          />
+        {/* Input — caixa flexível com auto-grow + mic STT.
+            paddingBottom respeita SafeArea (gesture nav do Android, home indicator iOS)
+            evitando que o input fique atrás da barra do sistema. */}
+        <View style={[styles.inputBar, { paddingBottom: rs(spacing.md) + insets.bottom }]}>
+          <View style={styles.inputWrap}>
+            <TextInput
+              value={input}
+              onChangeText={setInput}
+              placeholder={t('support.inputPlaceholder')}
+              placeholderTextColor={colors.placeholder}
+              style={styles.input}
+              multiline
+              editable={!sending}
+              textAlignVertical="top"
+            />
+
+            {/* Mic STT — sempre renderizado. Se modulo nativo indisponível,
+                onPress mostra toast (sem esconder o botão pra UX consistente) */}
+            <Pressable
+              onPress={stt.toggle}
+              disabled={sending}
+              style={[styles.micBtn, stt.isListening && styles.micBtnActive]}
+              hitSlop={8}
+            >
+              <Mic
+                size={rs(18)}
+                color={stt.isListening ? '#FFFFFF' : colors.click}
+                strokeWidth={2}
+              />
+            </Pressable>
+          </View>
+
+          {/* Caption de interim STT — aparece embaixo enquanto o tutor fala */}
+          {stt.isListening && interimText.length > 0 && (
+            <Text style={styles.interimCaption} numberOfLines={2}>
+              {interimText}
+            </Text>
+          )}
+
           <Pressable
             style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
             disabled={!input.trim() || sending}
-            onPress={() => send(input)}
+            onPress={() => {
+              if (stt.isListening) stt.stop();
+              send(input);
+            }}
           >
             {sending
               ? <ActivityIndicator color="#fff" size="small" />
@@ -255,6 +408,19 @@ export default function SupportScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Bottom sheet padrão de PDF do app — usado em todos os exports */}
+      <PdfActionModal
+        visible={pdfModalVisible}
+        onClose={() => setPdfModalVisible(false)}
+        title={t('support.pdfTitle', { defaultValue: 'Conversa de suporte' })}
+        subtitle={t('support.pdfSubtitle', {
+          defaultValue: '{{count}} mensagens',
+          count: messages.length,
+        })}
+        onPreview={handlePdfPreview}
+        onShare={handlePdfShare}
+      />
     </View>
   );
 }
@@ -313,14 +479,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: rs(spacing.md),
-    paddingVertical: rs(spacing.md),
-    paddingTop: rs(spacing.xl + spacing.md),
+    paddingBottom: rs(spacing.md),
+    // paddingTop é setado inline com insets.top + spacing.sm pra respeitar a notch/status bar
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: rs(spacing.sm),
   },
   backBtn: {
     padding: rs(spacing.sm),
+  },
+  iconBtn: {
+    width: rs(40),
+    height: rs(40),
+    borderRadius: rs(20),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardHover,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  iconBtnDisabled: {
+    opacity: 0.4,
   },
   headerTitle: {
     fontFamily: 'Sora_700Bold',
@@ -455,18 +634,47 @@ const styles = StyleSheet.create({
     gap: rs(spacing.sm),
     backgroundColor: colors.bg,
   },
-  input: {
+  inputWrap: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: rs(radii.lg),
+    paddingRight: rs(spacing.xs),
+  },
+  input: {
+    flex: 1,
     paddingHorizontal: rs(spacing.md),
-    paddingVertical: rs(spacing.sm),
+    paddingTop: rs(spacing.sm),
+    paddingBottom: rs(spacing.sm),
     fontFamily: 'Sora_400Regular',
     fontSize: fs(14),
     color: colors.text,
-    maxHeight: rs(120),
+    minHeight: rs(44),
+    maxHeight: rs(180),
+    // multiline cresce naturalmente entre minHeight e maxHeight (sem height inline)
+  },
+  interimCaption: {
+    marginTop: rs(4),
+    marginHorizontal: rs(spacing.md),
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(12),
+    color: colors.textDim,
+    fontStyle: 'italic',
+  },
+  micBtn: {
+    width: rs(36),
+    height: rs(36),
+    borderRadius: rs(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: rs(4),
+    marginRight: rs(2),
+  },
+  micBtnActive: {
+    backgroundColor: colors.click,
   },
   sendBtn: {
     width: rs(44),

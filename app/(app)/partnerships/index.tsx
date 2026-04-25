@@ -461,21 +461,17 @@ export default function PartnershipsScreen() {
 
       {!isOnline ? <OfflineBanner /> : null}
 
-      {/* Content */}
+      {/* Content
+          Lógica:
+          - 1ª carga (sem cache nem dados) → spinner
+          - Tudo o mais → mostra a lista (que já tem EmptyState com CTA grande
+            para o caminho ÓBVIO de "convidar profissional")
+          - Erro de query NUNCA bloqueia a tela: o EmptyState já é o caminho
+            certo quando lista está vazia. Pull-to-refresh permite retry.
+      */}
       {isInitialLoading ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size={rs(24)} color={colors.click} />
-        </View>
-      ) : activeQ.error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{t('partnerships.errors.generic')}</Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={handleRefresh}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
         </View>
       ) : tab === 'partners' ? (
         <FlatList

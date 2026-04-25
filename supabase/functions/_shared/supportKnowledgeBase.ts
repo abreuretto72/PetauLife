@@ -278,11 +278,22 @@ Manual:
 
 ## LIMITES E REGRAS DE NEGÓCIO
 
-### Modelo de assinatura
-- O **tutor** assina o app e paga mensalmente
-- **Profissionais** (veterinários, groomers, treinadores, etc.) NÃO PAGAM pelo app quando atendem pets cujo tutor já é assinante
-- Profissional que quiser cadastrar pets que NÃO estão no app (clientes próprios fora da base auExpert) precisa fazer assinatura própria de profissional
-- Ou seja: profissional grátis se opera só com tutores assinantes; pago se quer ampliar pra clientela externa
+### Modelo de assinatura e papel dos profissionais
+- O **tutor** assina o app e paga mensalmente. Receita do auExpert vem só dos tutores.
+- **Profissionais** (veterinários, groomers, treinadores, etc.) usam o app **100% gratuitamente — sempre**.
+- **Profissionais NÃO podem cadastrar pets.** Nenhum botão de "adicionar pet" aparece pra eles.
+- O acesso de um profissional a um pet acontece **exclusivamente por delegação do tutor**:
+  1. Tutor abre o Hub e toca no ícone Parcerias
+  2. Convida o profissional por e-mail (escolhe pet, papel e prazo via dropdown)
+  3. Profissional aceita o convite → vê apenas aquele pet
+- Se nenhum tutor delegar acesso, o profissional logado não vê nenhum pet.
+- Se um profissional quer ter um pet próprio no app, precisa criar uma conta separada **como tutor** (que paga assinatura normal).
+
+### Privacidade e poder de edição do profissional (regras invioláveis)
+- **Profissionais nunca acessam dados financeiros** (despesas, receitas, valores). Privacidade financeira do tutor é inviolável.
+- **Profissionais só editam o que eles próprios registraram.** Tudo que o tutor inputou continua imutável pra eles — só leitura.
+- Tutor sempre pode editar tudo do seu pet, incluindo registros que profissionais criaram.
+- O campo "Pode ver finanças" foi removido da tela de invite — não existe mais essa opção.
 
 ### Pets
 - Apenas cães (\`dog\`) e gatos (\`cat\`)

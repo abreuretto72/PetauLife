@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { StatCard } from '@/components/stat-card';
+import { PageError } from '@/components/page-error';
 import { fmtNum, fmtUSD, fmtPercent, fmtLatency } from '@/lib/utils';
 import type { AdminOverview } from '@/lib/types';
 
@@ -11,13 +12,7 @@ export default async function OverviewPage() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_admin_overview');
 
-  if (error) {
-    return (
-      <div className="text-danger">
-        Erro ao carregar dados: {error.message}
-      </div>
-    );
-  }
+  if (error) return <PageError pagePath="/" techMessage={error.message} />;
 
   const d = data as AdminOverview;
 

@@ -113,12 +113,14 @@ export default function HelpScreen() {
     { q: t('help.faqItems.q6'), a: t('help.faqItems.a6') },
   ];
 
+  // "Fale conosco" e "Reportar problema" agora levam pro chat de suporte
+  // com IA — primeiro turno automático, escala pra humano quando o tutor pedir.
   const handleContact = () => {
-    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=AuExpert%20-%20Suporte');
+    router.push('/support');
   };
 
   const handleReportBug = () => {
-    Linking.openURL('mailto:abreu@multiversodigital.com.br?subject=AuExpert%20-%20Problema');
+    router.push('/support');
   };
 
   const renderLensItem = ({ item }: { item: LensItem }) => {

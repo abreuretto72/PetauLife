@@ -18,11 +18,19 @@
 
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
-import * as Application from 'expo-application';
-import * as Device from 'expo-device';
 import { setErrorSink, type ErrorContext } from './errorReporter';
 import { supabase } from './supabase';
 import i18n from '../i18n';
+
+// Lazy-load opcional de expo-application/expo-device (podem não estar instalados).
+// Se não estiverem, app_version e device_model ficam null — funcionalidade core
+// (platform, os_version, locale, is_online, severity, category, stack) continua.
+//
+// Pra ter app_version e device_model: `npx expo install expo-application expo-device`
+let _Application: typeof import('expo-application') | null = null;
+let _Device: typeof import('expo-device') | null = null;
+try { _Application = require('expo-application'); } catch { /* dep ausente — OK */ }
+try { _Device = require('expo-device'); } catch { /* dep ausente — OK */ }
 
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -117,10 +125,10 @@ async function buildPayload(error: unknown, ctx: ErrorContext): Promise<ReportPa
     stack,
     route:        typeof ctx.route === 'string' ? ctx.route : undefined,
     component:    typeof ctx.section === 'string' ? ctx.section : (typeof ctx.component === 'string' ? ctx.component : undefined),
-    app_version:  Application.nativeApplicationVersion ?? undefined,
+    app_version:  _Application?.nativeApplicationVersion ?? undefined,
     platform:     (Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web') ? Platform.OS : undefined,
     os_version:   String(Platform.Version),
-    device_model: Device.modelName ?? undefined,
+    device_model: _Device?.modelName ?? undefined,
     locale:       i18n.language,
     is_online:    lastIsOnline,
     user_message: typeof ctx.userMessage === 'string' ? ctx.userMessage : undefined,

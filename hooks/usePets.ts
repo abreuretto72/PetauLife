@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, onlineManager } from '@tanstack/react-query';
 import { usePetStore } from '../stores/petStore';
 import { useAuthStore } from '../stores/authStore';
+import { useReportQueryError } from './useReportQueryError';
 import * as api from '../lib/api';
 import { addToQueue } from '../lib/offlineQueue';
 import type { Pet } from '../types/database';
@@ -18,6 +19,9 @@ export function usePets() {
     enabled: isAuthenticated,
     refetchOnMount: 'always',
   });
+
+  // Erro silencioso → admin/errors (sem incomodar tutor)
+  useReportQueryError(query, { section: 'pets', queryKey: 'pets-list', route: '/' });
 
   const addMutation = useMutation({
     mutationFn: async (pet: Omit<Pet, 'id' | 'created_at' | 'updated_at' | 'is_active'>) => {

@@ -14,6 +14,12 @@ interface PetListHeaderProps {
   density: 'card' | 'compact';
   onToggleDensity: () => void;
   onAddPet: () => void;
+  /**
+   * Se false, o botão "+" Adicionar pet não é renderizado.
+   * Regra de negócio (2026-04-25): profissionais NÃO podem cadastrar pets.
+   * Apenas tutores (role='tutor_owner') e super-admin podem criar.
+   */
+  canAddPet?: boolean;
   query: string;
   onChangeQuery: (text: string) => void;
   recent: Pet[];
@@ -27,6 +33,7 @@ const PetListHeader: React.FC<PetListHeaderProps> = ({
   density,
   onToggleDensity,
   onAddPet,
+  canAddPet = true,
   query,
   onChangeQuery,
   recent,
@@ -68,14 +75,16 @@ const PetListHeader: React.FC<PetListHeaderProps> = ({
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            onPress={onAddPet}
-            activeOpacity={0.7}
-            style={styles.addBtn}
-          >
-            <Plus size={rs(14)} color="#FFFFFF" strokeWidth={2} />
-            <Text style={styles.addBtnText}>{t('pets.addNew')}</Text>
-          </TouchableOpacity>
+          {canAddPet && (
+            <TouchableOpacity
+              onPress={onAddPet}
+              activeOpacity={0.7}
+              style={styles.addBtn}
+            >
+              <Plus size={rs(14)} color="#FFFFFF" strokeWidth={2} />
+              <Text style={styles.addBtnText}>{t('pets.addNew')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

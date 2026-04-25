@@ -28,13 +28,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, Switch, Image,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Mail, Send, Dog, Cat, Wallet, Clock, Stethoscope,
+  ChevronLeft, Mail, Send, Dog, Cat, Clock, Stethoscope, Scissors,
+  Footprints, Bone, Hotel, Store, Heart, GraduationCap,
 } from 'lucide-react-native';
 import { z } from 'zod';
 
@@ -43,6 +44,7 @@ import { radii, spacing } from '../../../constants/spacing';
 import { rs, fs } from '../../../hooks/useResponsive';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
+import { Select, type SelectOption } from '../../../components/ui/Select';
 import { useToast } from '../../../components/Toast';
 import { useNetwork } from '../../../hooks/useNetwork';
 import { usePets } from '../../../hooks/usePets';
@@ -51,20 +53,51 @@ import type { AccessRole } from '../../../types/database';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-/** 10 roles do Bloco A — mesmo enum do banco. Ordem importa pra UI. */
+/**
+ * 8 roles visíveis na UI (consolidados — vet_full/read/tech viram apenas
+ * "Veterinário", mapeado pra `vet_full` no payload).
+ * Memória do projeto: AccessRole simplification for MVP.
+ */
 const ROLES: readonly AccessRole[] = [
-  'vet_full', 'vet_read', 'vet_tech',
-  'groomer', 'trainer', 'walker',
-  'sitter', 'boarding', 'shop_employee', 'ong_member',
+  'vet_full',         // mostrado como "Veterinário"
+  'groomer',
+  'trainer',
+  'walker',
+  'sitter',
+  'boarding',
+  'shop_employee',
+  'ong_member',
 ] as const;
 
-/** Prazos curtos/médios/longos. Backend aceita 1..30. */
-const EXPIRES_OPTIONS: readonly number[] = [1, 7, 14, 30] as const;
+/**
+ * Prazo do convite — fixo em 30 dias. Sem fricção pro tutor escolher.
+ * Tutor pode revogar a qualquer momento via Hub de Parcerias.
+ */
+const DEFAULT_EXPIRES_DAYS = 30 as const;
 
-/** Roles onde ver finanças faz sentido. Os outros a toggle fica dimmed/off. */
-const FINANCE_ROLES: ReadonlySet<AccessRole> = new Set<AccessRole>([
-  'vet_full', 'vet_read',
-]);
+/**
+ * Regra de negócio (2026-04-25): NENHUM profissional vê dados financeiros
+ * do tutor. O can_see_finances é sempre `false` no payload — a UI nem expõe
+ * a opção. Tutores registram suas finanças e elas são ESTRITAMENTE privadas.
+ */
+const CAN_SEE_FINANCES_FORCED = false as const;
+
+/** Ícone semântico por role pra ajudar identificação visual no dropdown. */
+function roleIcon(role: AccessRole) {
+  switch (role) {
+    case 'vet_full':
+    case 'vet_read':
+    case 'vet_tech':       return Stethoscope;
+    case 'groomer':        return Scissors;
+    case 'trainer':        return GraduationCap;
+    case 'walker':         return Footprints;
+    case 'sitter':         return Heart;
+    case 'boarding':       return Hotel;
+    case 'shop_employee':  return Store;
+    case 'ong_member':     return Bone;
+    default:               return Stethoscope;
+  }
+}
 
 // ── Schema Zod ───────────────────────────────────────────────────────────────
 
@@ -136,21 +169,30 @@ export default function PartnershipInviteScreen() {
   );
   const [email, setEmail] = useState<string>('');
   const [role, setRole] = useState<AccessRole | ''>('');
-  const [canSeeFinances, setCanSeeFinances] = useState<boolean>(false);
-  const [scopeNotes, setScopeNotes] = useState<string>('');
-  const [expiresDays, setExpiresDays] = useState<number>(7);
 
-  // Se mudar pra role que não suporta finanças, zera o toggle.
-  const onSelectRole = useCallback((r: AccessRole) => {
-    setRole(r);
-    if (!FINANCE_ROLES.has(r)) setCanSeeFinances(false);
-  }, []);
+  // Opções dos dropdowns (memoizadas pra não rebuildar a cada render)
+  const petOptions = useMemo<SelectOption[]>(() => pets.map((p) => ({
+    value: p.id,
+    label: p.name,
+    sublabel: p.breed ?? (p.species === 'dog' ? t('common.dog', { defaultValue: 'Cão' }) : t('common.cat', { defaultValue: 'Gato' })),
+    imageUri: p.avatar_url ?? null,
+    icon: p.species === 'dog' ? Dog : Cat,
+    color: colors.click,
+  })), [pets, t]);
+
+  const roleOptions = useMemo<SelectOption[]>(() => ROLES.map((r) => ({
+    value: r,
+    label: t(`roles.${r}`, { defaultValue: r }),
+    sublabel: t(`partnerships.roleDesc.${r}`, { defaultValue: '' }) || undefined,
+    icon: roleIcon(r),
+    color: roleColor(r),
+  })), [t]);
 
   const canSubmit = useMemo(() => {
-    if (!petId || !role || !email.trim() || !expiresDays) return false;
+    if (!petId || !role || !email.trim()) return false;
     if (isCreating) return false;
     return true;
-  }, [petId, role, email, expiresDays, isCreating]);
+  }, [petId, role, email, isCreating]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -166,9 +208,11 @@ export default function PartnershipInviteScreen() {
       pet_id: petId,
       invite_email: email.trim().toLowerCase(),
       role: role as AccessRole,
-      can_see_finances: canSeeFinances,
-      scope_notes: scopeNotes.trim() ? scopeNotes.trim() : null,
-      expires_days: expiresDays,
+      // Regra de negócio: profissionais NUNCA acessam dados financeiros
+      can_see_finances: CAN_SEE_FINANCES_FORCED,
+      // Convite simplificado — sem campo de scope_notes nem prazo configurável
+      scope_notes: null,
+      expires_days: DEFAULT_EXPIRES_DAYS,
     };
 
     const parsed = inviteSchema.safeParse(candidate);
@@ -191,13 +235,11 @@ export default function PartnershipInviteScreen() {
       const code = err instanceof Error ? err.message : 'INTERNAL';
       toast(t(createErrorKey(code)), 'error');
     }
-  }, [canSubmit, petId, email, role, canSeeFinances, scopeNotes, expiresDays,
-      createInvite, toast, t, handleBack]);
+  }, [canSubmit, petId, email, role, createInvite, toast, t, handleBack]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   const selectedPet = pets.find((p) => p.id === petId);
-  const financeEnabled = role !== '' && FINANCE_ROLES.has(role as AccessRole);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -226,12 +268,8 @@ export default function PartnershipInviteScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.intro}>{t('partnerships.invite.intro')}</Text>
-
-          {/* ── 1. Pet picker ─────────────────────────────────────────────── */}
-          <Text style={styles.sectionLabel}>
-            {t('partnerships.invite.petLabel')} <Text style={styles.required}>*</Text>
-          </Text>
+          {/* ── 1. Pet ────────────────────────────────────────────────────── */}
+          <Text style={styles.sectionLabel}>{t('partnerships.invite.petLabel')}</Text>
           {petsLoading ? (
             <Text style={styles.hint}>{t('common.loading')}</Text>
           ) : pets.length === 0 ? (
@@ -239,53 +277,19 @@ export default function PartnershipInviteScreen() {
               <Text style={styles.emptyPetsText}>{t('partnerships.invite.noPets')}</Text>
             </View>
           ) : (
-            <View style={styles.petChipRow}>
-              {pets.map((p) => {
-                const selected = petId === p.id;
-                const isDog = p.species === 'dog';
-                const petColor = isDog ? colors.click : colors.click;
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    onPress={() => setPetId(p.id)}
-                    activeOpacity={0.85}
-                    style={[
-                      styles.petChip,
-                      selected && { borderColor: petColor, backgroundColor: petColor + '14' },
-                    ]}
-                  >
-                    <View style={[
-                      styles.petChipAvatar,
-                      { borderColor: petColor + '40', backgroundColor: colors.bgCard },
-                    ]}>
-                      {p.avatar_url ? (
-                        <Image source={{ uri: p.avatar_url }} style={styles.petChipAvatarImg} />
-                      ) : isDog ? (
-                        <Dog size={rs(18)} color={petColor} strokeWidth={1.8} />
-                      ) : (
-                        <Cat size={rs(18)} color={petColor} strokeWidth={1.8} />
-                      )}
-                    </View>
-                    <Text
-                      style={[
-                        styles.petChipText,
-                        selected && { color: colors.text },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {p.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.field}>
+              <Select
+                value={petId}
+                options={petOptions}
+                onChange={setPetId}
+                placeholder={t('partnerships.invite.petLabel')}
+                sheetTitle={t('partnerships.invite.petLabel')}
+              />
             </View>
           )}
 
-          {/* ── 2. Email ──────────────────────────────────────────────────── */}
-          <Text style={styles.sectionLabel}>
-            {t('partnerships.invite.emailLabel')} <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.hint}>{t('partnerships.invite.emailHint')}</Text>
+          {/* ── 2. E-mail ─────────────────────────────────────────────────── */}
+          <Text style={styles.sectionLabel}>{t('partnerships.invite.emailLabel')}</Text>
           <View style={styles.field}>
             <Input
               placeholder={t('partnerships.invite.emailPlaceholder')}
@@ -296,140 +300,26 @@ export default function PartnershipInviteScreen() {
             />
           </View>
 
-          {/* ── 3. Role ───────────────────────────────────────────────────── */}
-          <Text style={styles.sectionLabel}>
-            {t('partnerships.invite.roleLabel')} <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.hint}>{t('partnerships.invite.roleHint')}</Text>
-          <View style={styles.roleChipRow}>
-            {ROLES.map((r) => {
-              const selected = role === r;
-              const rc = roleColor(r);
-              return (
-                <TouchableOpacity
-                  key={r}
-                  onPress={() => onSelectRole(r)}
-                  activeOpacity={0.85}
-                  style={[
-                    styles.roleChip,
-                    selected && {
-                      backgroundColor: rc + '1F',
-                      borderColor: rc,
-                    },
-                  ]}
-                >
-                  <Stethoscope
-                    size={rs(12)}
-                    color={selected ? rc : colors.textDim}
-                    strokeWidth={2}
-                  />
-                  <Text
-                    style={[
-                      styles.roleChipText,
-                      selected && { color: rc },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t(`roles.${r}`, { defaultValue: r })}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* ── 4. Finance toggle ────────────────────────────────────────── */}
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleIconWrap}>
-              <Wallet
-                size={rs(18)}
-                color={financeEnabled ? colors.click : colors.textDim}
-                strokeWidth={1.8}
-              />
-            </View>
-            <View style={styles.toggleTextWrap}>
-              <Text style={[
-                styles.toggleLabel,
-                !financeEnabled && { color: colors.textDim },
-              ]}>
-                {t('partnerships.invite.financesLabel')}
-              </Text>
-              <Text style={styles.toggleHint}>
-                {financeEnabled
-                  ? t('partnerships.invite.financesHint')
-                  : t('partnerships.invite.financesDisabled')}
-              </Text>
-            </View>
-            <Switch
-              value={canSeeFinances && financeEnabled}
-              onValueChange={setCanSeeFinances}
-              disabled={!financeEnabled}
-              trackColor={{ false: colors.border, true: colors.click + '66' }}
-              thumbColor={canSeeFinances && financeEnabled ? colors.click : colors.textDim}
-            />
-          </View>
-
-          {/* ── 5. Scope notes ────────────────────────────────────────────── */}
-          <Text style={styles.sectionLabel}>{t('partnerships.invite.scopeLabel')}</Text>
-          <Text style={styles.hint}>{t('partnerships.invite.scopeHint')}</Text>
+          {/* ── 3. Tipo de profissional ──────────────────────────────────── */}
+          <Text style={styles.sectionLabel}>{t('partnerships.invite.roleLabel')}</Text>
           <View style={styles.field}>
-            <Input
-              placeholder={t('partnerships.invite.scopePlaceholder')}
-              value={scopeNotes}
-              onChangeText={setScopeNotes}
-              multiline
+            <Select<AccessRole>
+              value={role}
+              options={roleOptions as SelectOption<AccessRole>[]}
+              onChange={(r) => setRole(r)}
+              placeholder={t('partnerships.invite.roleLabel')}
+              sheetTitle={t('partnerships.invite.roleLabel')}
             />
           </View>
 
-          {/* ── 6. Expires ────────────────────────────────────────────────── */}
-          <Text style={styles.sectionLabel}>
-            {t('partnerships.invite.expiresLabel')} <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.hint}>{t('partnerships.invite.expiresHint')}</Text>
-          <View style={styles.expiresRow}>
-            {EXPIRES_OPTIONS.map((n) => {
-              const selected = expiresDays === n;
-              return (
-                <TouchableOpacity
-                  key={n}
-                  onPress={() => setExpiresDays(n)}
-                  activeOpacity={0.85}
-                  style={[styles.expiresChip, selected && styles.expiresChipSelected]}
-                >
-                  <Clock
-                    size={rs(12)}
-                    color={selected ? colors.click : colors.textDim}
-                    strokeWidth={2}
-                  />
-                  <Text
-                    style={[
-                      styles.expiresChipText,
-                      selected && { color: colors.click },
-                    ]}
-                  >
-                    {n === 1
-                      ? t('partnerships.invite.expiresDay', { count: n })
-                      : t('partnerships.invite.expiresDays', { count: n })}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+          {/* ── Linha de responsabilidade do tutor ───────────────────────── */}
+          <View style={styles.privacyNote}>
+            <Text style={styles.privacyNoteText}>
+              {t('partnerships.invite.tutorResponsibility', {
+                defaultValue: 'A indicação é sua responsabilidade. O profissional só vê o pet que você indicou — não pode alterar nem excluir nada que você registrou.',
+              })}
+            </Text>
           </View>
-
-          {/* ── Summary preview ───────────────────────────────────────────── */}
-          {selectedPet && role ? (
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryLabel}>
-                {t('partnerships.invite.summaryLabel')}
-              </Text>
-              <Text style={styles.summaryText}>
-                {t('partnerships.invite.summaryText', {
-                  pet: selectedPet.name,
-                  role: t(`roles.${role}`, { defaultValue: role }),
-                  days: expiresDays,
-                })}
-              </Text>
-            </View>
-          ) : null}
 
           {/* ── Submit ───────────────────────────────────────────────────── */}
           <View style={styles.submitWrap}>
@@ -442,9 +332,7 @@ export default function PartnershipInviteScreen() {
             />
             {!isOnline ? (
               <Text style={styles.offlineNote}>{t('partnerships.errors.offline')}</Text>
-            ) : (
-              <Text style={styles.disclaimer}>{t('partnerships.invite.disclaimer')}</Text>
-            )}
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -513,6 +401,22 @@ const styles = StyleSheet.create({
     marginBottom: rs(spacing.sm),
   },
   field: { marginBottom: rs(spacing.xs) },
+  privacyNote: {
+    backgroundColor: colors.bgCard,
+    borderRadius: rs(radii.md),
+    borderLeftWidth: rs(3),
+    borderLeftColor: colors.click,
+    paddingHorizontal: rs(spacing.md),
+    paddingVertical: rs(spacing.sm),
+    marginTop: rs(spacing.sm),
+    marginBottom: rs(spacing.md),
+  },
+  privacyNoteText: {
+    fontFamily: 'Sora_400Regular',
+    fontSize: fs(12),
+    color: colors.textSec,
+    lineHeight: fs(18),
+  },
 
   // Pet picker
   petChipRow: {

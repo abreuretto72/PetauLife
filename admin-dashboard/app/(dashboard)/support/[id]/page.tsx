@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtDate } from '@/lib/utils';
 import { type AdminSupportMessages } from '@/lib/types';
 import { ConversationView } from './conversation-view';
@@ -19,7 +20,7 @@ export default async function SupportDetailPage({
     p_conversation_id: id,
   });
 
-  if (error) return <div className="text-danger">Erro: {error.message}</div>;
+  if (error) return <PageError pagePath={`/support/${id}`} techMessage={error.message} />;
 
   const d = data as AdminSupportMessages;
   if (!d?.conversation) {

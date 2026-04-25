@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtNum, fmtUSD, fmtPercent, fmtLatency } from '@/lib/utils';
 import { FUNCTION_LABELS, type AdminAiBreakdown } from '@/lib/types';
 
@@ -6,9 +7,7 @@ export default async function AiCostsPage() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_admin_ai_breakdown');
 
-  if (error) {
-    return <div className="text-danger">Erro: {error.message}</div>;
-  }
+  if (error) return <PageError pagePath="/ai-costs" techMessage={error.message} />;
 
   const d = data as AdminAiBreakdown;
 

@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtUSD } from '@/lib/utils';
 import {
   CATEGORY_LABELS,
@@ -23,9 +24,7 @@ export default async function CostsPage() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_admin_total_costs');
 
-  if (error) {
-    return <div className="text-danger">Erro: {error.message}</div>;
-  }
+  if (error) return <PageError pagePath="/costs" techMessage={error.message} />;
 
   const d = data as AdminTotalCosts;
 

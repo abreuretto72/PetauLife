@@ -331,6 +331,7 @@ export default function ProntuarioScreen() {
     const errMsg = isError
       ? ((error as any)?.message ?? (error as any)?.context?.message ?? String(error))
       : 'prontuario null after load';
+    // Log técnico só pro dev — nunca aparece pro tutor.
     console.error('[ProntuarioScreen] ERROR STATE | pet:', id?.slice(-8), '| err:', errMsg);
     return (
       <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
@@ -344,13 +345,16 @@ export default function ProntuarioScreen() {
           </TouchableOpacity>
         </View>
         <View style={s.loadingCenter}>
-          <XCircle size={rs(40)} color={colors.danger} strokeWidth={1.5} />
+          {/* Ícone calmo (não vermelho-fogo). Tutor não precisa ver alarme. */}
+          <RefreshCw size={rs(36)} color={colors.click} strokeWidth={1.5} />
           <Text style={s.loadingTitle}>{t('prontuario.errorTitle')}</Text>
           <Text style={s.loadingSubtitle}>{t('prontuario.errorSubtitle')}</Text>
-          {/* DEBUG — remover após diagnóstico */}
-          <Text style={{ color: colors.danger, fontSize: fs(10), marginTop: rs(8), textAlign: 'center', paddingHorizontal: rs(16) }} numberOfLines={4}>
-            {errMsg}
-          </Text>
+          {/* Stack técnica só em DEV — nunca em prod (regra Elite UX). */}
+          {__DEV__ ? (
+            <Text style={{ color: colors.danger, fontSize: fs(10), marginTop: rs(8), textAlign: 'center', paddingHorizontal: rs(16) }} numberOfLines={4}>
+              [DEV] {errMsg}
+            </Text>
+          ) : null}
           <TouchableOpacity style={s.retryBtn} onPress={() => refetch()} activeOpacity={0.8}>
             <RefreshCw size={rs(16)} color={colors.click} strokeWidth={1.8} />
             <Text style={s.retryText}>{t('prontuario.retry')}</Text>

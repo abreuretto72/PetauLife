@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtDate, fmtNum, fmtUSD } from '@/lib/utils';
 import type { AdminUsersList } from '@/lib/types';
 
@@ -18,9 +19,7 @@ export default async function UsersPage({ searchParams }: Props) {
     p_per_page: 20,
   });
 
-  if (error) {
-    return <div className="text-danger">Erro: {error.message}</div>;
-  }
+  if (error) return <PageError pagePath="/users" techMessage={error.message} />;
 
   const d = data as AdminUsersList;
 

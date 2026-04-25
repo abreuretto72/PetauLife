@@ -84,7 +84,7 @@ export default function UserStatsScreen() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const months = useMemo(() => getLastNMonths(12, i18n.language || 'pt-BR'), []);
 
-  const { data, isLoading, isError, error, refetch, isRefetching } =
+  const { data, isLoading, refetch, isRefetching } =
     useUserStats({ year, month });
 
   const currentLabel = useMemo(() => {
@@ -167,15 +167,12 @@ export default function UserStatsScreen() {
           </View>
         )}
 
-        {/* Estados: loading / error / data */}
-        {isLoading ? (
+        {/* Estados: loading inicial → spinner; data → render.
+            Erro de carregamento NÃO bloqueia a tela com mensagem técnica;
+            o pull-to-refresh cobre retry. Regra de UX (memória 2026-04-25). */}
+        {isLoading && !data ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={colors.ai} />
-          </View>
-        ) : isError ? (
-          <View style={styles.centered}>
-            <Text style={styles.errorText}>{t('stats.errorTitle')}</Text>
-            <Text style={styles.errorHint}>{error?.message}</Text>
           </View>
         ) : data ? (
           <>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtDate, fmtNum } from '@/lib/utils';
 import {
   type AdminSupportConversations,
@@ -42,7 +43,7 @@ export default async function SupportPage({
     p_per_page:       30,
   });
 
-  if (error) return <div className="text-danger">Erro: {error.message}</div>;
+  if (error) return <PageError pagePath="/support" techMessage={error.message} />;
 
   const d = data as AdminSupportConversations;
 

@@ -8,7 +8,13 @@
     "inputPlaceholder": "Ask your question about the app…",
     "sendFailed": "Could not send right now. Check your connection and try again.",
     "welcomeTitle": "How can I help?",
-    "welcomeBody": "The AI answers questions about auExpert — features, navigation, known issues. For pet health questions, use the assistant inside the pet profile."
+    "welcomeBody": "The AI answers questions about auExpert — features, navigation, known issues. For pet health questions, use the assistant inside the pet profile.",
+    "pdfTitle": "Support conversation",
+    "pdfSubtitle": "{{count}} messages",
+    "pdfIntro": "Complete record of the tutor's support conversation with the auExpert team (AI + human).",
+    "pdfSenderTutor": "You",
+    "pdfSenderAi": "AI assistant",
+    "pdfSenderAdmin": "Human team"
   },
   "common": {
     "save": "Save",
@@ -2575,7 +2581,9 @@
       "summaryLabel": "Summary",
       "summaryText": "{{pet}} will have {{role}} as responsible professional for {{days}} days.",
       "submit": "Send invite",
-      "disclaimer": "The professional will receive a unique link to accept. You can cancel anytime before they accept."
+      "disclaimer": "The professional will receive a unique link to accept. You can cancel anytime before they accept.",
+      "privacyNote": "Professionals never access your finances. They only see the clinical and behavioral data you share — and they can only edit what they record themselves.",
+      "tutorResponsibility": "The invite is your responsibility. The professional only sees the pet you indicated — they can't change or delete anything you registered."
     }
   },
   "tagline": "A unique intelligence for your pet",

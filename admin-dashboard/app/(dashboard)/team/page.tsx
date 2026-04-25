@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtDate } from '@/lib/utils';
 import { ADMIN_ROLE_LABELS, type AdminTeamList } from '@/lib/types';
 import { TeamManager } from './team-manager';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export default async function TeamPage() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc('get_admin_team_list');
-  if (error) return <div className="text-danger">Erro: {error.message}</div>;
+  if (error) return <PageError pagePath="/team" techMessage={error.message} />;
 
   const d = data as AdminTeamList;
 

@@ -26,6 +26,7 @@
 import { useQuery, useMutation, useQueryClient, onlineManager } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
+import { useReportQueryError } from './useReportQueryError';
 import type {
   AccessRole,
   AccessInviteStatus,
@@ -201,6 +202,13 @@ export function useMyInvites() {
     staleTime: 60 * 1000, // 1min — convites têm estado mais volátil que patients
   });
 
+  // Auto-report silencioso pro admin/errors quando query falha
+  useReportQueryError(query, {
+    section: 'partnerships',
+    queryKey: 'my-invites',
+    route: '/partnerships',
+  });
+
   return {
     invites: query.data ?? [],
     count: query.data?.length ?? 0,
@@ -283,6 +291,12 @@ export function useMyGrants() {
     },
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // 2min — grants mudam pouco
+  });
+
+  useReportQueryError(query, {
+    section: 'partnerships',
+    queryKey: 'my-grants',
+    route: '/partnerships',
   });
 
   return {

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { PageError } from '@/components/page-error';
 import { fmtDate, fmtLatency, fmtNum } from '@/lib/utils';
 import {
   ERROR_LABELS,
@@ -65,10 +66,10 @@ export default async function ErrorsPage({
   ]);
 
   if (aiRpc.error) {
-    return <div className="text-danger">Erro AI breakdown: {aiRpc.error.message}</div>;
+    return <PageError pagePath="/errors" techMessage={`AI: ${aiRpc.error.message}`} />;
   }
   if (appRpc.error) {
-    return <div className="text-danger">Erro app errors: {appRpc.error.message}</div>;
+    return <PageError pagePath="/errors" techMessage={`App: ${appRpc.error.message}`} />;
   }
 
   const ai  = aiRpc.data as AdminAiBreakdown;

@@ -59,7 +59,15 @@ interface TutorProfile {
   xp: number;
   level: number;
   created_at: string | null;
+  /**
+   * Papel do user logado.
+   * 'tutor_owner' e 'admin' podem cadastrar pets; profissionais não.
+   */
+  role: string | null;
 }
+
+/** Roles autorizados a criar pets (regra de negócio 2026-04-25). */
+const ROLES_CAN_ADD_PET = new Set(['tutor_owner', 'admin']);
 
 export default function HubScreen() {
   const { t, i18n } = useTranslation();
@@ -117,7 +125,7 @@ export default function HubScreen() {
       // Perfil
       const { data } = await supabase
         .from('users')
-        .select('full_name, avatar_url, city, state, xp, level, created_at')
+        .select('full_name, avatar_url, city, state, xp, level, created_at, role')
         .eq('id', userId)
         .single();
       if (data) {
@@ -402,6 +410,8 @@ export default function HubScreen() {
           density={petListDensity}
           onToggleDensity={handleToggleDensity}
           onAddPet={handleAddPet}
+          // Profissionais não podem cadastrar pets — só veem os delegados
+          canAddPet={ROLES_CAN_ADD_PET.has(tutorProfile?.role ?? 'tutor_owner')}
           query={query}
           onChangeQuery={setQuery}
           recent={recent}
