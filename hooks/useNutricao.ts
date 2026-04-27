@@ -462,6 +462,10 @@ export function useNutricao(petId: string) {
     onSuccess: (cardapio) => {
       console.log('[cardapio] regenerar onSuccess — days:', cardapio.days?.length, 'isFallback:', cardapio.is_fallback ?? false, 'generatedAt:', cardapio.generated_at);
       qc.setQueryData(cardapioKey(petId), cardapio);
+      // Invalida o histórico — a EF salva uma row nova em nutrition_cardapio_history
+      // a cada regeneração com sucesso (when !fallback). Sem isso, o tutor abre o
+      // histórico e vê dados em cache antigos sem o cardápio recém-gerado.
+      qc.invalidateQueries({ queryKey: cardapioHistoryKey(petId) });
     },
     onError: (err) => {
       console.error('[cardapio] regenerar onError:', err);

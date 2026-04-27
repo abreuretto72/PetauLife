@@ -1,12 +1,12 @@
 /**
  * nutrition/cardapio-history.tsx — Histórico de cardápios gerados por IA
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft, ChevronRight, History, Utensils, FileText, RefreshCw,
@@ -43,6 +43,15 @@ export default function CardapioHistoryScreen() {
   } = useNutricao(petId ?? '');
 
   const [exportingId, setExportingId] = useState<string | null>(null);
+
+  // Toda vez que o tutor entra/volta pra essa tela, refetch — garante que
+  // cardápios recém-gerados em outra tela apareçam. Defesa em profundidade
+  // junto com o invalidate do regenerarMutation no useNutricao.
+  useFocusEffect(
+    useCallback(() => {
+      refetchCardapioHistory();
+    }, [refetchCardapioHistory]),
+  );
 
   const handleExportPdf = async (item: CardapioHistoryItem) => {
     if (exportingId) return;
