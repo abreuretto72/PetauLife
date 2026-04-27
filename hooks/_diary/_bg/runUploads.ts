@@ -125,10 +125,15 @@ export async function runUploads(opts: {
         const paths = await Promise.all(
           photoUris.map(async (uri) => {
             try {
+              // 1568px / 88% — segunda passada da DUPLA compressão (a 1ª foi em
+              // components/diary/new/compressPhoto.ts no momento da seleção).
+              // 78% gerava blocos JPEG visíveis em pelagem de Shih Tzu/Pug;
+              // 88% preserva textura fina mantendo arquivo razoável (~150-300KB).
+              // Padrão Elite > economia de bytes.
               const comp = await ImageManipulator.manipulateAsync(
                 uri,
-                [{ resize: { width: 1200 } }],
-                { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG },
+                [{ resize: { width: 1568 } }],
+                { compress: 0.88, format: ImageManipulator.SaveFormat.JPEG },
               );
               return uploadPetMedia(userId, petId, comp.uri, 'photo');
             } catch {

@@ -38,15 +38,17 @@ export default function PhotoCamera({ onCapture, onClose }: PhotoCameraProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const cameraRef = useRef<CameraView>(null);
 
-  // ── Compress to 1200px / 78% JPEG (matches compressPhoto in new.tsx) ──────
+  // ── Compress to 1568px / 88% JPEG (matches compressPhoto in diary/new) ────
+  // Padrão Elite: 1568 = recomendação Anthropic Vision; 88% preserva textura
+  // fina (pelagem) mesmo após dupla compressão (captura + upload).
   const compress = useCallback(async (uri: string): Promise<string> => {
     console.log('[PHOTOCAM] compress start | uri suffix:', uri?.slice(-40));
     try {
       const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
       const result = await manipulateAsync(
         uri,
-        [{ resize: { width: 1200 } }],
-        { compress: 0.78, format: SaveFormat.JPEG },
+        [{ resize: { width: 1568 } }],
+        { compress: 0.88, format: SaveFormat.JPEG },
       );
       console.log('[PHOTOCAM] compress done | result suffix:', result.uri?.slice(-40));
       return result.uri;

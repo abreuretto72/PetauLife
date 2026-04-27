@@ -1,14 +1,19 @@
 /**
- * compressPhoto — standalone helper extracted verbatim from
- * app/(app)/pet/[id]/diary/new.tsx.
+ * compressPhoto — comprime foto antes da validação de tamanho.
  *
- * Move-only extraction. Same ImageManipulator params (1200px / 78% JPEG),
- * same fallback on error. Previously wrapped in `useCallback(..., [])` —
- * converted to a plain async function since it has no captured state
- * (semantically identical to a stable-reference callback).
+ * Parâmetros: 1568px / 88% JPEG.
  *
- * Compresses a photo to 1200px/78% quality BEFORE size validation.
- * Returns compressed URI + estimated size. Falls back to original on error.
+ * Por que esses números (atualizado 2026-04-27):
+ *  - 1568px: recomendação oficial da Anthropic Vision API. Não há ganho de
+ *    qualidade visual além disso e a API não cobra a mais.
+ *  - 88% quality: subida de 78%→88% pra preservar detalhes finos como pelagem
+ *    de cães braquicefálicos (Shih Tzu, Pug) onde 78% gerava blocos JPEG
+ *    visíveis. A foto passa por DUPLA compressão (aqui na seleção +
+ *    runUploads.ts ao subir pro storage), então cada passada precisa preservar
+ *    margem suficiente. O custo extra de tamanho é insignificante (~30%) frente
+ *    ao ganho perceptivo. Elite > economia de bytes.
+ *
+ * Fallback: se ImageManipulator falhar, retorna o URI original.
  */
 
 export async function compressPhoto(uri: string): Promise<{ uri: string; size?: number }> {
@@ -16,11 +21,9 @@ export async function compressPhoto(uri: string): Promise<{ uri: string; size?: 
     const ImageManipulator = require('expo-image-manipulator');
     const result = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 1200 } }],
-      { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG },
+      [{ resize: { width: 1568 } }],
+      { compress: 0.88, format: ImageManipulator.SaveFormat.JPEG },
     );
-    // After 1200px / 78% compression the result is always well under 5 MB —
-    // no need to re-read the file size from disk.
     return { uri: result.uri };
   } catch {
     return { uri };
