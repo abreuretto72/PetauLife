@@ -52,6 +52,11 @@ interface DomainConfig {
   table: string;
   buildText: (row: Record<string, unknown>) => string;
   sourceIdField?: string;  // campo que linka registro original (default: 'id')
+  /**
+   * Filtro de "row ativa". Default = is_active=true. Tabelas clínicas
+   * (prontuarios, receituarios, atestados_saude, etc.) usam is_deleted=false.
+   */
+  activeFilter?: { column: string; value: boolean };
 }
 
 const DOMAINS: Record<string, DomainConfig> = {
@@ -270,6 +275,177 @@ const DOMAINS: Record<string, DomainConfig> = {
       return parts.join('\n');
     },
   },
+
+  // ── Domínios clínicos (saída dos 7 agentes IA do vet) ──────────────────────
+  // Importance calibrada por relevância clínica:
+  //   notificacao 0.95 (saúde pública)
+  //   prontuario  0.9  (núcleo clínico CFMV)
+  //   receituario 0.85 (medicações ativas)
+  //   relatorio_alta 0.75 (instruções pós-consulta)
+  //   anamnese    0.7  (briefing pré-consulta)
+  //   asa         0.7  (atestado de saúde)
+  //   tci         0.5  (consentimento — administrativo)
+
+  prontuario: {
+    category: 'prontuario',
+    importance: 0.9,
+    table: 'prontuarios',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Prontuário Veterinário]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.chief_complaint) parts.push(`Queixa principal: ${r.chief_complaint}`);
+      if (r.history) parts.push(`Histórico: ${String(r.history).slice(0, 800)}`);
+      if (r.current_medications) parts.push(`Medicações em uso: ${String(r.current_medications).slice(0, 400)}`);
+      if (r.weight_kg) parts.push(`Peso: ${r.weight_kg} kg`);
+      if (r.temperature_c) parts.push(`Temperatura: ${r.temperature_c} °C`);
+      if (r.heart_rate) parts.push(`FC: ${r.heart_rate} bpm`);
+      if (r.respiratory_rate) parts.push(`FR: ${r.respiratory_rate} mpm`);
+      if (r.physical_exam_notes) parts.push(`Exame físico: ${String(r.physical_exam_notes).slice(0, 800)}`);
+      if (Array.isArray(r.diagnoses) && (r.diagnoses as unknown[]).length > 0) {
+        parts.push(`Diagnósticos: ${(r.diagnoses as string[]).join(' | ')}`);
+      }
+      if (r.treatment_plan) parts.push(`Plano de tratamento: ${String(r.treatment_plan).slice(0, 800)}`);
+      if (r.prognosis) parts.push(`Prognóstico: ${r.prognosis}`);
+      if (r.follow_up_days) parts.push(`Retorno em ${r.follow_up_days} dias`);
+      if (r.signed_at) parts.push('Documento assinado: sim');
+      return parts.join('\n');
+    },
+  },
+
+  receituario: {
+    category: 'receituario',
+    importance: 0.85,
+    table: 'receituarios',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Receituário]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.prescription_type) parts.push(`Tipo: ${r.prescription_type}`);
+      if (r.clinical_indication) parts.push(`Indicação: ${r.clinical_indication}`);
+      if (Array.isArray(r.items) && (r.items as unknown[]).length > 0) {
+        const meds = (r.items as Record<string, unknown>[]).map((m) => {
+          const fields = [m.name, m.dose, m.frequency, m.duration].filter(Boolean).join(' · ');
+          return fields;
+        }).join(' | ');
+        parts.push(`Medicações: ${meds}`);
+      }
+      if (r.observations) parts.push(`Observações: ${r.observations}`);
+      if (r.valid_days) parts.push(`Validade: ${r.valid_days} dias`);
+      if (r.signed_at) parts.push('Receita assinada: sim');
+      return parts.join('\n');
+    },
+  },
+
+  atestado_saude: {
+    category: 'atestado_saude',
+    importance: 0.7,
+    table: 'atestados_saude',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Atestado de Saúde — ASA]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.purpose) parts.push(`Finalidade: ${r.purpose}`);
+      if (r.destination) parts.push(`Destino: ${r.destination}`);
+      if (r.transport_company) parts.push(`Transporte: ${r.transport_company}`);
+      parts.push(`Vacinas em dia: ${r.vaccines_up_to_date ? 'sim' : 'não'}`);
+      parts.push(`Controle parasitas OK: ${r.parasite_control_ok ? 'sim' : 'não'}`);
+      parts.push(`Apto pra viagem: ${r.fit_for_travel ? 'sim' : 'não'}`);
+      if (r.clinical_findings) parts.push(`Achados clínicos: ${String(r.clinical_findings).slice(0, 500)}`);
+      if (r.observations) parts.push(`Observações: ${r.observations}`);
+      if (r.valid_until) parts.push(`Válido até: ${String(r.valid_until).slice(0, 10)}`);
+      return parts.join('\n');
+    },
+  },
+
+  tci: {
+    category: 'tci',
+    importance: 0.5,
+    table: 'termos_consentimento',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Termo de Consentimento — TCI]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.procedure_type) parts.push(`Procedimento: ${r.procedure_type}`);
+      if (r.procedure_description) parts.push(`Descrição: ${String(r.procedure_description).slice(0, 600)}`);
+      if (r.risks_described) parts.push(`Riscos descritos: ${String(r.risks_described).slice(0, 500)}`);
+      if (r.alternatives_described) parts.push(`Alternativas: ${String(r.alternatives_described).slice(0, 400)}`);
+      if (r.tutor_signed_at && r.professional_signed_at) parts.push('Status: assinado por ambos');
+      else if (r.professional_signed_at) parts.push('Status: aguardando tutor');
+      else parts.push('Status: rascunho');
+      return parts.join('\n');
+    },
+  },
+
+  notificacao_sanitaria: {
+    category: 'notificacao_sanitaria',
+    importance: 0.95,
+    table: 'notificacoes_sanitarias',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Notificação Sanitária — doença suspeita]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.disease_name) parts.push(`Doença: ${r.disease_name}`);
+      if (r.cid_code) parts.push(`CID: ${r.cid_code}`);
+      if (r.suspicion_level) parts.push(`Nível de suspeita: ${r.suspicion_level}`);
+      if (r.notified_agency) parts.push(`Agência: ${r.notified_agency}`);
+      if (r.protocol_number) parts.push(`Protocolo: ${r.protocol_number}`);
+      if (r.observations) parts.push(`Observações: ${String(r.observations).slice(0, 800)}`);
+      if (r.notified_at) parts.push(`Notificada em: ${String(r.notified_at).slice(0, 10)}`);
+      else parts.push('Status: pendente de notificação à autoridade');
+      return parts.join('\n');
+    },
+  },
+
+  anamnese: {
+    category: 'anamnese',
+    importance: 0.7,
+    table: 'anamneses',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Anamnese — briefing pré-consulta]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.pet_summary) parts.push(`Resumo: ${String(r.pet_summary).slice(0, 800)}`);
+      if (r.vaccines_status) parts.push(`Vacinas: ${r.vaccines_status}`);
+      if (r.weight_trend) parts.push(`Tendência peso: ${r.weight_trend}`);
+      if (Array.isArray(r.recent_symptoms) && (r.recent_symptoms as unknown[]).length > 0) {
+        parts.push(`Sintomas recentes: ${(r.recent_symptoms as string[]).join(' | ')}`);
+      }
+      if (Array.isArray(r.alerts) && (r.alerts as unknown[]).length > 0) {
+        parts.push(`Alertas: ${(r.alerts as string[]).join(' | ')}`);
+      }
+      if (Array.isArray(r.recent_consultations)) {
+        const cons = (r.recent_consultations as Record<string, unknown>[]).slice(0, 5)
+          .map((c) => `${c.date} ${c.type}: ${c.summary}`).join(' | ');
+        if (cons) parts.push(`Consultas recentes: ${cons.slice(0, 800)}`);
+      }
+      return parts.join('\n');
+    },
+  },
+
+  relatorio_alta: {
+    category: 'relatorio_alta',
+    importance: 0.75,
+    table: 'relatorios_alta',
+    activeFilter: { column: 'is_deleted', value: false },
+    buildText: (r) => {
+      const parts = ['[Relatório de Alta]'];
+      if (r.created_at) parts.push(`Data: ${String(r.created_at).slice(0, 10)}`);
+      if (r.diagnosis_summary) parts.push(`Diagnóstico: ${String(r.diagnosis_summary).slice(0, 600)}`);
+      if (Array.isArray(r.treatment_received) && (r.treatment_received as unknown[]).length > 0) {
+        parts.push(`Tratamento aplicado: ${(r.treatment_received as string[]).join(' | ').slice(0, 600)}`);
+      }
+      if (Array.isArray(r.home_care) && (r.home_care as unknown[]).length > 0) {
+        parts.push(`Cuidados em casa: ${(r.home_care as string[]).join(' | ').slice(0, 600)}`);
+      }
+      if (r.follow_up_schedule) parts.push(`Retorno: ${r.follow_up_schedule}`);
+      if (Array.isArray(r.red_flags) && (r.red_flags as unknown[]).length > 0) {
+        parts.push(`Sinais de alerta: ${(r.red_flags as string[]).join(' | ').slice(0, 500)}`);
+      }
+      if (r.contact_instructions) parts.push(`Contato: ${r.contact_instructions}`);
+      return parts.join('\n');
+    },
+  },
 };
 
 /**
@@ -355,12 +531,14 @@ Deno.serve(async (req: Request) => {
     for (const [domainKey, cfg] of domainsToProcess) {
       summary[domainKey] = { total: 0, processed: 0, failed: 0 };
 
-      // Lê todos os registros ativos do domínio pra esse pet
+      // Lê todos os registros ativos do domínio pra esse pet.
+      // Filtro padrão = is_active=true; clínicas usam is_deleted=false.
+      const filter = cfg.activeFilter ?? { column: 'is_active', value: true };
       const { data: rows, error } = await sb
         .from(cfg.table)
         .select('*')
         .eq('pet_id', petId)
-        .eq('is_active', true);
+        .eq(filter.column, filter.value);
 
       if (error) {
         console.warn(`[reembed-pet-multi] ${cfg.table} query err:`, error.message);

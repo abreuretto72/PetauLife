@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, Pill, Plus, X, Shield, ShieldAlert,
+  ChevronLeft, Sparkles, AlertTriangle, Pill, Plus, X, Shield, ShieldAlert, History,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -20,6 +20,7 @@ import { useToast } from '../../../../components/Toast';
 import { useProAgent, type ReceituarioResponse } from '../../../../hooks/useProAgent';
 import { SignDocumentButton } from '../../../../components/professional/SignDocumentButton';
 import { AgentVoiceInput } from '../../../../components/professional/AgentVoiceInput';
+import { AgentHistorySheet, RECEITUARIO_HISTORY } from '../../../../components/professional/AgentHistorySheet';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 interface ItemDraft {
@@ -51,6 +52,7 @@ export default function ReceituarioAgentScreen() {
   const [indication, setIndication] = useState('');
   const [validDays, setValidDays] = useState('30');
   const [result, setResult] = useState<ReceituarioResponse | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const addItem = () => setItems([...items, { ...EMPTY_ITEM }]);
   const removeItem = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -108,8 +110,21 @@ export default function ReceituarioAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.receituario.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={RECEITUARIO_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

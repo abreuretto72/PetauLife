@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, ShieldCheck, Bug, Plane, FileCheck2,
+  ChevronLeft, Sparkles, AlertTriangle, ShieldCheck, Bug, Plane, FileCheck2, History,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -20,6 +20,7 @@ import { useToast } from '../../../../components/Toast';
 import { useProAgent, type AsaResponse } from '../../../../hooks/useProAgent';
 import { SignDocumentButton } from '../../../../components/professional/SignDocumentButton';
 import { AgentVoiceInput } from '../../../../components/professional/AgentVoiceInput';
+import { AgentHistorySheet, ASA_HISTORY } from '../../../../components/professional/AgentHistorySheet';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 export default function AsaAgentScreen() {
@@ -36,6 +37,7 @@ export default function AsaAgentScreen() {
   const [destination, setDestination] = useState('');
   const [transport, setTransport] = useState('');
   const [result, setResult] = useState<AsaResponse | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!petId) {
@@ -78,8 +80,21 @@ export default function AsaAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.asa.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={ASA_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

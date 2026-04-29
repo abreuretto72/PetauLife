@@ -158,7 +158,7 @@ const PlanCard = React.memo(function PlanCard({ plan }: { plan: PetPlan }) {
         <View style={styles.planFooter}>
           {plan.monthly_cost != null && (
             <Text style={styles.planCost}>
-              {formatCurrency(plan.monthly_cost, plan.currency)}{t('plans.perMonth')}
+              {formatCurrency(plan.monthly_cost, 'BRL')}{t('plans.perMonth')}
             </Text>
           )}
           {plan.renewal_date && (
@@ -231,7 +231,8 @@ export function PlansLensContent({ petId }: PlansLensContentProps) {
   const { plans = [], summary } = data ?? { plans: [], summary: { active_count: 0, total_monthly_cost: 0, total_reimbursed: 0, next_renewal_date: null } };
   const activePlans = plans.filter((p) => p.status === 'active');
   const expiredPlans = plans.filter((p) => p.status !== 'active');
-  const primaryCurrency = activePlans[0]?.currency ?? 'BRL';
+  // pet_plans não tem coluna currency — assumimos BRL (mercado brasileiro)
+  const primaryCurrency = 'BRL';
 
   return (
     <View>

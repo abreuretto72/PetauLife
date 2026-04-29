@@ -72,6 +72,35 @@ function isMonetaryKey(key: string): boolean {
   return ['valor', 'total', 'preço', 'preco', 'price', 'amount', 'subtotal', 'desconto', 'frete'].some((w) => k.includes(w));
 }
 
+// Detecta chaves que tipicamente carregam datas (ex: "Vacina 1 - Data",
+// "Repetir em", "Validade", "Issue Date"). Vacina/receita/exame escaneados
+// trazem dezenas dessas — sem formatar, o tutor em pt-BR vê 2023-07-18 (ISO).
+function isDateKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return [
+    'data', 'date', 'repetir em', 'repetir', 'vence', 'valid', 'expira',
+    'emissão', 'emissao', 'fabricação', 'fabricacao', 'validade', 'aplicação',
+    'aplicacao', 'aplicada em', 'próxima', 'proxima', 'due', 'expires', 'issued',
+  ].some((w) => k.includes(w));
+}
+
+// Constrói Date em horário local (não UTC) — evita o bug clássico de
+// `new Date("2023-07-18")` virar 17/07 em UTC-3. Memória do projeto.
+function parseIsoDateLocal(iso: string): Date | null {
+  const m = String(iso ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const dt = new Date(Number(y), Number(mo) - 1, Number(d));
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function formatDateValue(value: string | null | undefined, lang: string): string {
+  if (!value) return '';
+  const dt = parseIsoDateLocal(String(value));
+  if (!dt) return String(value); // não é ISO, devolve cru (texto livre, n/d, etc)
+  return dt.toLocaleDateString(lang, { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 function parseMonetaryValue(value: string): number | null {
   // Strip known currency symbols and non-numeric prefixes
   const s = String(value ?? '').replace(/R\$|[$€£¥₹]/g, '').trim();
@@ -360,7 +389,11 @@ export function OCRSubcard({
                   isMonetaryKey(field.key) && isFinancial && { color: colors.click, fontFamily: 'JetBrainsMono_700Bold' },
                 ]}
               >
-                {isMonetaryKey(field.key) && isFinancial ? formatBRCurrency(field.value) : field.value}
+                {isMonetaryKey(field.key) && isFinancial
+                  ? formatBRCurrency(field.value)
+                  : isDateKey(field.key)
+                    ? formatDateValue(field.value, i18n.language)
+                    : field.value}
                 {field.confidence != null && field.confidence < 0.5 ? ' ?' : ''}
               </Text>
             )}

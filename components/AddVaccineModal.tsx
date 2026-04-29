@@ -37,6 +37,8 @@ import { colors } from '../constants/colors';
 import { radii, spacing } from '../constants/spacing';
 import { Input } from './ui/Input';
 import { useToast } from './Toast';
+import { usePets } from '../hooks/usePets';
+import { confirmDocPetMatch } from '../utils/confirmDocPetMatch';
 import { getErrorMessage } from '../utils/errorMessages';
 import { supabase } from '../lib/supabase';
 import { withTimeout } from '../lib/withTimeout';
@@ -58,6 +60,10 @@ export interface VaccineData {
 }
 
 interface OcrVaccineResult {
+  // Identificacao do paciente extraida pelo OCR (compara com pet ativo)
+  detected_pet_name?: string | null;
+  detected_species?: 'dog' | 'cat' | 'other' | null;
+  // Dados da vacina
   name?: string;
   laboratory?: string;
   batch_number?: string;
@@ -116,8 +122,12 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
   isSubmitting = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const insets = useSafeAreaInsets();
+  const { pets } = usePets();
+  const activePet = pets.find((p) => p.id === petId);
+  const activePetName = activePet?.name ?? '';
+  const otherPets = pets.filter((p) => p.id !== petId).map((p) => ({ id: p.id, name: p.name }));
 
   // Step: 0 = choose method, 1 = form
   const [step, setStep] = useState<Step>(0);
@@ -235,6 +245,21 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
       if (error) throw error;
 
       const result = data as OcrVaccineResult;
+
+      // Verifica se o documento parece ser de outro pet — se sim, pergunta
+      // ao tutor se quer continuar antes de aplicar os dados.
+      const proceed = await confirmDocPetMatch({
+        detected: result.detected_pet_name,
+        activePet: { id: petId, name: activePetName },
+        otherPets,
+        confirm,
+        t,
+      });
+      if (!proceed) {
+        setStep(0);
+        return;
+      }
+
       applyOcrResult(result);
       toast(t('health.ocrSuccess'), 'success');
     } catch (err) {
@@ -242,7 +267,7 @@ const AddVaccineModal: React.FC<AddVaccineModalProps> = ({
     } finally {
       setAnalyzing(false);
     }
-  }, [i18n.language, toast, t, applyOcrResult]);
+  }, [i18n.language, toast, confirm, t, applyOcrResult, petId, activePetName, otherPets]);
 
   const handleTakePhoto = useCallback(async () => {
     try {

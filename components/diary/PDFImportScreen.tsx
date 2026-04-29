@@ -13,12 +13,13 @@ import {
 import {
   FileText, ChevronLeft, CheckSquare, Square, Download,
   Syringe, Stethoscope, FlaskConical, Pill, Scissors,
-  Weight, AlertTriangle, FileBarChart, Check,
+  Weight, AlertTriangle, FileBarChart, Check, PawPrint,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import type { ClassifyDiaryResponse, ClassificationResult } from '../../lib/ai';
+import { isLikelySamePet } from '../../utils/petNameMatch';
 
 // ── Type icons ──────────────────────────────────────────────────────────────
 
@@ -89,15 +90,23 @@ const ClassificationRow = React.memo(function ClassificationRow({
 interface PDFImportScreenProps {
   result: ClassifyDiaryResponse;
   fileName: string;
+  /** Nome do pet que vai receber os registros importados. Mostrado no banner. */
+  petName?: string;
   onBack: () => void;
   onImport: (selected: ClassificationResult[]) => Promise<void>;
   isImporting: boolean;
 }
 
 export default function PDFImportScreen({
-  result, fileName, onBack, onImport, isImporting,
+  result, fileName, petName, onBack, onImport, isImporting,
 }: PDFImportScreenProps) {
   const { t } = useTranslation();
+  // Verifica se o documento parece pertencer a outro pet (caso a IA tenha
+  // detectado nome de paciente diferente do pet ativo). Quando ha mismatch,
+  // mostra warning antes da lista de itens.
+  const detectedName = result.detected_pet_name ?? null;
+  const showMismatchWarning =
+    !!detectedName && !!petName && !isLikelySamePet(detectedName, petName);
   const [selected, setSelected] = useState<Set<number>>(
     () => new Set(result.classifications.map((_, i) => i)),
   );
@@ -144,6 +153,38 @@ export default function PDFImportScreen({
       </View>
 
       <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Banner do pet de destino — sempre visivel quando petName e fornecido,
+            destacado em warning se a IA detectou nome de outro pet no documento. */}
+        {petName ? (
+          showMismatchWarning ? (
+            <View style={s.mismatchBanner}>
+              <AlertTriangle size={rs(18)} color={colors.warning} strokeWidth={2} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.mismatchTitle}>
+                  {t('docMismatch.title', { defaultValue: 'Pet diferente identificado' })}
+                </Text>
+                <Text style={s.mismatchMsg}>
+                  {t('docMismatch.messageGeneric', {
+                    detectedName: detectedName,
+                    activeName: petName,
+                    defaultValue: `O documento parece ser de ${detectedName}, não do ${petName}. Confirme antes de importar.`,
+                  })}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={s.targetBanner}>
+              <PawPrint size={rs(16)} color={colors.click} strokeWidth={2} />
+              <Text style={s.targetText}>
+                {t('pdf.importingFor', {
+                  name: petName,
+                  defaultValue: `Importando para ${petName}`,
+                })}
+              </Text>
+            </View>
+          )
+        ) : null}
+
         {/* File card */}
         <View style={s.fileCard}>
           <FileText size={rs(24)} color={colors.warning} strokeWidth={1.8} />
@@ -274,6 +315,48 @@ const s = StyleSheet.create({
 
   scroll: { flex: 1 },
   scrollContent: { padding: rs(16), gap: rs(12) },
+
+  // Banner discreto identificando o pet de destino
+  targetBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(8),
+    backgroundColor: colors.click + '12',
+    borderRadius: rs(12),
+    borderWidth: 1,
+    borderColor: colors.click + '30',
+    paddingVertical: rs(10),
+    paddingHorizontal: rs(12),
+  },
+  targetText: {
+    color: colors.click,
+    fontSize: fs(12),
+    fontWeight: '700',
+    flex: 1,
+  },
+
+  // Banner de aviso quando o documento parece ser de outro pet
+  mismatchBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: rs(10),
+    backgroundColor: colors.warning + '15',
+    borderRadius: rs(12),
+    borderWidth: 1,
+    borderColor: colors.warning + '50',
+    padding: rs(14),
+  },
+  mismatchTitle: {
+    color: colors.warning,
+    fontSize: fs(13),
+    fontWeight: '700',
+    marginBottom: rs(4),
+  },
+  mismatchMsg: {
+    color: colors.text,
+    fontSize: fs(12),
+    lineHeight: fs(18),
+  },
 
   fileCard: {
     flexDirection: 'row',

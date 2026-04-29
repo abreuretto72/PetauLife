@@ -1,30 +1,39 @@
 /**
- * TravelsLensContent — Trip history and travel stats.
- * Shows summary stats (trips, km, days) + ordered trip list with status badges.
+ * TravelsLensContent — Trip history como feed Instagram.
+ *
+ * Painel principal: 2 colunas de cards visuais com foto cover,
+ * destino, tipo, distância. Tap → abre FeedSheet com timeline
+ * vertical da viagem (foto + narração IA + data + chips).
+ *
+ * Sem foto cover → fallback com avatar do pet titular + ícone MapPin.
  */
-
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList } from 'react-native';
 import {
   Plane, Car, Tent, MapPin, Navigation,
-  Calendar, Clock, Globe, Sparkles,
+  Calendar, Globe, Sparkles, Plus,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
+
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { radii, spacing } from '../../constants/spacing';
 import { Skeleton } from '../Skeleton';
 import { useLensTravel, type PetTravel } from '../../hooks/useLens';
+import { supabase } from '../../lib/supabase';
+import { FeedSheet, type FeedPost } from './FeedSheet';
+import { AddTravelSheet } from './AddTravelSheet';
 
-// ── Travel type config ────────────────────────────────────────────────────────
+// ── Travel type config ───────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<string, { icon: React.ElementType; color: string; labelKey: string }> = {
-  road_trip:     { icon: Car,       color: colors.click,  labelKey: 'travels.typeRoadTrip' },
-  flight:        { icon: Plane,     color: colors.sky,     labelKey: 'travels.typeFlight' },
-  local:         { icon: MapPin,    color: colors.petrol,  labelKey: 'travels.typeLocal' },
-  international: { icon: Globe,     color: colors.click,  labelKey: 'travels.typeInternational' },
-  camping:       { icon: Tent,      color: colors.success, labelKey: 'travels.typeCamping' },
-  other:         { icon: Navigation,color: colors.textDim, labelKey: 'travels.typeOther' },
+  road_trip:     { icon: Car,        color: colors.click,   labelKey: 'travels.typeRoadTrip' },
+  flight:        { icon: Plane,      color: colors.sky,      labelKey: 'travels.typeFlight' },
+  local:         { icon: MapPin,     color: colors.petrol,   labelKey: 'travels.typeLocal' },
+  international: { icon: Globe,      color: colors.click,   labelKey: 'travels.typeInternational' },
+  camping:       { icon: Tent,       color: colors.success,  labelKey: 'travels.typeCamping' },
+  other:         { icon: Navigation, color: colors.textDim,  labelKey: 'travels.typeOther' },
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -33,19 +42,32 @@ const STATUS_COLOR: Record<string, string> = {
   planned:   colors.warning,
 };
 
-// ── Summary card ──────────────────────────────────────────────────────────────
+// ── Hook auxiliar — avatar do pet titular ────────────────────────────────────
+
+function usePetAvatar(petId: string): string | null {
+  const { data } = useQuery({
+    queryKey: ['pet-avatar', petId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('pets')
+        .select('avatar_url')
+        .eq('id', petId)
+        .maybeSingle();
+      return (data?.avatar_url as string | null) ?? null;
+    },
+    staleTime: 60 * 60 * 1000,
+  });
+  return data ?? null;
+}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
 
 function TravelSummaryCard({
-  totalTrips,
-  totalKm,
-  totalDays,
+  totalTrips, totalKm, totalDays,
 }: {
-  totalTrips: number;
-  totalKm: number;
-  totalDays: number;
+  totalTrips: number; totalKm: number; totalDays: number;
 }) {
   const { t } = useTranslation();
-
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryRow}>
@@ -77,85 +99,80 @@ function TravelSummaryCard({
   );
 }
 
-// ── Trip card ─────────────────────────────────────────────────────────────────
+// ── Trip card (grid com foto grande + destino) ───────────────────────────────
 
-const TripCard = React.memo(function TripCard({ travel }: { travel: PetTravel }) {
-  const { t } = useTranslation();
+function formatShortDate(dateStr: string | null, lang: string): string {
+  if (!dateStr) return '';
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dt = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(dateStr);
+  return dt.toLocaleDateString(lang, { day: '2-digit', month: 'short' });
+}
+
+const TripCard = React.memo(function TripCard({
+  travel, onPress, petAvatarUrl,
+}: {
+  travel: PetTravel;
+  onPress: (t: PetTravel) => void;
+  petAvatarUrl: string | null;
+}) {
+  const { t, i18n } = useTranslation();
   const typeCfg = TYPE_CONFIG[travel.travel_type] ?? TYPE_CONFIG.other;
   const TypeIcon = typeCfg.icon;
   const statusColor = STATUS_COLOR[travel.status] ?? colors.textDim;
+  const cover = travel.cover_url;
 
-  const dateRange = (() => {
-    if (!travel.start_date) return null;
-    const start = new Date(travel.start_date + 'T00:00:00').toLocaleDateString(
-      undefined, { day: '2-digit', month: '2-digit', year: '2-digit' },
-    );
-    if (!travel.end_date) return start;
-    const end = new Date(travel.end_date + 'T00:00:00').toLocaleDateString(
-      undefined, { day: '2-digit', month: '2-digit', year: '2-digit' },
-    );
-    return `${start} – ${end}`;
-  })();
+  const dateLabel = travel.start_date ? formatShortDate(travel.start_date, i18n.language) : '';
+  const distLabel = travel.distance_km != null && travel.distance_km > 0
+    ? `${travel.distance_km.toLocaleString()} km`
+    : null;
 
   return (
-    <View style={styles.tripCard}>
-      <View style={[styles.tripAccent, { backgroundColor: statusColor }]} />
-
-      <View style={styles.tripContent}>
-        {/* Header */}
-        <View style={styles.tripHeader}>
-          <View style={[styles.tripTypeIcon, { backgroundColor: typeCfg.color + '15' }]}>
-            <TypeIcon size={rs(16)} color={typeCfg.color} strokeWidth={1.8} />
-          </View>
-          <View style={styles.tripInfo}>
-            <Text style={styles.tripDestination} numberOfLines={1}>{travel.destination}</Text>
-            {travel.region && (
-              <Text style={styles.tripRegion} numberOfLines={1}>{travel.region}</Text>
+    <TouchableOpacity
+      style={styles.gridCard}
+      activeOpacity={0.85}
+      onPress={() => onPress(travel)}
+    >
+      <View style={styles.coverWrap}>
+        {cover ? (
+          <Image source={{ uri: cover }} style={styles.cover} resizeMode="cover" />
+        ) : (
+          <View style={[styles.coverFallback, { backgroundColor: typeCfg.color + '14' }]}>
+            {petAvatarUrl ? (
+              <Image source={{ uri: petAvatarUrl }} style={styles.fallbackAvatarImg} resizeMode="cover" />
+            ) : (
+              <TypeIcon size={rs(36)} color={typeCfg.color} strokeWidth={1.6} />
             )}
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor + '18' }]}>
-            <Text style={[styles.statusText, { color: statusColor }]}>
-              {t(`travels.status_${travel.status}`)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Meta row */}
-        <View style={styles.tripMeta}>
-          {dateRange && (
-            <View style={styles.metaItem}>
-              <Clock size={rs(11)} color={colors.textGhost} strokeWidth={1.8} />
-              <Text style={styles.metaText}>{dateRange}</Text>
-            </View>
-          )}
-          {travel.distance_km != null && travel.distance_km > 0 && (
-            <View style={styles.metaItem}>
-              <Navigation size={rs(11)} color={colors.textGhost} strokeWidth={1.8} />
-              <Text style={styles.metaText}>{travel.distance_km.toLocaleString()} km</Text>
-            </View>
-          )}
-          <View style={styles.metaItem}>
-            <MapPin size={rs(11)} color={colors.textGhost} strokeWidth={1.8} />
-            <Text style={styles.metaText}>{t(typeCfg.labelKey)}</Text>
-          </View>
-        </View>
-
-        {/* Tags */}
-        {travel.tags.length > 0 && (
-          <View style={styles.tagsRow}>
-            {travel.tags.slice(0, 4).map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
         )}
+
+        {/* Sombra inferior pra contraste do texto branco */}
+        <View style={styles.coverShade} pointerEvents="none" />
+
+        {/* Status badge no canto superior esquerdo */}
+        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+          <Text style={styles.statusText}>
+            {t(`travels.status_${travel.status}`).toUpperCase()}
+          </Text>
+        </View>
+
+        {/* Tipo no canto superior direito (só ícone + cor) */}
+        <View style={styles.typeBadge}>
+          <TypeIcon size={rs(12)} color="#fff" strokeWidth={2} />
+        </View>
+
+        {/* Destino + meta embaixo */}
+        <View style={styles.nameOverlay}>
+          <Text style={styles.cardName} numberOfLines={1}>{travel.destination}</Text>
+          <Text style={styles.cardSub} numberOfLines={1}>
+            {[travel.region, dateLabel, distLabel].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
-// ── Empty state ───────────────────────────────────────────────────────────────
+// ── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
   const { t } = useTranslation();
@@ -168,7 +185,7 @@ function EmptyState() {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 interface TravelsLensContentProps {
   petId: string;
@@ -177,21 +194,68 @@ interface TravelsLensContentProps {
 export function TravelsLensContent({ petId }: TravelsLensContentProps) {
   const { t } = useTranslation();
   const { data, isLoading } = useLensTravel(petId);
+  const petAvatarUrl = usePetAvatar(petId);
+  const [activeTrip, setActiveTrip] = useState<PetTravel | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const feedPosts = useMemo<FeedPost[]>(() => {
+    if (!activeTrip) return [];
+    // Pra viagem: 1 viagem = 1 post (fonte = a row de pet_travels)
+    // Se eventualmente uma viagem virar várias entradas no diário, daria pra
+    // expandir aqui. MVP: 1 post visual representando a viagem inteira.
+    const typeCfg = TYPE_CONFIG[activeTrip.travel_type] ?? TYPE_CONFIG.other;
+    const chips = [
+      activeTrip.region ? { label: activeTrip.region, color: colors.petrol } : null,
+      activeTrip.distance_km != null && activeTrip.distance_km > 0
+        ? { label: `${activeTrip.distance_km.toLocaleString()} km`, color: colors.click }
+        : null,
+      { label: t(typeCfg.labelKey), color: typeCfg.color },
+      ...activeTrip.tags.map((tag) => ({ label: tag, color: colors.textSec })),
+    ].filter((x): x is { label: string; color: string } => !!x);
+
+    return [{
+      id: activeTrip.id,
+      date: activeTrip.start_date,
+      narration: activeTrip.narration,
+      notes: activeTrip.notes,
+      cover_url: activeTrip.cover_url,
+      photos: activeTrip.photos,
+      chips,
+    }];
+  }, [activeTrip, t]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
         <Skeleton width="100%" height={rs(80)} radius={radii.card} />
         <View style={{ height: spacing.sm }} />
-        <Skeleton width="100%" height={rs(88)} radius={radii.card} />
-        <View style={{ height: spacing.sm }} />
-        <Skeleton width="100%" height={rs(88)} radius={radii.card} />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Skeleton width="48%" height={rs(180)} radius={radii.card} />
+          <Skeleton width="48%" height={rs(180)} radius={radii.card} />
+        </View>
       </View>
     );
   }
 
   if (!data || data.travels.length === 0) {
-    return <EmptyState />;
+    return (
+      <View>
+        <EmptyState />
+        <View style={{ alignItems: 'center', marginTop: spacing.md }}>
+          <TouchableOpacity
+            style={styles.emptyAddBtn}
+            onPress={() => setAddOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Plus size={rs(16)} color="#fff" strokeWidth={2.2} />
+            <Text style={styles.emptyAddBtnText}>
+              {t('addTravel.title', { defaultValue: 'Adicionar viagem' })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <AddTravelSheet visible={addOpen} onClose={() => setAddOpen(false)} petId={petId} />
+      </View>
+    );
   }
 
   const { travels, totalTrips, totalKm, totalDays } = data;
@@ -204,16 +268,56 @@ export function TravelsLensContent({ petId }: TravelsLensContentProps) {
         totalDays={totalDays}
       />
 
-      <Text style={styles.listHeader}>{t('travels.listTitle').toUpperCase()}</Text>
+      <View style={styles.listHeaderRow}>
+        <Text style={styles.listHeader}>{t('travels.listTitle').toUpperCase()}</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => setAddOpen(true)}
+          activeOpacity={0.85}
+          hitSlop={6}
+        >
+          <Plus size={rs(14)} color="#fff" strokeWidth={2.4} />
+          <Text style={styles.addBtnText}>{t('common.add', { defaultValue: 'Adicionar' })}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {travels.map((travel) => (
-        <TripCard key={travel.id} travel={travel} />
-      ))}
+      <FlatList
+        data={travels}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TripCard
+            travel={item}
+            onPress={setActiveTrip}
+            petAvatarUrl={petAvatarUrl}
+          />
+        )}
+        numColumns={2}
+        scrollEnabled={false}
+        columnWrapperStyle={styles.gridRow}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+      />
+
+      <FeedSheet
+        visible={!!activeTrip}
+        onClose={() => setActiveTrip(null)}
+        title={activeTrip?.destination ?? ''}
+        subtitle={
+          activeTrip
+            ? [activeTrip.region, activeTrip.country].filter(Boolean).join(' · ')
+            : ''
+        }
+        headerColor={colors.sky}
+        posts={feedPosts}
+        petAvatarUrl={petAvatarUrl}
+        FallbackIcon={MapPin}
+      />
+
+      <AddTravelSheet visible={addOpen} onClose={() => setAddOpen(false)} petId={petId} />
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   loadingWrap: { gap: spacing.sm },
@@ -222,164 +326,129 @@ const styles = StyleSheet.create({
   summaryCard: {
     backgroundColor: colors.card,
     borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
+  summaryRow: { flexDirection: 'row', alignItems: 'center' },
+  statItem: { flex: 1, alignItems: 'center', gap: rs(4) },
   statBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.border,
+    borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border,
   },
   statIcon: {
-    width: rs(36),
-    height: rs(36),
-    borderRadius: rs(10),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: rs(6),
+    width: rs(36), height: rs(36), borderRadius: rs(18),
+    alignItems: 'center', justifyContent: 'center',
   },
   statValue: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(18),
-    color: colors.text,
+    fontFamily: 'JetBrainsMono_700Bold', fontSize: fs(18), color: colors.text,
   },
-  statLabel: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(10),
-    color: colors.textDim,
-    marginTop: rs(2),
-    textAlign: 'center',
-  },
+  statLabel: { fontFamily: 'Sora_400Regular', fontSize: fs(10), color: colors.textDim },
 
-  // List header
-  listHeader: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(10),
-    color: colors.textGhost,
-    letterSpacing: 1.8,
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: rs(10),
   },
-
-  // Trip card
-  tripCard: {
-    backgroundColor: colors.card,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
+  listHeader: {
+    fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.textGhost,
+    letterSpacing: 1.8,
   },
-  tripAccent: {
-    height: rs(3),
-  },
-  tripContent: {
-    padding: spacing.sm,
-  },
-  tripHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: rs(10),
-    marginBottom: rs(6),
-  },
-  tripTypeIcon: {
-    width: rs(32),
-    height: rs(32),
-    borderRadius: rs(10),
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  tripInfo: {
-    flex: 1,
-  },
-  tripDestination: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(13),
-    color: colors.text,
-  },
-  tripRegion: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(11),
-    color: colors.textDim,
-    marginTop: rs(1),
-  },
-  statusBadge: {
-    paddingHorizontal: rs(8),
-    paddingVertical: rs(3),
-    borderRadius: rs(8),
-    flexShrink: 0,
-  },
-  statusText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(10),
-  },
-  tripMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: rs(10),
-    marginBottom: rs(4),
-  },
-  metaItem: {
+  addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: rs(4),
+    paddingHorizontal: rs(10),
+    paddingVertical: rs(6),
+    borderRadius: rs(14),
+    backgroundColor: colors.click,
   },
-  metaText: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(10),
-    color: colors.textDim,
+  addBtnText: {
+    color: '#fff', fontSize: fs(11), fontWeight: '700',
   },
-  tagsRow: {
+  emptyAddBtn: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: rs(5),
-    marginTop: rs(4),
+    alignItems: 'center',
+    gap: rs(6),
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(10),
+    borderRadius: rs(20),
+    backgroundColor: colors.click,
   },
-  tag: {
-    backgroundColor: colors.sky + '12',
-    borderRadius: rs(6),
-    paddingHorizontal: rs(6),
-    paddingVertical: rs(2),
+  emptyAddBtnText: {
+    color: '#fff', fontSize: fs(13), fontWeight: '700',
   },
-  tagText: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(9),
-    color: colors.sky,
+
+  // Grid
+  gridRow: { gap: spacing.sm },
+  gridCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: radii.card,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  coverWrap: {
+    width: '100%',
+    aspectRatio: 4 / 5,
+    position: 'relative',
+  },
+  cover: {
+    width: '100%', height: '100%',
+    backgroundColor: colors.bgDeep,
+  },
+  coverFallback: {
+    width: '100%', height: '100%',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  fallbackAvatarImg: {
+    width: rs(72), height: rs(72), borderRadius: rs(36),
+    borderWidth: 3, borderColor: colors.bg,
+  },
+  coverShade: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0, top: '55%',
+    backgroundColor: 'rgba(11,18,25,0.70)',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: rs(8), left: rs(8),
+    paddingHorizontal: rs(7), paddingVertical: rs(3),
+    borderRadius: rs(8),
+  },
+  statusText: {
+    color: '#fff', fontSize: fs(8), fontWeight: '700', letterSpacing: 0.5,
+  },
+  typeBadge: {
+    position: 'absolute',
+    top: rs(8), right: rs(8),
+    width: rs(22), height: rs(22),
+    borderRadius: rs(11),
+    backgroundColor: 'rgba(11,18,25,0.65)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  nameOverlay: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    paddingHorizontal: rs(10), paddingVertical: rs(8),
+  },
+  cardName: { color: '#fff', fontSize: fs(14), fontWeight: '700' },
+  cardSub: {
+    color: 'rgba(255,255,255,0.8)', fontSize: fs(10), marginTop: rs(2),
   },
 
   // Empty
   emptyCard: {
-    backgroundColor: colors.card,
-    borderRadius: radii.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.sm,
+    backgroundColor: colors.card, borderRadius: radii.card,
+    borderWidth: 1, borderColor: colors.border,
+    padding: spacing.xl, gap: rs(10), alignItems: 'center',
   },
   emptyTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(15),
-    color: colors.text,
-    textAlign: 'center',
+    fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.text,
+    textAlign: 'center', marginTop: rs(4),
   },
   emptyHint: {
-    fontFamily: 'Caveat_400Regular',
-    fontSize: fs(15),
-    color: colors.textDim,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: fs(15) * 1.9,
+    fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textDim,
+    textAlign: 'center', lineHeight: fs(18),
   },
 });

@@ -11,6 +11,7 @@ import {
   Calendar,
   Trophy,
   Handshake,
+  Plane,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../constants/colors';
@@ -33,6 +34,7 @@ interface TutorCardProps {
   xpNext: number;
   onPress: () => void;
   onPressPartnership?: () => void;
+  onPressTrip?: () => void;
 }
 
 const TutorCard: React.FC<TutorCardProps> = ({
@@ -50,6 +52,7 @@ const TutorCard: React.FC<TutorCardProps> = ({
   xpNext,
   onPress,
   onPressPartnership,
+  onPressTrip,
 }) => {
   const { t } = useTranslation();
   const xpPct = xpNext > 0 ? Math.min((xp / xpNext) * 100, 100) : 0;
@@ -94,11 +97,22 @@ const TutorCard: React.FC<TutorCardProps> = ({
           ) : null}
         </View>
 
-        {/* Partnership icon */}
+        {/* Acoes: parceria + viagem (mesmo tamanho, lado a lado) */}
         <View style={styles.xpRow}>
           <TouchableOpacity onPress={onPressPartnership} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} activeOpacity={0.7}>
             <Handshake size={rs(22)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
+          {onPressTrip ? (
+            <TouchableOpacity
+              onPress={onPressTrip}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+              style={{ marginLeft: rs(14) }}
+              accessibilityLabel={t('petCard.startTrip.label', { petName: name, defaultValue: 'Planejar viagem' })}
+            >
+              <Plane size={rs(22)} color={colors.click} strokeWidth={1.8} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </TouchableOpacity>

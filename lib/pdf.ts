@@ -291,7 +291,32 @@ function buildHtml(logoB64: string, options: PdfOptions): string {
 // ── Public API ──
 
 /**
- * Generate PDF and show print preview (tutor can print or share from native dialog).
+ * Slug-ifica o título pro nome do arquivo. Mantém legível mas seguro
+ * pra filesystem (sem espaços, acentos, símbolos).
+ */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 40) || 'documento';
+}
+
+/**
+ * Generate PDF and open the native share sheet — which ALWAYS shows a
+ * preview of the PDF and offers all relevant actions (Print, Save,
+ * Email, WhatsApp, "Open in...", etc.).
+ *
+ * Por que share sheet em vez de Print.printAsync:
+ *   - No Android, printAsync vai direto ao dialog de impressora. Se o
+ *     dispositivo não tem impressora configurada, o tutor fica preso —
+ *     sem preview, sem opção de salvar.
+ *   - Share sheet é cross-platform e sempre tem visualizador de PDF
+ *     embutido (QuickLook no iOS, Adobe/Drive/Files no Android).
+ *   - Imprimir continua disponível no share sheet ("Imprimir como PDF",
+ *     "Salvar como PDF", "Imprimir" em apps com plugin de impressão).
  */
 export async function previewPdf(options: PdfOptions): Promise<void> {
   const [logoB64, bodyHtmlInlined] = await Promise.all([
@@ -299,22 +324,41 @@ export async function previewPdf(options: PdfOptions): Promise<void> {
     inlineRemoteImages(options.bodyHtml),
   ]);
   const html = buildHtml(logoB64, { ...options, bodyHtml: bodyHtmlInlined });
-  await Print.printAsync({ html });
+  const { uri } = await Print.printToFileAsync({ html });
+
+  // Move pra cache com nome legível — vai aparecer assim no share sheet
+  const fileName = `auexpert_${slugify(options.title)}_${Date.now()}.pdf`;
+  const dest = `${FileSystem.cacheDirectory}${fileName}`;
+  await FileSystem.moveAsync({ from: uri, to: dest });
+
+  await shareAsync(dest, {
+    mimeType: 'application/pdf',
+    UTI: 'com.adobe.pdf',
+    dialogTitle: options.title,
+  });
 }
 
 /**
- * Generate PDF and share as file.
+ * Alias mantido por compatibilidade — comportamento idêntico ao previewPdf
+ * desde que removemos o split entre "preview" e "share". Ambos abrem o
+ * share sheet nativo. Mantido como nome separado pra clareza nos call sites
+ * que queriam compartilhar (vs visualizar) historicamente.
  */
-export async function sharePdf(options: PdfOptions, fileName: string): Promise<void> {
+export async function sharePdf(options: PdfOptions, fileName?: string): Promise<void> {
   const [logoB64, bodyHtmlInlined] = await Promise.all([
     getLogoBase64(),
     inlineRemoteImages(options.bodyHtml),
   ]);
   const html = buildHtml(logoB64, { ...options, bodyHtml: bodyHtmlInlined });
   const { uri } = await Print.printToFileAsync({ html });
-  const dest = `${FileSystem.cacheDirectory}${fileName}`;
+  const safeName = fileName ?? `auexpert_${slugify(options.title)}_${Date.now()}.pdf`;
+  const dest = `${FileSystem.cacheDirectory}${safeName}`;
   await FileSystem.moveAsync({ from: uri, to: dest });
-  await shareAsync(dest, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+  await shareAsync(dest, {
+    mimeType: 'application/pdf',
+    UTI: 'com.adobe.pdf',
+    dialogTitle: options.title,
+  });
 }
 
 /**

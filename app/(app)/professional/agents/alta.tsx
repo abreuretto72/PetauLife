@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronLeft, Sparkles, AlertTriangle, Heart, Home, Calendar,
-  AlertCircle, Phone,
+  AlertCircle, Phone, History,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -21,6 +21,8 @@ import { radii, spacing } from '../../../../constants/spacing';
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { useToast } from '../../../../components/Toast';
 import { useProAgent, type RelatorioAltaResponse } from '../../../../hooks/useProAgent';
+import { AgentHistorySheet, ALTA_HISTORY } from '../../../../components/professional/AgentHistorySheet';
+import { supabase } from '../../../../lib/supabase';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 export default function AltaAgentScreen() {
@@ -34,6 +36,8 @@ export default function AltaAgentScreen() {
   >('agent-relatorio-alta');
 
   const [result, setResult] = useState<RelatorioAltaResponse | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [persistedId, setPersistedId] = useState<string | null>(null);
 
   const handleGenerate = useCallback(async () => {
     if (!petId || !prontuarioId) return;
@@ -44,6 +48,42 @@ export default function AltaAgentScreen() {
         language: i18n.language,
       });
       setResult(data);
+
+      // Persiste — relatório de alta é instrução pro tutor cuidar em casa,
+      // ele precisa poder reler depois. Falha silenciosa (visível em logs).
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const profUserId = userData.user?.id;
+        if (profUserId) {
+          const { data: profRow } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', profUserId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const { data: inserted } = await supabase
+            .from('relatorios_alta')
+            .insert({
+              pet_id: petId,
+              professional_id: profRow?.id ?? null,
+              prontuario_id: prontuarioId,
+              diagnosis_summary: data.diagnosis_summary,
+              treatment_received: data.treatment_received ?? [],
+              home_care: data.home_care ?? [],
+              follow_up_schedule: data.follow_up_schedule,
+              red_flags: data.red_flags ?? [],
+              contact_instructions: data.contact_instructions,
+              language: i18n.language,
+            })
+            .select('id')
+            .maybeSingle();
+          if (inserted) setPersistedId(inserted.id);
+        }
+      } catch (persistErr) {
+        console.warn('[alta] falha ao persistir:', persistErr);
+      }
     } catch (e) {
       toast(getErrorMessage(e), 'error');
     }
@@ -76,8 +116,21 @@ export default function AltaAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.alta.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={ALTA_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

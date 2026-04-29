@@ -1,114 +1,111 @@
 /**
- * FriendsLensContent — Social graph of the pet.
- * Shows all pet connections discovered from diary entries via AI,
- * ordered by last encounter.
+ * FriendsLensContent — Pet's social graph as Instagram-like feed.
+ *
+ * Painel principal: 2 colunas de cards visuais com foto cover (16:9),
+ * nome do amigo, espécie, contador de encontros. Tap → abre FeedSheet
+ * com timeline vertical de todos os encontros do amigo (foto + narração
+ * IA + data).
+ *
+ * Sem foto cover → fallback com avatar do pet titular + ícone PawPrint.
  */
-
-import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { Dog, Cat, Bird, Heart, Users, Sparkles } from 'lucide-react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList } from 'react-native';
+import { Dog, Cat, Bird, Heart, Users, Sparkles, PawPrint, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+
 import { colors } from '../../constants/colors';
 import { rs, fs } from '../../hooks/useResponsive';
 import { radii, spacing } from '../../constants/spacing';
 import { Skeleton } from '../Skeleton';
 import { useLensFriends, type PetConnection } from '../../hooks/useLens';
+import { FeedSheet, type FeedPost } from './FeedSheet';
+import { AddFriendSheet } from './AddFriendSheet';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string | null): string {
+function formatDate(dateStr: string | null, lang: string): string {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dt = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(dateStr);
+  return dt.toLocaleDateString(lang, { day: '2-digit', month: 'short' });
 }
 
 const SPECIES_ICON: Record<string, React.ElementType> = {
-  dog: Dog,
-  cat: Cat,
-  bird: Bird,
+  dog: Dog, cat: Cat, bird: Bird,
 };
 
 const SPECIES_COLOR: Record<string, string> = {
-  dog: colors.click,
-  cat: colors.click,
-  bird: colors.sky,
-  rabbit: colors.success,
-  other: colors.petrol,
-  unknown: colors.textDim,
+  dog: colors.click, cat: colors.click, bird: colors.sky,
+  rabbit: colors.success, other: colors.petrol, unknown: colors.textDim,
 };
 
-const CONNECTION_TYPE_KEY: Record<string, string> = {
-  friend: 'friends.typeFriend',
-  playmate: 'friends.typePlaymate',
-  neighbor: 'friends.typeNeighbor',
-  relative: 'friends.typeRelative',
-  rival: 'friends.typeRival',
-  caretaker_pet: 'friends.typeCaretaker',
-  unknown: 'friends.typeUnknown',
-};
+// ── FriendCard (grid card, foto grande + nome) ──────────────────────────────
 
-// ── FriendCard ────────────────────────────────────────────────────────────────
-
-const FriendCard = React.memo(function FriendCard({ connection }: { connection: PetConnection }) {
-  const { t } = useTranslation();
+const FriendCard = React.memo(function FriendCard({
+  connection, onPress,
+}: {
+  connection: PetConnection;
+  onPress: (c: PetConnection) => void;
+}) {
+  const { t, i18n } = useTranslation();
   const species = connection.friend_species ?? 'unknown';
   const SpeciesIcon = SPECIES_ICON[species] ?? Dog;
   const color = SPECIES_COLOR[species] ?? colors.textDim;
-  const typeKey = CONNECTION_TYPE_KEY[connection.connection_type] ?? 'friends.typeFriend';
+
+  const cover = connection.cover_url;
+  const lastSeen = connection.last_seen_at
+    ? formatDate(connection.last_seen_at, i18n.language)
+    : null;
 
   return (
-    <View style={styles.card}>
-      {/* Avatar */}
-      <View style={[styles.avatar, { backgroundColor: color + '14', borderColor: color + '30' }]}>
-        <SpeciesIcon size={rs(20)} color={color} strokeWidth={1.8} />
-      </View>
-
-      {/* Info */}
-      <View style={styles.info}>
-        <View style={styles.nameRow}>
-          <Text style={styles.friendName}>{connection.friend_name}</Text>
-          {connection.friend_breed && (
-            <Text style={styles.friendBreed}> · {connection.friend_breed}</Text>
-          )}
-        </View>
-
-        <View style={styles.metaRow}>
-          <Text style={[styles.typeBadge, { color, backgroundColor: color + '14' }]}>
-            {t(typeKey)}
-          </Text>
-          {connection.friend_owner && (
-            <Text style={styles.ownerText}>{t('friends.owner')}: {connection.friend_owner}</Text>
-          )}
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Heart size={rs(11)} color={colors.rose} strokeWidth={2} />
-            <Text style={styles.statText}>
-              {connection.meet_count} {t('friends.meets')}
+    <TouchableOpacity
+      style={styles.gridCard}
+      activeOpacity={0.85}
+      onPress={() => onPress(connection)}
+    >
+      {/* Cover do AMIGO ou fallback com icone da especie do AMIGO. NUNCA usar
+          avatar do pet titular aqui — confunde tutor a achar que e foto do seu
+          proprio pet (bug 2026-04-28). */}
+      <View style={styles.coverWrap}>
+        {cover ? (
+          <Image source={{ uri: cover }} style={styles.cover} resizeMode="cover" />
+        ) : (
+          <View style={[styles.coverFallback, { backgroundColor: color + '22' }]}>
+            <View style={[styles.fallbackIconCircle, { backgroundColor: color + '40' }]}>
+              <SpeciesIcon size={rs(48)} color="#FFFFFF" strokeWidth={2.2} />
+            </View>
+            <Text style={styles.fallbackHint} numberOfLines={1}>
+              {t('friends.addPhotoHint', { defaultValue: 'Adicione uma foto' })}
             </Text>
           </View>
-          {connection.last_seen_at && (
-            <Text style={styles.lastSeenText}>
-              {t('friends.lastSeen')}: {formatDate(connection.last_seen_at)}
-            </Text>
-          )}
+        )}
+
+        {/* Gradiente escuro embaixo via overlay sólido (sem dependência de LinearGradient) */}
+        <View style={styles.coverShade} pointerEvents="none" />
+
+        {/* Badge contador no canto superior direito */}
+        <View style={styles.countBadge}>
+          <Heart size={rs(10)} color="#fff" strokeWidth={2.4} fill="#fff" />
+          <Text style={styles.countText}>{connection.meet_count}</Text>
         </View>
 
-        {connection.notes && (
-          <Text style={styles.notes} numberOfLines={1}>
-            "{connection.notes}"
+        {/* Nome embaixo da foto, sobre o gradiente */}
+        <View style={styles.nameOverlay}>
+          <Text style={styles.cardName} numberOfLines={1}>{connection.friend_name}</Text>
+          <Text style={styles.cardSub} numberOfLines={1}>
+            {connection.friend_breed ?? t(`friends.species_${species}`, { defaultValue: '' })}
+            {lastSeen ? ` · ${lastSeen}` : ''}
           </Text>
-        )}
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
-// ── FriendsSummary ────────────────────────────────────────────────────────────
+// ── Summary ──────────────────────────────────────────────────────────────────
 
 function FriendsSummary({ total, topFriend }: { total: number; topFriend: PetConnection | null }) {
   const { t } = useTranslation();
-
   return (
     <View style={styles.summaryCard}>
       <View style={styles.summaryLeft}>
@@ -131,7 +128,7 @@ function FriendsSummary({ total, topFriend }: { total: number; topFriend: PetCon
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 interface FriendsLensContentProps {
   petId: string;
@@ -140,15 +137,31 @@ interface FriendsLensContentProps {
 export function FriendsLensContent({ petId }: FriendsLensContentProps) {
   const { t } = useTranslation();
   const { data: connections, isLoading } = useLensFriends(petId);
+  const [activeFriend, setActiveFriend] = useState<PetConnection | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+
+  const feedPosts = useMemo<FeedPost[]>(() => {
+    if (!activeFriend) return [];
+    return activeFriend.posts.map((p) => ({
+      id: p.id,
+      date: p.date,
+      narration: p.narration,
+      notes: p.notes,
+      cover_url: p.cover_url,
+      photos: p.photos,
+      chips: [],
+    }));
+  }, [activeFriend]);
 
   if (isLoading) {
     return (
       <View style={styles.loadingWrap}>
         <Skeleton width="100%" height={rs(72)} radius={radii.card} />
         <View style={{ height: spacing.sm }} />
-        <Skeleton width="100%" height={rs(90)} radius={radii.card} />
-        <View style={{ height: spacing.sm }} />
-        <Skeleton width="100%" height={rs(90)} radius={radii.card} />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Skeleton width="48%" height={rs(180)} radius={radii.card} />
+          <Skeleton width="48%" height={rs(180)} radius={radii.card} />
+        </View>
       </View>
     );
   }
@@ -160,39 +173,84 @@ export function FriendsLensContent({ petId }: FriendsLensContentProps) {
           <Sparkles size={rs(24)} color={colors.ai} strokeWidth={1.8} />
           <Text style={styles.emptyTitle}>{t('friends.emptyTitle')}</Text>
           <Text style={styles.emptyHint}>{t('friends.emptyHint')}</Text>
+          <TouchableOpacity
+            style={styles.emptyAddBtn}
+            onPress={() => setAddOpen(true)}
+            activeOpacity={0.85}
+          >
+            <Plus size={rs(16)} color="#fff" strokeWidth={2.2} />
+            <Text style={styles.emptyAddBtnText}>
+              {t('addFriend.title', { defaultValue: 'Adicionar amigo' })}
+            </Text>
+          </TouchableOpacity>
         </View>
+        <AddFriendSheet visible={addOpen} onClose={() => setAddOpen(false)} petId={petId} />
       </View>
     );
   }
 
-  // Best friend = most encounters
   const topFriend = [...connections].sort((a, b) => b.meet_count - a.meet_count)[0] ?? null;
 
   return (
     <View>
       <FriendsSummary total={connections.length} topFriend={topFriend} />
 
-      <Text style={styles.listHeader}>{t('friends.listTitle').toUpperCase()}</Text>
+      <View style={styles.listHeaderRow}>
+        <Text style={styles.listHeader}>{t('friends.listTitle').toUpperCase()}</Text>
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => setAddOpen(true)}
+          activeOpacity={0.85}
+          hitSlop={6}
+        >
+          <Plus size={rs(14)} color="#fff" strokeWidth={2.4} />
+          <Text style={styles.addBtnText}>{t('common.add', { defaultValue: 'Adicionar' })}</Text>
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={connections}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <FriendCard connection={item} />}
+        renderItem={({ item }) => (
+          <FriendCard
+            connection={item}
+            onPress={setActiveFriend}
+          />
+        )}
+        numColumns={2}
         scrollEnabled={false}
+        columnWrapperStyle={styles.gridRow}
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
       />
+
+      <FeedSheet
+        visible={!!activeFriend}
+        onClose={() => setActiveFriend(null)}
+        title={activeFriend?.friend_name ?? ''}
+        subtitle={
+          activeFriend
+            ? `${activeFriend.meet_count} ${activeFriend.meet_count === 1
+                ? t('friends.meet', { defaultValue: 'encontro' })
+                : t('friends.meets')}`
+            : ''
+        }
+        headerColor={colors.click}
+        posts={feedPosts}
+        petAvatarUrl={null}
+        FallbackIcon={PawPrint}
+      />
+
+      <AddFriendSheet visible={addOpen} onClose={() => setAddOpen(false)} petId={petId} />
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  loadingWrap: {
-    gap: spacing.sm,
-  },
+  loadingWrap: { gap: spacing.sm },
 
-  // Summary
+  // Summary (mantido como estava)
   summaryCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -202,170 +260,143 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  summaryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
+  summaryLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   summaryIconWrap: {
-    width: rs(46),
-    height: rs(46),
-    borderRadius: radii.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: rs(46), height: rs(46), borderRadius: radii.xl,
+    alignItems: 'center', justifyContent: 'center',
   },
   summaryCount: {
     fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(28),
-    color: colors.click,
-    lineHeight: fs(30),
+    fontSize: fs(28), color: colors.click, lineHeight: fs(30),
   },
-  summaryLabel: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(11),
-    color: colors.textDim,
-  },
-  summaryRight: {
-    alignItems: 'flex-end',
-  },
+  summaryLabel: { fontFamily: 'Sora_400Regular', fontSize: fs(11), color: colors.textDim },
+  summaryRight: { alignItems: 'flex-end' },
   bestFriendLabel: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: fs(9),
-    color: colors.textDim,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: 'Sora_600SemiBold', fontSize: fs(9), color: colors.textDim,
+    letterSpacing: 1, textTransform: 'uppercase',
   },
-  bestFriendName: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(15),
-    color: colors.text,
-    marginTop: rs(2),
-  },
-  bestFriendMeets: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(11),
-    color: colors.rose,
-    marginTop: rs(1),
-  },
+  bestFriendName: { fontFamily: 'Sora_700Bold', fontSize: fs(15), color: colors.text, marginTop: rs(2) },
+  bestFriendMeets: { fontFamily: 'JetBrainsMono_700Bold', fontSize: fs(11), color: colors.rose, marginTop: rs(1) },
 
-  // List header
-  listHeader: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(10),
-    color: colors.textGhost,
-    letterSpacing: 1.8,
+  listHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: rs(10),
   },
-
-  // Friend card
-  card: {
+  listHeader: {
+    fontFamily: 'Sora_700Bold', fontSize: fs(10), color: colors.textGhost,
+    letterSpacing: 1.8,
+  },
+  addBtn: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: rs(4),
+    paddingHorizontal: rs(10),
+    paddingVertical: rs(6),
+    borderRadius: rs(14),
+    backgroundColor: colors.click,
+  },
+  addBtnText: {
+    color: '#fff', fontSize: fs(11), fontWeight: '700',
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(6),
+    paddingHorizontal: rs(16),
+    paddingVertical: rs(10),
+    borderRadius: rs(20),
+    backgroundColor: colors.click,
+    marginTop: rs(12),
+  },
+  emptyAddBtnText: {
+    color: '#fff', fontSize: fs(13), fontWeight: '700',
+  },
+
+  // Grid
+  gridRow: {
+    gap: spacing.sm,
+  },
+
+  // Card
+  gridCard: {
+    flex: 1,
     backgroundColor: colors.card,
     borderRadius: radii.card,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.md,
   },
-  avatar: {
-    width: rs(42),
-    height: rs(42),
-    borderRadius: rs(21),
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
+  coverWrap: {
+    width: '100%',
+    aspectRatio: 4 / 5, // mais alto que largo, estilo Instagram
+    position: 'relative',
   },
-  info: {
-    flex: 1,
-    gap: rs(4),
+  cover: {
+    width: '100%', height: '100%',
+    backgroundColor: colors.bgDeep,
   },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    flexWrap: 'wrap',
-  },
-  friendName: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(15),
-    color: colors.text,
-  },
-  friendBreed: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(12),
-    color: colors.textSec,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: rs(8),
-    flexWrap: 'wrap',
-  },
-  typeBadge: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(9),
-    letterSpacing: 0.5,
-    paddingHorizontal: rs(6),
-    paddingVertical: rs(2),
-    borderRadius: rs(6),
-    textTransform: 'uppercase',
-    overflow: 'hidden',
-  },
-  ownerText: {
-    fontFamily: 'Sora_400Regular',
-    fontSize: fs(11),
-    color: colors.textDim,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  coverFallback: {
+    width: '100%', height: '100%',
+    alignItems: 'center', justifyContent: 'center',
     gap: rs(10),
   },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: rs(4),
+  fallbackIconCircle: {
+    width: rs(82), height: rs(82), borderRadius: rs(41),
+    alignItems: 'center', justifyContent: 'center',
   },
-  statText: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(11),
-    color: colors.rose,
+  fallbackHint: {
+    color: colors.textSec, fontSize: fs(10), fontWeight: '600',
+    paddingHorizontal: rs(12), textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  lastSeenText: {
-    fontFamily: 'JetBrainsMono_700Bold',
-    fontSize: fs(10),
-    color: colors.textDim,
+  fallbackAvatarImg: {
+    width: rs(72), height: rs(72), borderRadius: rs(36),
+    borderWidth: 3, borderColor: colors.bg,
   },
-  notes: {
-    fontFamily: 'Caveat_400Regular',
-    fontSize: fs(13),
-    color: colors.textSec,
-    fontStyle: 'italic',
+  // Sombra sólida no terço inferior pra contrastar com o nome em branco
+  coverShade: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0, top: '55%',
+    backgroundColor: 'rgba(11,18,25,0.70)',
+  },
+  countBadge: {
+    position: 'absolute',
+    top: rs(8), right: rs(8),
+    flexDirection: 'row', alignItems: 'center',
+    gap: rs(3),
+    paddingHorizontal: rs(7), paddingVertical: rs(3),
+    backgroundColor: 'rgba(11,18,25,0.65)',
+    borderRadius: rs(10),
+  },
+  countText: {
+    color: '#fff', fontSize: fs(10), fontWeight: '700',
+  },
+  nameOverlay: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    paddingHorizontal: rs(10), paddingVertical: rs(8),
+  },
+  cardName: {
+    color: '#fff', fontSize: fs(14), fontWeight: '700',
+  },
+  cardSub: {
+    color: 'rgba(255,255,255,0.8)', fontSize: fs(10), marginTop: rs(2),
   },
 
   // Empty
   emptyCard: {
-    backgroundColor: colors.card,
-    borderRadius: radii.card,
-    padding: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.card, borderRadius: radii.card,
+    borderWidth: 1, borderColor: colors.border,
+    padding: spacing.xl, gap: rs(10), alignItems: 'center',
   },
   emptyTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: fs(15),
-    color: colors.text,
-    textAlign: 'center',
+    fontFamily: 'Sora_700Bold', fontSize: fs(14), color: colors.text,
+    textAlign: 'center', marginTop: rs(4),
   },
   emptyHint: {
-    fontFamily: 'Caveat_400Regular',
-    fontSize: fs(14),
-    color: colors.textDim,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    lineHeight: fs(14) * 1.6,
+    fontFamily: 'Sora_400Regular', fontSize: fs(12), color: colors.textDim,
+    textAlign: 'center', lineHeight: fs(18),
   },
 });

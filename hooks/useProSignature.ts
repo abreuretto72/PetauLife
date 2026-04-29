@@ -33,6 +33,12 @@ import { useMutation } from '@tanstack/react-query';
 import { Platform } from 'react-native';
 import { onlineManager } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import i18n from '../i18n';
+
+/** Helper local — devolve string traduzida pra mensagens de UI/erro do fluxo
+ *  de assinatura. Usa `i18n.t` direto pq o hook joga o erro pra cima e o
+ *  componente que cataloga (mutation.error) ja exibe o `error.message`. */
+const tt = (k: string): string => i18n.t(k) as string;
 
 export type SignableTable =
   | 'prontuarios'
@@ -83,8 +89,8 @@ async function requireBiometric(): Promise<void> {
   if (!enrolled) throw new Error('biometric_unavailable');
 
   const result = await LocalAuth.authenticateAsync({
-    promptMessage: 'Confirme sua assinatura digital',
-    cancelLabel: 'Cancelar',
+    promptMessage: tt('agents.signaturePrompt'),
+    cancelLabel: tt('common.cancel'),
     disableDeviceFallback: false,
   });
 
@@ -100,7 +106,7 @@ export function useProSignature() {
   const mutation = useMutation<SignResult, Error, SignInput>({
     mutationFn: async ({ targetTable, targetId, payload }) => {
       if (!onlineManager.isOnline()) {
-        throw new Error('Você precisa estar online para assinar documentos.');
+        throw new Error(tt('agents.errors.signOffline'));
       }
 
       // 1) Biometria
@@ -116,15 +122,12 @@ export function useProSignature() {
       if (error) {
         const msg = error.message ?? '';
         if (msg.toLowerCase().includes('forbidden')) {
-          throw new Error(
-            'Sem permissão para assinar este documento. ' +
-            'Verifique se o tutor concedeu acesso de assinatura.',
-          );
+          throw new Error(tt('agents.errors.signNoPermission'));
         }
         if (msg.toLowerCase().includes('already signed')) {
-          throw new Error('Este documento já foi assinado.');
+          throw new Error(tt('agents.errors.signAlreadySigned'));
         }
-        throw new Error(error.message || 'Erro ao assinar.');
+        throw new Error(error.message || tt('agents.errors.signGeneric'));
       }
 
       return data as SignResult;

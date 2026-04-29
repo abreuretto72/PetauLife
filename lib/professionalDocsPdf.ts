@@ -234,3 +234,253 @@ export async function previewTciPdf(tciId: string): Promise<void> {
     language: i18n.language,
   });
 }
+
+// ── Anamnese ────────────────────────────────────────────────────────────────
+// Briefing pré-consulta. Não é documento legal — não tem assinatura digital.
+export async function previewAnamnesePdf(anamneseId: string): Promise<void> {
+  const { data: doc, error } = await supabase
+    .from('anamneses')
+    .select('*, professional:professionals!anamneses_professional_id_fkey(display_name, council_name, council_number), pet:pets(name, breed, species)')
+    .eq('id', anamneseId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!doc) throw new Error('Anamnese não encontrada.');
+
+  const prof = (doc as any).professional ?? null;
+  const pet = (doc as any).pet ?? null;
+  const dt = new Date(doc.created_at).toLocaleString('pt-BR');
+
+  const headerHtml = prof
+    ? `<div style="border-bottom: 1px solid #ddd; padding-bottom: 12px; margin-bottom: 18px;">
+         <div style="font-size: 14px; font-weight: 700;">${htmlEscape(prof.display_name)}</div>
+         ${prof.council_name ? `<div style="font-size: 11px; color: #666;">${htmlEscape(prof.council_name)} ${htmlEscape(prof.council_number ?? '')}</div>` : ''}
+       </div>`
+    : '';
+
+  const consultations = Array.isArray(doc.recent_consultations) ? doc.recent_consultations : [];
+  const medications = Array.isArray(doc.current_medications) ? doc.current_medications : [];
+  const symptoms = Array.isArray(doc.recent_symptoms) ? doc.recent_symptoms : [];
+  const alerts = Array.isArray(doc.alerts) ? doc.alerts : [];
+  const questions = Array.isArray(doc.suggested_questions) ? doc.suggested_questions : [];
+
+  const bodyHtml = `
+    ${headerHtml}
+    <h2 style="text-align: center; font-size: 16px; margin: 12px 0 18px;">ANAMNESE PRÉ-CONSULTA</h2>
+    ${pet ? `<p style="font-size: 12px; color: #555; text-align: center; margin-bottom: 4px;">
+      Paciente: <strong>${htmlEscape(pet.name)}</strong>
+      ${pet.breed ? ` · ${htmlEscape(pet.breed)}` : ''}
+    </p>` : ''}
+    <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 22px;">Briefing gerado em ${dt}</p>
+
+    ${doc.pet_summary ? `<h3 style="font-size: 13px; margin: 18px 0 8px; color: #444;">Resumo clínico</h3>
+      <p style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${htmlEscape(doc.pet_summary)}</p>` : ''}
+
+    <table style="width: 100%; margin: 18px 0; border-collapse: collapse;">
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5; width: 40%;"><strong>Vacinas</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px; text-transform: capitalize;">${htmlEscape(doc.vaccines_status ?? '—')}</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Tendência de peso</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px; text-transform: capitalize;">${htmlEscape(doc.weight_trend ?? '—')}</td>
+      </tr>
+    </table>
+
+    ${alerts.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px; color: #b86a00;">Alertas</h3>
+      <ul style="font-size: 12px; line-height: 1.7; color: #5a3d00; padding-left: 20px; margin: 0;">
+        ${alerts.map((a: string) => `<li>${htmlEscape(a)}</li>`).join('')}
+      </ul>` : ''}
+
+    ${symptoms.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Sintomas recentes</h3>
+      <ul style="font-size: 12px; line-height: 1.6; padding-left: 20px; margin: 0;">
+        ${symptoms.map((s: string) => `<li>${htmlEscape(s)}</li>`).join('')}
+      </ul>` : ''}
+
+    ${medications.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Medicações em uso</h3>
+      <ul style="font-size: 12px; line-height: 1.6; padding-left: 20px; margin: 0;">
+        ${medications.map((m: any) => `<li><strong>${htmlEscape(m.name ?? '')}</strong>${m.frequency ? ` — ${htmlEscape(m.frequency)}` : ''}${m.reason ? ` (${htmlEscape(m.reason)})` : ''}</li>`).join('')}
+      </ul>` : ''}
+
+    ${consultations.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Consultas recentes</h3>
+      ${consultations.map((c: any) => `
+        <div style="border-left: 3px solid #ddd; padding: 6px 12px; margin-bottom: 8px;">
+          <div style="font-size: 10px; color: #888; font-weight: 600;">${htmlEscape(c.date ?? '')} · ${htmlEscape(c.type ?? '')}</div>
+          <div style="font-size: 12px; margin-top: 2px;">${htmlEscape(c.summary ?? '')}</div>
+          ${c.diagnosis ? `<div style="font-size: 11px; color: #6a4ba8; margin-top: 2px;"><strong>Diagnóstico:</strong> ${htmlEscape(c.diagnosis)}</div>` : ''}
+        </div>
+      `).join('')}` : ''}
+
+    ${questions.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Perguntas sugeridas para a consulta</h3>
+      <ol style="font-size: 12px; line-height: 1.7; padding-left: 20px; margin: 0;">
+        ${questions.map((q: string) => `<li>${htmlEscape(q)}</li>`).join('')}
+      </ol>` : ''}
+
+    <div style="margin-top: 30px; font-size: 10px; color: #888; text-align: center; line-height: 1.5;">
+      Este documento é um briefing gerado por IA com base em registros do prontuário do pet.<br/>
+      Não substitui a avaliação clínica direta do profissional.
+    </div>
+  `;
+
+  await previewPdf({
+    title: 'Anamnese',
+    subtitle: pet?.name ?? undefined,
+    bodyHtml,
+    language: i18n.language,
+  });
+}
+
+// ── Relatório de Alta ───────────────────────────────────────────────────────
+// Documento orientado AO TUTOR (cuidados em casa, retorno, sinais de alerta).
+// Não tem assinatura digital — é instrução, não certidão legal.
+export async function previewAltaPdf(altaId: string): Promise<void> {
+  const { data: doc, error } = await supabase
+    .from('relatorios_alta')
+    .select('*, professional:professionals!relatorios_alta_professional_id_fkey(display_name, council_name, council_number), pet:pets(name, breed, species)')
+    .eq('id', altaId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!doc) throw new Error('Relatório de alta não encontrado.');
+
+  const prof = (doc as any).professional ?? null;
+  const pet = (doc as any).pet ?? null;
+  const dt = new Date(doc.created_at).toLocaleString('pt-BR');
+
+  const headerHtml = prof
+    ? `<div style="border-bottom: 1px solid #ddd; padding-bottom: 12px; margin-bottom: 18px;">
+         <div style="font-size: 14px; font-weight: 700;">${htmlEscape(prof.display_name)}</div>
+         ${prof.council_name ? `<div style="font-size: 11px; color: #666;">${htmlEscape(prof.council_name)} ${htmlEscape(prof.council_number ?? '')}</div>` : ''}
+       </div>`
+    : '';
+
+  const treatmentReceived = Array.isArray(doc.treatment_received) ? doc.treatment_received : [];
+  const homeCare = Array.isArray(doc.home_care) ? doc.home_care : [];
+  const redFlags = Array.isArray(doc.red_flags) ? doc.red_flags : [];
+
+  const bodyHtml = `
+    ${headerHtml}
+    <h2 style="text-align: center; font-size: 16px; margin: 12px 0 18px;">RELATÓRIO DE ALTA</h2>
+    ${pet ? `<p style="font-size: 12px; color: #555; text-align: center; margin-bottom: 4px;">
+      Paciente: <strong>${htmlEscape(pet.name)}</strong>
+      ${pet.breed ? ` · ${htmlEscape(pet.breed)}` : ''}
+    </p>` : ''}
+    <p style="font-size: 11px; color: #888; text-align: center; margin-bottom: 22px;">Emitido em ${dt}</p>
+
+    ${doc.diagnosis_summary ? `<h3 style="font-size: 13px; margin: 18px 0 8px; color: #6a4ba8;">Resumo do diagnóstico</h3>
+      <p style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${htmlEscape(doc.diagnosis_summary)}</p>` : ''}
+
+    ${treatmentReceived.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">O que foi feito hoje</h3>
+      <ul style="font-size: 12px; line-height: 1.7; padding-left: 20px; margin: 0;">
+        ${treatmentReceived.map((s: string) => `<li>${htmlEscape(s)}</li>`).join('')}
+      </ul>` : ''}
+
+    ${homeCare.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px; color: #2e7d32;">Cuidados em casa</h3>
+      <div style="background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 4px; padding: 10px 14px; margin-bottom: 4px;">
+        <ul style="font-size: 12px; line-height: 1.8; padding-left: 18px; margin: 0; color: #1b5e20;">
+          ${homeCare.map((s: string) => `<li><strong>${htmlEscape(s)}</strong></li>`).join('')}
+        </ul>
+      </div>` : ''}
+
+    ${doc.follow_up_schedule ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Retorno</h3>
+      <p style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${htmlEscape(doc.follow_up_schedule)}</p>` : ''}
+
+    ${redFlags.length > 0 ? `<h3 style="font-size: 13px; margin: 18px 0 8px; color: #c62828;">Sinais de alerta — procure ajuda imediata</h3>
+      <div style="background: #ffebee; border-left: 4px solid #c62828; border-radius: 4px; padding: 10px 14px; margin-bottom: 4px;">
+        <ul style="font-size: 12px; line-height: 1.7; padding-left: 18px; margin: 0; color: #b71c1c;">
+          ${redFlags.map((s: string) => `<li><strong>${htmlEscape(s)}</strong></li>`).join('')}
+        </ul>
+      </div>` : ''}
+
+    ${doc.contact_instructions ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Como entrar em contato</h3>
+      <p style="font-size: 12px; line-height: 1.6; white-space: pre-wrap;">${htmlEscape(doc.contact_instructions)}</p>` : ''}
+
+    <div style="margin-top: 30px; font-size: 10px; color: #888; text-align: center; line-height: 1.5;">
+      Este relatório de alta é orientativo e foi gerado com apoio de IA<br/>
+      a partir do prontuário da consulta. Em caso de dúvida, contate o profissional.
+    </div>
+  `;
+
+  await previewPdf({
+    title: 'Relatório de Alta',
+    subtitle: pet?.name ?? undefined,
+    bodyHtml,
+    language: i18n.language,
+  });
+}
+
+// ── Notificação Sanitária ───────────────────────────────────────────────────
+// Diferente dos outros 4: não tem assinatura digital biométrica (não há fluxo
+// de assinatura pra notificação). O PDF é registro interno de doença suspeita
+// + canal oficial onde foi notificada (SVO/CRMV/MAPA/etc).
+export async function previewNotificacaoPdf(notificacaoId: string): Promise<void> {
+  const { data: doc, error } = await supabase
+    .from('notificacoes_sanitarias')
+    .select('*, professional:professionals!notificacoes_sanitarias_professional_id_fkey(display_name, council_name, council_number)')
+    .eq('id', notificacaoId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!doc) throw new Error('Notificação não encontrada.');
+
+  const prof = (doc as any).professional ?? null;
+  const dt = new Date(doc.created_at).toLocaleString('pt-BR');
+  const notifiedAt = doc.notified_at ? new Date(doc.notified_at).toLocaleString('pt-BR') : null;
+
+  const headerHtml = prof
+    ? `<div style="border-bottom: 1px solid #ddd; padding-bottom: 12px; margin-bottom: 18px;">
+         <div style="font-size: 14px; font-weight: 700;">${htmlEscape(prof.display_name)}</div>
+         ${prof.council_name ? `<div style="font-size: 11px; color: #666;">${htmlEscape(prof.council_name)} ${htmlEscape(prof.council_number ?? '')}</div>` : ''}
+       </div>`
+    : '';
+
+  const statusBlock = notifiedAt
+    ? `<div style="margin-top: 24px; padding: 12px; background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 4px;">
+         <div style="font-size: 12px; font-weight: 700; color: #1b5e20;">Notificação enviada em ${notifiedAt}</div>
+         ${doc.protocol_number ? `<div style="font-size: 11px; color: #2e7d32; margin-top: 4px;">Protocolo: ${htmlEscape(doc.protocol_number)}</div>` : ''}
+       </div>`
+    : `<div style="margin-top: 24px; padding: 12px; background: #fff8e0; border-left: 4px solid #d4a017; border-radius: 4px;">
+         <div style="font-size: 12px; font-weight: 700; color: #8a6d00;">PENDENTE — Notificação ainda não enviada à autoridade competente</div>
+       </div>`;
+
+  const bodyHtml = `
+    ${headerHtml}
+    <h2 style="text-align: center; font-size: 16px; margin: 12px 0 24px;">FICHA DE NOTIFICAÇÃO SANITÁRIA</h2>
+
+    <table style="width: 100%; margin: 16px 0; border-collapse: collapse;">
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Doença suspeita</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${htmlEscape(doc.disease_name)}</td>
+      </tr>
+      ${doc.cid_code ? `<tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Código CID</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px; font-family: monospace;">${htmlEscape(doc.cid_code)}</td>
+      </tr>` : ''}
+      ${doc.suspicion_level ? `<tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Nível de suspeita</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px; text-transform: capitalize;">${htmlEscape(doc.suspicion_level)}</td>
+      </tr>` : ''}
+      ${doc.notified_agency ? `<tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Autoridade competente</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${htmlEscape(doc.notified_agency)}</td>
+      </tr>` : ''}
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 11px; background: #f5f5f5;"><strong>Registro criado</strong></td>
+        <td style="border: 1px solid #ddd; padding: 8px; font-size: 12px;">${dt}</td>
+      </tr>
+    </table>
+
+    ${doc.observations ? `<h3 style="font-size: 13px; margin: 18px 0 8px;">Observações clínicas</h3><p style="font-size: 12px; white-space: pre-wrap; line-height: 1.5;">${htmlEscape(doc.observations)}</p>` : ''}
+
+    ${statusBlock}
+
+    <div style="margin-top: 30px; font-size: 10px; color: #888; text-align: center; line-height: 1.5;">
+      Documento gerado pelo auExpert. As notificações de doenças de notificação compulsória<br/>
+      em saúde animal são reguladas pela Instrução Normativa MAPA Nº 50/2013.
+    </div>
+  `;
+
+  await previewPdf({
+    title: 'Notificação Sanitária',
+    subtitle: doc.disease_name,
+    bodyHtml,
+    language: i18n.language,
+  });
+}

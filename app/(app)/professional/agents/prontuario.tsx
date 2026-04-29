@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, FileText, Save,
+  ChevronLeft, Sparkles, AlertTriangle, FileText, Save, History,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -28,6 +28,7 @@ import { useToast } from '../../../../components/Toast';
 import { useProAgent, type ProntuarioResponse } from '../../../../hooks/useProAgent';
 import { SignDocumentButton } from '../../../../components/professional/SignDocumentButton';
 import { AgentVoiceInput } from '../../../../components/professional/AgentVoiceInput';
+import { AgentHistorySheet, PRONTUARIO_HISTORY } from '../../../../components/professional/AgentHistorySheet';
 import { supabase } from '../../../../lib/supabase';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
@@ -61,6 +62,7 @@ export default function ProntuarioAgentScreen() {
   const [draft, setDraft] = useState<ProntuarioDraft>(EMPTY_DRAFT);
   const [hasResult, setHasResult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!petId) {
@@ -136,8 +138,21 @@ export default function ProntuarioAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.prontuario.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel', { defaultValue: 'Abrir histórico de prontuários' })}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={PRONTUARIO_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, FileSignature, Clock,
+  ChevronLeft, Sparkles, AlertTriangle, FileSignature, Clock, History,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -20,6 +20,7 @@ import { useToast } from '../../../../components/Toast';
 import { useProAgent, type TciResponse } from '../../../../hooks/useProAgent';
 import { SignDocumentButton } from '../../../../components/professional/SignDocumentButton';
 import { AgentVoiceInput } from '../../../../components/professional/AgentVoiceInput';
+import { AgentHistorySheet, TCI_HISTORY } from '../../../../components/professional/AgentHistorySheet';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 export default function TciAgentScreen() {
@@ -35,6 +36,7 @@ export default function TciAgentScreen() {
   const [procedureType, setProcedureType] = useState('');
   const [procedureDescription, setProcedureDescription] = useState('');
   const [result, setResult] = useState<TciResponse | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!petId) { toast(t('agents.errors.missingPet'), 'error'); return; }
@@ -75,8 +77,21 @@ export default function TciAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.tci.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={TCI_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

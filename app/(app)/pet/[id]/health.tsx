@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ClipboardList,
   FileText,
+  FolderOpen,
 } from 'lucide-react-native';
 
 import { rs } from '../../../../hooks/useResponsive';
@@ -300,6 +301,14 @@ export default function HealthScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerBtn}
+              onPress={() => router.push(`/pet/${id}/documents` as never)}
+              activeOpacity={0.7}
+              accessibilityLabel={t('documents.title')}
+            >
+              <FolderOpen size={rs(20)} color={colors.click} strokeWidth={1.8} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerBtn}
               onPress={() => router.push(`/pet/${id}/prontuario` as never)}
               activeOpacity={0.7}
             >
@@ -357,6 +366,14 @@ export default function HealthScreen() {
             accessibilityLabel={t('pdfCommon.printOrSave')}
           >
             <FileText size={rs(20)} color={colors.click} strokeWidth={1.8} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => router.push(`/pet/${id}/documents` as never)}
+            activeOpacity={0.7}
+            accessibilityLabel={t('documents.title')}
+          >
+            <FolderOpen size={rs(20)} color={colors.click} strokeWidth={1.8} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerBtn}

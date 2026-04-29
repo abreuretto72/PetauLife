@@ -14,25 +14,28 @@ import { colors } from '../constants/colors';
 import type { PetPlan, PlansData, PlansSummary } from '../hooks/useLens';
 
 // ── Data fetch ────────────────────────────────────────────────────────────────
+// pet_plans não tem coluna `currency` (BRL é assumido).
+// View `pet_plans_summary` não existe — agregamos client-side igual ao hook.
+function nextRenewal(plans: { renewal_date: string | null }[]): string | null {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = plans
+    .map((p) => p.renewal_date)
+    .filter((d): d is string => !!d && d >= today)
+    .sort();
+  return future[0] ?? null;
+}
+
 async function fetchPlans(petId: string): Promise<PlansData> {
-  const [plansRes, summaryRes] = await Promise.all([
-    supabase
-      .from('pet_plans')
-      .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, currency, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
-      .eq('pet_id', petId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('pet_plans_summary')
-      .select('active_count, total_monthly_cost, total_reimbursed, next_renewal_date')
-      .eq('pet_id', petId)
-      .maybeSingle(),
-  ]);
+  const { data, error } = await supabase
+    .from('pet_plans')
+    .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
-  if (plansRes.error) throw plansRes.error;
-  if (summaryRes.error) throw summaryRes.error;
+  if (error) throw error;
 
-  const plans = (plansRes.data ?? []).map((r) => ({
+  const plans = (data ?? []).map((r) => ({
     ...r,
     monthly_cost: r.monthly_cost != null ? Number(r.monthly_cost) : null,
     annual_cost: r.annual_cost != null ? Number(r.annual_cost) : null,
@@ -40,14 +43,13 @@ async function fetchPlans(petId: string): Promise<PlansData> {
     coverage_items: (r.coverage_items as string[]) ?? [],
   })) as PetPlan[];
 
-  const summary: PlansSummary = summaryRes.data
-    ? {
-        active_count: Number(summaryRes.data.active_count) || 0,
-        total_monthly_cost: Number(summaryRes.data.total_monthly_cost) || 0,
-        total_reimbursed: Number(summaryRes.data.total_reimbursed) || 0,
-        next_renewal_date: summaryRes.data.next_renewal_date ?? null,
-      }
-    : { active_count: 0, total_monthly_cost: 0, total_reimbursed: 0, next_renewal_date: null };
+  const activePlans = plans.filter((p) => p.status === 'active');
+  const summary: PlansSummary = {
+    active_count: activePlans.length,
+    total_monthly_cost: activePlans.reduce((sum, p) => sum + (p.monthly_cost ?? 0), 0),
+    total_reimbursed: 0,
+    next_renewal_date: nextRenewal(activePlans),
+  };
 
   return { plans, summary };
 }
@@ -144,9 +146,9 @@ function buildBody(data: PlansData, lang: string): string {
               </div>
             </div>
             <div style="font-size:10px;color:#555;display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;">
-              ${p.monthly_cost != null ? `<span><strong>${escHtml(t('plansPdf.monthly'))}:</strong> ${escHtml(formatMoney(p.monthly_cost, p.currency))}</span>` : ''}
-              ${p.annual_cost != null ? `<span><strong>${escHtml(t('plansPdf.annual'))}:</strong> ${escHtml(formatMoney(p.annual_cost, p.currency))}</span>` : ''}
-              ${p.coverage_limit != null ? `<span><strong>${escHtml(t('plansPdf.coverage'))}:</strong> ${escHtml(formatMoney(p.coverage_limit, p.currency))}</span>` : ''}
+              ${p.monthly_cost != null ? `<span><strong>${escHtml(t('plansPdf.monthly'))}:</strong> ${escHtml(formatMoney(p.monthly_cost, 'BRL'))}</span>` : ''}
+              ${p.annual_cost != null ? `<span><strong>${escHtml(t('plansPdf.annual'))}:</strong> ${escHtml(formatMoney(p.annual_cost, 'BRL'))}</span>` : ''}
+              ${p.coverage_limit != null ? `<span><strong>${escHtml(t('plansPdf.coverage'))}:</strong> ${escHtml(formatMoney(p.coverage_limit, 'BRL'))}</span>` : ''}
             </div>
             <div style="font-size:10px;color:#555;display:flex;gap:14px;flex-wrap:wrap;margin-top:4px;">
               ${p.start_date ? `<span><strong>${escHtml(t('plansPdf.start'))}:</strong> ${escHtml(formatDate(p.start_date, lang))}</span>` : ''}

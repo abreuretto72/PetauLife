@@ -41,6 +41,8 @@ import { supabase } from '../lib/supabase';
 import { withTimeout } from '../lib/withTimeout';
 import { AIThinkingTicker } from './AIThinkingTicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePets } from '../hooks/usePets';
+import { confirmDocPetMatch } from '../utils/confirmDocPetMatch';
 
 export type SurgeryStatus = 'recovered' | 'recovering' | 'complication';
 
@@ -57,6 +59,8 @@ export interface SurgeryData {
 }
 
 interface OcrSurgeryResult {
+  detected_pet_name?: string | null;
+  detected_species?: 'dog' | 'cat' | 'other' | null;
   name?: string;
   date?: string;
   veterinarian?: string;
@@ -105,8 +109,12 @@ const AddSurgeryModal: React.FC<AddSurgeryModalProps> = ({
   isSubmitting = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const insets = useSafeAreaInsets();
+  const { pets } = usePets();
+  const activePet = pets.find((p) => p.id === petId);
+  const activePetName = activePet?.name ?? '';
+  const otherPets = pets.filter((p) => p.id !== petId).map((p) => ({ id: p.id, name: p.name }));
 
   const [step, setStep] = useState<Step>(0);
   const [analyzing, setAnalyzing] = useState(false);
@@ -217,6 +225,19 @@ const AddSurgeryModal: React.FC<AddSurgeryModalProps> = ({
       if (error) throw error;
 
       const result = data as OcrSurgeryResult;
+
+      const proceed = await confirmDocPetMatch({
+        detected: result.detected_pet_name,
+        activePet: { id: petId, name: activePetName },
+        otherPets,
+        confirm,
+        t,
+      });
+      if (!proceed) {
+        setStep(0);
+        return;
+      }
+
       applyOcrResult(result);
       toast(t('health.ocrSuccess'), 'success');
     } catch (err) {
@@ -224,7 +245,7 @@ const AddSurgeryModal: React.FC<AddSurgeryModalProps> = ({
     } finally {
       setAnalyzing(false);
     }
-  }, [i18n.language, toast, t, applyOcrResult]);
+  }, [i18n.language, toast, confirm, t, applyOcrResult, petId, activePetName, otherPets]);
 
   const handleTakePhoto = useCallback(async () => {
     try {

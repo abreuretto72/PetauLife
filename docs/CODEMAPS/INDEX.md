@@ -1,7 +1,7 @@
 # auExpert Codemaps Index
 
-**Last Updated:** 2026-04-26
-**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships + Professional Module Fase 1 + Diary & Health Component Refactor + Agenda Actions + Pet Deletion + Breed Intelligence Elite + TCI Signing Flow + Reminders & Pending Signatures + Professional Agents Dashboard + Pet Documents + Professional Document Scanning)
+**Last Updated:** 2026-04-28
+**Scope:** MVP Phase (+ Nutrition Module + Prontuário Vet-Grade + Health Modals Input-First + Invite System + iOS Font Fixes + STT Improvements + AI Chat Redesign + PDF Exports + Partnerships + Professional Module Fase 1 + Diary & Health Component Refactor + Agenda Actions + Pet Deletion + Breed Intelligence Elite + TCI Signing Flow + Reminders & Pending Signatures + Professional Agents Dashboard + Pet Documents + Professional Document Scanning + **Proactive AI Insights Camadas 1-8 + Trips/Viagens + Memorial**)
 
 ---
 
@@ -13,7 +13,115 @@ This directory contains comprehensive architectural documentation for the auExpe
 
 ---
 
-## Latest Changes (2026-04-26)
+## Latest Changes (2026-04-28)
+
+### Proactive AI Insights — Camadas 1-8 (IA Proativa)
+
+**Concept:** The app proactively generates layered AI insights for each pet, without requiring the tutor to ask. 8 distinct "layers" cover health reminders → chronic care → affective milestones → memorial mode.
+
+**New Screens:**
+- `app/(app)/insights/index.tsx` — Central feed of all insights (all pets, all layers). Filter chips: all/health/reminders/patterns/longterm/coach/family/ops/companion
+- `app/(app)/insights/[id].tsx` — Individual insight detail with action buttons
+- `app/(app)/settings/proactive.tsx` — Per-pet toggle to enable/disable proactive layers
+
+**New Components:**
+- `components/insights/InsightCard.tsx` — Insight card with severity color (info/consider/attention/urgent), layer badge, pet avatar
+- `components/insights/MedicalDisclaimer.tsx` — Required disclaimer for medical/clinical insights
+
+**New Hooks:**
+- `hooks/useAllInsights.ts` — Fetch all insights for tutor's pets with filters (`InsightFilters` type), pull-to-refresh, pagination
+- `hooks/useProactiveSettings.ts` — Per-pet proactive settings + `useTriggerProactiveCheck()` to on-demand trigger generation
+- `hooks/useFeatureFlag.ts` — Feature flag evaluation from `app_config` table
+
+**New Types:**
+- `types/insights.ts` — `InsightLayer`, `InsightSeverity`, `InsightStatus`, `PetInsight` interfaces (Camadas 1-8 taxonomy)
+
+**5 New Edge Functions (Camadas 4-8):**
+- `generate-pet-ops-insights` — Camada 7: operational alerts (prescription renewal, vet prep, trip anticipation, preventive docs). CRON 06:30 UTC.
+- `generate-affective-milestones-insights` — Camada 8a: affective milestones (birthday, adoption anniversary, diary streak). CRON 09:00 UTC.
+- `generate-chronic-care-insights` — Camada 8b: chronic condition management guidance (sensitive). CRON daily.
+- `generate-memorial-insights` — Camada 8c: grief support mode — only for pets with `deceased_at != null`. CRON daily.
+- `generate-tutor-difficulty-insights` — Camada 8d: detects signals that the TUTOR (not pet) may be struggling. Most delicate layer. Opt-in only.
+
+**CRON Architecture:** Each function has 7-day cooldown per scope_key to avoid re-triggering. All use `pet_insights` table with `is_active=true` pattern.
+
+---
+
+### Trips / Viagens Feature
+
+**New Screens:**
+- `app/(app)/trips/index.tsx` — Trips list grouped by status (planning, preparing, active, returning, completed, archived). FAB to create.
+- `app/(app)/trips/new.tsx` — New trip creation (destination, dates, pets, documents)
+- `app/(app)/trips/[id].tsx` — Trip detail with tabs (overview, documents, moments, concierge)
+- `app/(app)/trips/[id]/` — Sub-routes for trip tabs
+
+**New Hooks:**
+- `hooks/useTrips.ts` — CRUD for trips (query by status, create, update, archive)
+- `hooks/useTravelRules.ts` — Country-specific vet/import rules from `data/travelRules/`
+- `hooks/useTripConcierge.ts` — AI-powered trip concierge (AI generates packing list, vet requirements, emergency contacts per destination)
+- `hooks/useTripConsultation.ts` — AI consultation about trip (health risks, vaccination requirements)
+- `hooks/useTripDocuments.ts` — Per-trip documents (health cert, passport, vaccinations)
+- `hooks/useTripMoments.ts` — Trip moment diary entries linked to `trip_id`
+
+**New Types:** `types/trip.ts` — `Trip`, `TripStatus`, `TripDocument`, `TravelRule` interfaces
+
+**New Constants:**
+- `constants/petTravelTipsByCountry.ts` — Country-specific travel tips (quarantine, rabies-free zones, documentation)
+- `data/travelRules/` — Structured travel rules dataset per country code
+
+**New Component:** `components/lenses/TravelsLensContent.tsx` (major rewrite) — Trip cards in lens view
+**New Sheet:** `components/lenses/AddTravelSheet.tsx` — Add trip from lens/diary context
+
+---
+
+### Memorial Feature
+
+- `app/(app)/pet/[id]/memorial.tsx` — Read-only memorial screen for pets with `deceased_at != null`. Composition: header (name + dates + age), memorial letter (from `generate-memorial-insights`), memory book (top diary entries ordered by mood), lifecycle timeline, PDF export shortcut.
+- **Tone:** Elite, Clarice Lispector style. No CTA, no emoji. Accessible from pet settings when pet is marked deceased.
+
+---
+
+### New Shared Components
+
+- `components/AiWaitTipsCarousel.tsx` — Tips carousel during AI processing (auto-advance, pet-care tips, non-blocking)
+- `components/DatePickerSheet.tsx` — Reusable date picker bottom sheet (replaces inline date pickers)
+- `components/VoiceInputButton.tsx` — Reusable STT button with pulse animation (used across modules)
+- `components/lenses/AddFriendSheet.tsx` — Add pet friend from lens
+- `components/lenses/FeedSheet.tsx` — Feed/social sheet from lens
+- `components/professional/AgentHistorySheet.tsx` — History of agent interactions
+- `components/professional/ProntuarioHistorySheet.tsx` — Prontuário revision history
+
+---
+
+### Professional Module Updates
+
+- `lib/professionalDocsPdf.ts` (new) — PDF generation for professional documents (TCI, receituário, prontuário summary, alta). Uses master template from `lib/pdf.ts`.
+- `app/(app)/professional/agents/notificacao.tsx` — Major rewrite (110+ lines added): notification drafting with AI, scheduling, template selection
+- All 7 agent screens: minor enhancements (STT improvements, error handling, i18n additions)
+
+---
+
+### i18n Additions (2026-04-28)
+
+- **+670 keys per language** (pt-BR + en-US)
+- `insights.*` — Feed titles, insight categories, severity labels, disclaimers
+- `trips.*` — Trip status labels, concierge responses, travel rules, document types
+- `memorial.*` — Memorial screen titles, timeline labels, export prompts
+- `proactive.*` — Settings toggles, layer descriptions, opt-in prompts
+- All new strings follow Elite register (no exclamation abuse, no emoji, 3rd person or impersonal tone)
+
+---
+
+### Admin Dashboard (2026-04-27)
+
+- `admin-dashboard/app/(dashboard)/costs/page.tsx` — Break-even calculator now uses real store fees:
+  - `STORE_FEE_PCT = 0.15` (Apple/Google Small Business Program)
+  - `RC_FEE_PCT = 0.01` (RevenueCat after $2.5K MTR)
+  - `NET_REVENUE_RATE ≈ 0.8415` — profit and break-even computed on net revenue, not gross
+
+---
+
+## Previous Changes (2026-04-26)
 
 ### New Screens & Modules
 

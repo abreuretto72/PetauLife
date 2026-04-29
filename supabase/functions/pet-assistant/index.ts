@@ -51,6 +51,47 @@ function fmtDate(d: string | null | undefined): string {
   try { return new Date(d).toLocaleDateString('pt-BR'); } catch { return d; }
 }
 
+// Constroi o bloco TRAVEL READINESS injetado no system prompt.
+// Recebe o JSON da RPC get_pet_travel_readiness.
+function buildTravelReadinessBlock(rpc: any, lang: string): string {
+  if (!rpc || rpc.error) return '';
+  const isPt = lang.toLowerCase().startsWith('p');
+  const lines: string[] = [];
+
+  if (isPt) {
+    lines.push('PRONTIDÃO DOC. PRA VIAGEM (resumo do cadastro):');
+    lines.push('- Microchip ISO: ' + (rpc.microchip?.has ? 'PRESENTE (id ' + rpc.microchip.id + ')' : 'AUSENTE'));
+    if (rpc.rabies?.has) {
+      lines.push('- Antirrábica: PRESENTE em ' + rpc.rabies.last_date + (rpc.rabies.valid ? ' (válida)' : ' (fora da janela 30d-12m)'));
+    } else {
+      lines.push('- Antirrábica: AUSENTE');
+    }
+    if (Array.isArray(rpc.other_vaccines) && rpc.other_vaccines.length > 0) {
+      lines.push('- Outras vacinas: ' + rpc.other_vaccines.map((v: any) => v.name).join(', '));
+    }
+    lines.push('- Score de prontidão: ' + rpc.readiness_score + '/100');
+    if (Array.isArray(rpc.missing_critical) && rpc.missing_critical.length > 0) {
+      lines.push('- ITENS CRÍTICOS FALTANTES: ' + rpc.missing_critical.join(', '));
+    }
+  } else {
+    lines.push('TRAVEL DOC. READINESS (from registry):');
+    lines.push('- ISO microchip: ' + (rpc.microchip?.has ? 'PRESENT (id ' + rpc.microchip.id + ')' : 'MISSING'));
+    if (rpc.rabies?.has) {
+      lines.push('- Rabies vaccine: PRESENT on ' + rpc.rabies.last_date + (rpc.rabies.valid ? ' (valid)' : ' (out of 30d-12m window)'));
+    } else {
+      lines.push('- Rabies vaccine: MISSING');
+    }
+    if (Array.isArray(rpc.other_vaccines) && rpc.other_vaccines.length > 0) {
+      lines.push('- Other vaccines: ' + rpc.other_vaccines.map((v: any) => v.name).join(', '));
+    }
+    lines.push('- Readiness score: ' + rpc.readiness_score + '/100');
+    if (Array.isArray(rpc.missing_critical) && rpc.missing_critical.length > 0) {
+      lines.push('- MISSING CRITICAL ITEMS: ' + rpc.missing_critical.join(', '));
+    }
+  }
+  return lines.join('\n');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS });
@@ -93,6 +134,7 @@ Deno.serve(async (req: Request) => {
     const lang     = LANG_NAMES[language] ?? LANG_NAMES[language.split('-')[0]] ?? 'English';
 
     // ── Parallel data fetch ───────────────────────────────────────────────────
+    // v19: adiciona RPC get_pet_travel_readiness pra IA cobrar documentos pendentes
     const [
       petRes,
       vaccinesRes,
@@ -101,6 +143,7 @@ Deno.serve(async (req: Request) => {
       consultationsRes,
       diaryRes,
       ragRes,
+      readinessRes,
     ] = await Promise.allSettled([
       // 1. Pet profile
       supabase
@@ -155,6 +198,9 @@ Deno.serve(async (req: Request) => {
       supabase.functions.invoke('search-rag', {
         body: { pet_id, query: message, match_count: 8 },
       }),
+
+      // 8. Travel readiness — RPC compartilhada que avalia microchip + antirrabica + outras
+      supabase.rpc('get_pet_travel_readiness', { p_pet_id: pet_id }),
     ]);
 
     // ── Extract results safely ────────────────────────────────────────────────
@@ -168,6 +214,7 @@ Deno.serve(async (req: Request) => {
       ragRes.status === 'fulfilled' && Array.isArray(ragRes.value.data?.results)
         ? ragRes.value.data.results
         : [];
+    const readiness = readinessRes.status === 'fulfilled' ? (readinessRes.value.data ?? null) : null;
 
     // ── Build pet profile string ──────────────────────────────────────────────
     const petProfile = pet
@@ -238,6 +285,7 @@ Deno.serve(async (req: Request) => {
     const ragSection = ragResults.length > 0
       ? ragResults.map((r) => `- ${r.content}`).join('\n')
       : '';
+    const readinessSection = buildTravelReadinessBlock(readiness, language);
 
     // ── System prompt ─────────────────────────────────────────────────────────
     const petName = pet?.name ?? 'o pet';
@@ -270,6 +318,7 @@ ${consultationsSection}
 DIARY (${diaryEntries.length} recent entries):
 ${diarySection}
 ${ragSection ? `\nADDITIONAL RELEVANT HISTORY (from semantic search):\n${ragSection}` : ''}
+${readinessSection ? `\n${readinessSection}` : ''}
 
 IMPORTANT RULES:
 - Always refer to the pet in the third person (e.g. "${petName} needs..." / "A ${petName} precisa...")
@@ -278,7 +327,24 @@ IMPORTANT RULES:
 - Be empathetic, clear, and objective
 - Always reply in ${lang}
 - Keep responses concise (2–4 sentences) unless more detail is needed
-- Do NOT use markdown formatting in responses — plain text only`;
+- Do NOT use markdown formatting in responses — plain text only
+
+PROACTIVE DOCUMENT REMINDERS (CRITICAL FOR ELITE EXPERIENCE):
+Whenever the conversation touches travel, vet visits, document organisation, or whenever appropriate,
+you MUST proactively remind the tutor about MISSING CRITICAL ITEMS shown in the readiness block above.
+Do not wait to be asked. Examples:
+- If microchip is MISSING, mention it briefly with practical 2-4 step guidance:
+  "O ${petName} ainda não tem microchip ISO cadastrado. Veterinários aplicam em 5 minutos
+   por R$60-120. Peça o comprovante com o número ISO impresso e fotografe a carteirinha
+   pra eu cadastrar aqui no app. Sem microchip, viagens internacionais ficam bloqueadas."
+- If rabies vaccine is MISSING/expired, explain timing and registration:
+  "A antirrábica precisa ser aplicada com no mínimo 30 dias e no máximo 12 meses antes
+   de qualquer viagem internacional. Aplique agora com o veterinário (R$40-80 ou grátis
+   em campanha) e mande foto da carteirinha que eu cadastro."
+- ALWAYS finish reminders with: "depois de providenciar, mande a foto pra eu cadastrar no app".
+  This is essential — the registry must reflect reality so future trips work seamlessly.
+- Tone: registro Elite. Factual, 3a pessoa, sem onomatopeia, sem assinatura "— seu pet".
+- Don't dump everything at once — focus on 1 missing item per turn unless directly relevant.`;
 
     // ── Call Claude ───────────────────────────────────────────────────────────
     const history = (Array.isArray(conversation_history) ? conversation_history : []).slice(-10);

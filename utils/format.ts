@@ -1,3 +1,29 @@
+import i18n from '../i18n';
+
+/**
+ * Locale corrente do tutor — sempre que `formatDate` / `formatRelativeDate` /
+ * `formatAge` forem chamados sem locale explicito, defaulta pro idioma do i18n.
+ *
+ * Fallback solido: se i18n nao estiver pronto (jest sem setup, primeiro frame
+ * antes do init, etc), volta pra 'pt-BR' (locale base do projeto). 'en' eh
+ * mapeado pra 'en-US' por compatibilidade com `toLocaleDateString`.
+ */
+function getCurrentLocale(): string {
+  try {
+    const lang = i18n?.language;
+    if (!lang) return 'pt-BR';
+    if (lang === 'en') return 'en-US';
+    return lang;
+  } catch {
+    return 'pt-BR';
+  }
+}
+
+/** True se o locale eh portugues (pt-BR ou pt-PT). */
+function isPortuguese(locale: string): boolean {
+  return locale.startsWith('pt');
+}
+
 /**
  * Parse a date string as LOCAL time.
  *
@@ -21,11 +47,14 @@ function parseDateLocal(dateStr: string): Date {
 
 /**
  * Formats a date string to a localized short format.
- * Examples: "27 mar 2026", "15 jan 2026"
+ * Examples: "27 mar 2026", "15 jan 2026", "Mar 27, 2026"
+ *
+ * Locale defaulta pro idioma corrente do i18n (idioma do dispositivo do tutor).
+ * Permanece overridavel pra usos especificos (PDFs, exportacoes, etc).
  */
 export function formatDate(
   dateStr: string | null | undefined,
-  locale: string = 'pt-BR',
+  locale: string = getCurrentLocale(),
 ): string {
   if (!dateStr) return '—';
   const date = parseDateLocal(dateStr);
@@ -38,11 +67,18 @@ export function formatDate(
 }
 
 /**
- * Formats a date string to relative time (e.g., "há 2 horas", "ontem").
+ * Formats a date string to relative time.
+ *
+ * Locale defaulta pro idioma corrente do i18n (idioma do dispositivo do tutor)
+ * quando nao passado — corrige bug em que callers como PetCard mostravam
+ * "ha 4 dias" pra users com device em ingles.
+ *
+ * Exemplos pt-BR / pt-PT: "agora", "ha 30 min", "ha 3h", "ontem", "ha 4 dias", "27 mar 2026"
+ * Exemplos en / es / outros: "just now", "30m ago", "3h ago", "yesterday", "4d ago", "Mar 27, 2026"
  */
 export function formatRelativeDate(
   dateStr: string | null | undefined,
-  locale: string = 'pt-BR',
+  locale: string = getCurrentLocale(),
 ): string {
   if (!dateStr) return '—';
   const date = parseDateLocal(dateStr);
@@ -54,13 +90,13 @@ export function formatRelativeDate(
   const diffHours = Math.floor(diffMs / 3_600_000);
   const diffDays = Math.floor(diffMs / 86_400_000);
 
-  const isPtBr = locale === 'pt-BR';
+  const isPt = isPortuguese(locale);
 
-  if (diffMin < 1) return isPtBr ? 'agora' : 'just now';
-  if (diffMin < 60) return isPtBr ? `há ${diffMin} min` : `${diffMin}m ago`;
-  if (diffHours < 24) return isPtBr ? `há ${diffHours}h` : `${diffHours}h ago`;
-  if (diffDays === 1) return isPtBr ? 'ontem' : 'yesterday';
-  if (diffDays < 7) return isPtBr ? `há ${diffDays} dias` : `${diffDays}d ago`;
+  if (diffMin < 1) return isPt ? 'agora' : 'just now';
+  if (diffMin < 60) return isPt ? `há ${diffMin} min` : `${diffMin}m ago`;
+  if (diffHours < 24) return isPt ? `há ${diffHours}h` : `${diffHours}h ago`;
+  if (diffDays === 1) return isPt ? 'ontem' : 'yesterday';
+  if (diffDays < 7) return isPt ? `há ${diffDays} dias` : `${diffDays}d ago`;
 
   return formatDate(dateStr, locale);
 }
@@ -76,28 +112,43 @@ export function formatWeight(kg: number | null | undefined): string {
 
 /**
  * Formats age in months to a human-readable string.
- * Examples: "3 anos", "8 meses", "2 anos e 4 meses"
+ *
+ * Locale defaulta pro idioma corrente do i18n quando nao passado.
+ * `opts.compact = true` colapsa "X anos e Y meses" em "X+ anos" — uso
+ * tipico: cards onde a precisao de meses nao agrega mas ocupa espaco.
+ *
+ * Examples pt-BR / pt-PT (compact=false): "3 anos", "8 meses", "2 anos e 4 meses", "1 mês"
+ * Examples pt-BR / pt-PT (compact=true):  "3 anos", "8 meses", "2+ anos",         "1 mês"
+ * Examples en / outros (compact=false):   "3 years", "8 months", "2y 4m",        "1 month"
+ * Examples en / outros (compact=true):    "3 years", "8 months", "2+ years",     "1 month"
  */
 export function formatAge(
   months: number | null | undefined,
-  locale: string = 'pt-BR',
+  locale: string = getCurrentLocale(),
+  opts?: { compact?: boolean },
 ): string {
   if (months == null) return '—';
-  const isPtBr = locale === 'pt-BR';
+  const isPt = isPortuguese(locale);
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
 
   if (years === 0) {
-    return isPtBr
+    return isPt
       ? `${remainingMonths} ${remainingMonths === 1 ? 'mês' : 'meses'}`
       : `${remainingMonths} ${remainingMonths === 1 ? 'month' : 'months'}`;
   }
   if (remainingMonths === 0) {
-    return isPtBr
+    return isPt
       ? `${years} ${years === 1 ? 'ano' : 'anos'}`
       : `${years} ${years === 1 ? 'year' : 'years'}`;
   }
-  return isPtBr
+  // Tem anos + meses extras
+  if (opts?.compact) {
+    return isPt
+      ? `${years}+ ${years === 1 ? 'ano' : 'anos'}`
+      : `${years}+ ${years === 1 ? 'year' : 'years'}`;
+  }
+  return isPt
     ? `${years} ${years === 1 ? 'ano' : 'anos'} e ${remainingMonths} ${remainingMonths === 1 ? 'mês' : 'meses'}`
     : `${years}y ${remainingMonths}m`;
 }

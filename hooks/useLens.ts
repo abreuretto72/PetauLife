@@ -121,6 +121,18 @@ export function useLensNutrition(petId: string) {
 // SELECT pedia esses dois campos, PostgREST retornava 42703, painel ficava
 // vazio mesmo com rows persistidas.
 
+// Posts individuais por encontro (1 row da tabela pet_connections = 1 post)
+// Usado pelo FeedSheet pra mostrar timeline estilo Instagram do amigo.
+export interface FriendPost {
+  id: string;
+  date: string | null;        // last_seen_at do encontro
+  notes: string | null;
+  narration: string | null;
+  photos: string[];
+  cover_url: string | null;
+  diary_entry_id: string | null;
+}
+
 export interface PetConnection {
   id: string;
   friend_name: string;
@@ -133,6 +145,10 @@ export interface PetConnection {
   meet_count: number;
   notes: string | null;
   created_at: string;
+  // Foto destaque do amigo — pega cover_url > photos[0] da row mais recente
+  cover_url: string | null;
+  // Todos os encontros desse amigo, ordenados do mais recente
+  posts: FriendPost[];
 }
 
 interface PetConnectionRow {
@@ -146,6 +162,10 @@ interface PetConnectionRow {
   last_seen_at: string | null;
   notes: string | null;
   created_at: string;
+  photos: string[] | null;
+  narration: string | null;
+  cover_url: string | null;
+  diary_entry_id: string | null;
 }
 
 function normalizeFriendKey(name: string): string {
@@ -164,13 +184,20 @@ function minDate(a: string | null, b: string | null): string | null {
   return a <= b ? a : b;
 }
 
+// Helper: tira a melhor foto cover da row (cover_url ou primeira foto)
+function rowCover(r: PetConnectionRow): string | null {
+  if (r.cover_url) return r.cover_url;
+  if (Array.isArray(r.photos) && r.photos.length > 0) return r.photos[0];
+  return null;
+}
+
 export function useLensFriends(petId: string) {
   return useQuery({
     queryKey: ['pets', petId, 'lens', 'friends'],
     queryFn: async (): Promise<PetConnection[]> => {
       const { data, error } = await supabase
         .from('pet_connections')
-        .select('id, friend_name, friend_species, friend_breed, friend_owner, connection_type, first_met_at, last_seen_at, notes, created_at')
+        .select('id, friend_name, friend_species, friend_breed, friend_owner, connection_type, first_met_at, last_seen_at, notes, created_at, photos, narration, cover_url, diary_entry_id')
         .eq('pet_id', petId)
         .eq('is_active', true)
         .order('last_seen_at', { ascending: false });
@@ -182,10 +209,20 @@ export function useLensFriends(petId: string) {
 
       // Agrega por nome do amigo (case-insensitive). 1 row = 1 encontro;
       // múltiplas rows com mesmo friend_name viram 1 card com meet_count = N.
+      // Cada row vira tambem um "post" no feed Instagram do amigo.
       const byFriend = new Map<string, PetConnection>();
       for (const r of rows) {
         const key = normalizeFriendKey(r.friend_name);
         const existing = byFriend.get(key);
+        const post: FriendPost = {
+          id: r.id,
+          date: r.last_seen_at ?? r.first_met_at ?? r.created_at.slice(0, 10),
+          notes: r.notes,
+          narration: r.narration,
+          photos: Array.isArray(r.photos) ? r.photos : [],
+          cover_url: rowCover(r),
+          diary_entry_id: r.diary_entry_id,
+        };
         if (!existing) {
           byFriend.set(key, {
             id: r.id,
@@ -199,6 +236,8 @@ export function useLensFriends(petId: string) {
             meet_count: 1,
             notes: r.notes,
             created_at: r.created_at,
+            cover_url: rowCover(r),
+            posts: [post],
           });
         } else {
           existing.meet_count += 1;
@@ -209,11 +248,20 @@ export function useLensFriends(petId: string) {
           existing.friend_breed = existing.friend_breed ?? r.friend_breed;
           existing.friend_owner = existing.friend_owner ?? r.friend_owner;
           existing.notes = existing.notes ?? r.notes;
+          // Pega o primeiro cover não-nulo (rows vieram ordenadas DESC, então
+          // o primeiro com foto é o mais recente).
+          existing.cover_url = existing.cover_url ?? rowCover(r);
+          existing.posts.push(post);
         }
       }
 
-      // Ordem: amigo visto mais recentemente primeiro.
-      return [...byFriend.values()].sort((a, b) => {
+      // Ordem geral: amigo visto mais recentemente primeiro.
+      // Posts dentro do amigo: também mais recente primeiro.
+      const result = [...byFriend.values()];
+      for (const friend of result) {
+        friend.posts.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+      }
+      return result.sort((a, b) => {
         const da = a.last_seen_at ?? a.created_at;
         const db = b.last_seen_at ?? b.created_at;
         return db.localeCompare(da);
@@ -234,7 +282,6 @@ export interface PetPlan {
   monthly_cost: number | null;
   annual_cost: number | null;
   coverage_limit: number | null;
-  currency: string;
   coverage_items: string[];
   start_date: string | null;
   end_date: string | null;
@@ -256,25 +303,29 @@ export interface PlansData {
   summary: PlansSummary;
 }
 
+// Helper: encontra a próxima data de renovação a partir do conjunto de planos
+function nextRenewal(plans: { renewal_date: string | null }[]): string | null {
+  const today = new Date().toISOString().slice(0, 10);
+  const future = plans
+    .map((p) => p.renewal_date)
+    .filter((d): d is string => !!d && d >= today)
+    .sort();
+  return future[0] ?? null;
+}
+
 async function fetchPlansData(petId: string): Promise<PlansData> {
-  const [plansRes, summaryRes] = await Promise.all([
-    supabase
-      .from('pet_plans')
-      .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, currency, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
-      .eq('pet_id', petId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('pet_plans_summary')
-      .select('active_count, total_monthly_cost, total_reimbursed, next_renewal_date')
-      .eq('pet_id', petId)
-      .maybeSingle(),
-  ]);
+  // Tabela `pet_plans` não tem coluna `currency` (BRL é assumido).
+  // View `pet_plans_summary` não existe — agregamos client-side.
+  const { data, error } = await supabase
+    .from('pet_plans')
+    .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
+    .eq('pet_id', petId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
-  if (plansRes.error) throw plansRes.error;
-  if (summaryRes.error) throw summaryRes.error;
+  if (error) throw error;
 
-  const plans = (plansRes.data ?? []).map((r) => ({
+  const plans = (data ?? []).map((r) => ({
     ...r,
     monthly_cost: r.monthly_cost != null ? Number(r.monthly_cost) : null,
     annual_cost: r.annual_cost != null ? Number(r.annual_cost) : null,
@@ -282,14 +333,13 @@ async function fetchPlansData(petId: string): Promise<PlansData> {
     coverage_items: (r.coverage_items as string[]) ?? [],
   })) as PetPlan[];
 
-  const summary: PlansSummary = summaryRes.data
-    ? {
-        active_count: Number(summaryRes.data.active_count) || 0,
-        total_monthly_cost: Number(summaryRes.data.total_monthly_cost) || 0,
-        total_reimbursed: Number(summaryRes.data.total_reimbursed) || 0,
-        next_renewal_date: summaryRes.data.next_renewal_date ?? null,
-      }
-    : { active_count: 0, total_monthly_cost: 0, total_reimbursed: 0, next_renewal_date: null };
+  const activePlans = plans.filter((p) => p.status === 'active');
+  const summary: PlansSummary = {
+    active_count: activePlans.length,
+    total_monthly_cost: activePlans.reduce((sum, p) => sum + (p.monthly_cost ?? 0), 0),
+    total_reimbursed: 0, // pet_plans não rastreia reembolsos; placeholder até modelo suportar
+    next_renewal_date: nextRenewal(activePlans),
+  };
 
   return { plans, summary };
 }
@@ -513,6 +563,9 @@ export interface PetTravel {
   tags: string[];
   diary_entry_id: string | null;
   created_at: string;
+  // Narração IA + foto destaque — usados pelo feed Instagram da viagem
+  narration: string | null;
+  cover_url: string | null;
 }
 
 export interface TravelData {
@@ -525,19 +578,24 @@ export interface TravelData {
 async function fetchTravelData(petId: string): Promise<TravelData> {
   const { data, error } = await supabase
     .from('pet_travels')
-    .select('id, destination, country, region, travel_type, status, start_date, end_date, distance_km, notes, photos, tags, diary_entry_id, created_at')
+    .select('id, destination, country, region, travel_type, status, start_date, end_date, distance_km, notes, photos, tags, diary_entry_id, created_at, narration, cover_url')
     .eq('pet_id', petId)
     .eq('is_active', true)
     .order('start_date', { ascending: false });
 
   if (error) throw error;
 
-  const travels = (data ?? []).map((r) => ({
-    ...r,
-    distance_km: r.distance_km != null ? Number(r.distance_km) : null,
-    photos: (r.photos as string[]) ?? [],
-    tags: (r.tags as string[]) ?? [],
-  })) as PetTravel[];
+  const travels = (data ?? []).map((r) => {
+    const photos = (r.photos as string[]) ?? [];
+    return {
+      ...r,
+      distance_km: r.distance_km != null ? Number(r.distance_km) : null,
+      photos,
+      tags: (r.tags as string[]) ?? [],
+      // Cover destaque: cover_url > primeira foto > null
+      cover_url: r.cover_url ?? (photos.length > 0 ? photos[0] : null),
+    };
+  }) as PetTravel[];
 
   const completed = travels.filter((t) => t.status === 'completed');
 

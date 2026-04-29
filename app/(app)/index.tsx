@@ -39,6 +39,7 @@ import AddPetModal from '../../components/AddPetModal';
 import type { AddPetData } from '../../components/AddPetModal';
 import { useToast } from '../../components/Toast';
 import { usePets } from '../../hooks/usePets';
+import { useActiveTripPetIds } from '../../hooks/useTrips';
 import { usePetSearch } from '../../hooks/usePetSearch';
 import { usePreferencesStore } from '../../stores/usePreferencesStore';
 import { UI_THRESHOLDS } from '../../constants/uiThresholds';
@@ -79,6 +80,7 @@ export default function HubScreen() {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [addPetVisible, setAddPetVisible] = useState(false);
   const { pets, isLoading, refetch, addPet, isAdding } = usePets();
+  const activeTripPetIds = useActiveTripPetIds();
   const { user } = useAuth();
   const { toast } = useToast();
   const { query, setQuery, filtered, recent, isSearching } = usePetSearch(pets);
@@ -202,6 +204,10 @@ export default function HubScreen() {
   const userName = user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'Tutor';
   const userEmail = user?.email ?? '';
 
+  // NOTA: Set nao sobrevive ao rehydrate do React Query (AsyncStorage nao
+  // serializa Set). Por isso o hook retorna string[] e usamos .includes().
+  const activePetIds: string[] = Array.isArray(activeTripPetIds.data) ? activeTripPetIds.data : [];
+
   const petCards: PetCardData[] = pets.map((p) => ({
     id: p.id,
     name: p.name,
@@ -218,6 +224,7 @@ export default function HubScreen() {
     avatar_url: p.avatar_url,
     last_diary_entry: p.updated_at ?? null,
     agenda_count: null,
+    has_active_trip: activePetIds.includes(p.id),
   }));
 
   const filteredCards: PetCardData[] = filtered.map((p) => ({
@@ -236,6 +243,7 @@ export default function HubScreen() {
     avatar_url: p.avatar_url,
     last_diary_entry: p.updated_at ?? null,
     agenda_count: null,
+    has_active_trip: activePetIds.includes(p.id),
   }));
 
   const hasOverdueVaccine = petCards.some(
@@ -502,6 +510,7 @@ export default function HubScreen() {
             xpNext={1000}
             onPress={() => router.push('/(app)/profile' as never)}
             onPressPartnership={() => router.push('/(app)/partnerships' as never)}
+            onPressTrip={() => router.push('/(app)/trips' as never)}
           />
 
           {/* Vaccine alert */}

@@ -107,15 +107,13 @@ async function fetchPainel(petId: string): Promise<PainelData> {
       .order('start_date', { ascending: false }),
     supabase
       .from('pet_plans')
-      .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, currency, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
+      // pet_plans não tem coluna `currency` (BRL é assumido).
+      // View pet_plans_summary não existe — agregamos client-side.
+      .select('id, plan_type, provider, plan_name, plan_code, monthly_cost, annual_cost, coverage_limit, coverage_items, start_date, end_date, renewal_date, status, source, created_at')
       .eq('pet_id', petId)
       .eq('is_active', true)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('pet_plans_summary')
-      .select('active_count, total_monthly_cost, total_reimbursed, next_renewal_date')
-      .eq('pet_id', petId)
-      .maybeSingle(),
+    Promise.resolve({ data: null, error: null }),  // placeholder pra preservar destructuring
   ]);
 
   // Vaccines
@@ -305,7 +303,7 @@ async function fetchPainel(petId: string): Promise<PainelData> {
     ? { travels: travels as TravelData['travels'], totalTrips: completedTravels.length, totalKm, totalDays }
     : null;
 
-  // Plans
+  // Plans — view pet_plans_summary não existe; agregamos client-side
   const plans = (planRes.data ?? []).map((r) => ({
     ...r,
     monthly_cost: r.monthly_cost != null ? Number(r.monthly_cost) : null,
@@ -313,14 +311,20 @@ async function fetchPainel(petId: string): Promise<PainelData> {
     coverage_limit: r.coverage_limit != null ? Number(r.coverage_limit) : null,
     coverage_items: (r.coverage_items as string[]) ?? [],
   })) as PlansData['plans'];
-  const planSum = planSumRes.data
-    ? {
-        active_count: Number(planSumRes.data.active_count) || 0,
-        total_monthly_cost: Number(planSumRes.data.total_monthly_cost) || 0,
-        total_reimbursed: Number(planSumRes.data.total_reimbursed) || 0,
-        next_renewal_date: planSumRes.data.next_renewal_date ?? null,
-      }
-    : { active_count: 0, total_monthly_cost: 0, total_reimbursed: 0, next_renewal_date: null };
+  const activePlans = plans.filter((p) => p.status === 'active');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const futureRenewals = activePlans
+    .map((p) => p.renewal_date)
+    .filter((d): d is string => !!d && d >= todayIso)
+    .sort();
+  const planSum = {
+    active_count: activePlans.length,
+    total_monthly_cost: activePlans.reduce((sum, p) => sum + (p.monthly_cost ?? 0), 0),
+    total_reimbursed: 0,
+    next_renewal_date: futureRenewals[0] ?? null,
+  };
+  // Variável reservada caso planSumRes seja consumido em outro lugar — placeholder retornado
+  void planSumRes;
   const plansData: PlansData | null = plans.length > 0 ? { plans, summary: planSum } : null;
 
   return {

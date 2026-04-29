@@ -6,10 +6,12 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { Search, X, Mic } from 'lucide-react-native';
+import { Search, X, Mic, MicOff } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../constants/colors';
 import { rs } from '../../hooks/useResponsive';
+import { useSimpleSTT } from '../../hooks/useSimpleSTT';
+import { useToast } from '../Toast';
 
 interface PetSearchBarProps {
   value: string;
@@ -18,11 +20,23 @@ interface PetSearchBarProps {
 }
 
 const PetSearchBar: React.FC<PetSearchBarProps> = ({ value, onChangeText, style }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { toast } = useToast();
 
   const handleClear = useCallback(() => {
     onChangeText('');
   }, [onChangeText]);
+
+  // Mic: ditar a busca por voz. Cada transcricao final substitui o texto.
+  const stt = useSimpleSTT({
+    lang: i18n.language,
+    onTranscript: (text, isFinal) => {
+      if (isFinal && text.trim().length > 0) {
+        onChangeText(text.trim());
+      }
+    },
+    onError: (msg) => toast(msg, 'warning'),
+  });
 
   return (
     <View style={[styles.container, style]}>
@@ -54,7 +68,25 @@ const PetSearchBar: React.FC<PetSearchBarProps> = ({ value, onChangeText, style 
           <X size={rs(16)} color={colors.click} strokeWidth={2} />
         </TouchableOpacity>
       ) : (
-        <Mic size={rs(16)} color={colors.click} strokeWidth={1.8} />
+        <TouchableOpacity
+          onPress={stt.toggle}
+          disabled={!stt.isAvailable}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.7}
+          accessibilityLabel={
+            stt.isListening
+              ? t('agentVoiceInput.stopListening', { defaultValue: 'Parar ditado' })
+              : t('agentVoiceInput.startListening', { defaultValue: 'Ditar busca por voz' })
+          }
+        >
+          {!stt.isAvailable ? (
+            <MicOff size={rs(16)} color={colors.textDim} strokeWidth={1.8} />
+          ) : stt.isListening ? (
+            <Mic size={rs(16)} color={colors.danger} strokeWidth={2.2} />
+          ) : (
+            <Mic size={rs(16)} color={colors.click} strokeWidth={1.8} />
+          )}
+        </TouchableOpacity>
       )}
     </View>
   );

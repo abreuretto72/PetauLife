@@ -148,6 +148,10 @@ export interface ClassifyDiaryResponse {
   document_summary?: string;
   date_range?: { from: string; to: string } | null;
   import_count?: { vaccines: number; consultations: number; exams: number; medications: number; surgeries: number; other: number };
+  // Patient identification — usado pra avisar tutor quando o doc parece ser de outro pet.
+  // Preenchido pelo classify-diary-entry quando o documento traz nome do paciente.
+  detected_pet_name?: string | null;
+  detected_species?: 'dog' | 'cat' | 'other' | null;
   // Video-specific
   video_analysis?: VideoAnalysis;
   // Pet audio-specific

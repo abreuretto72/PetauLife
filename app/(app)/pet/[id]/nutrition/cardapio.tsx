@@ -1,9 +1,10 @@
 /**
  * nutrition/cardapio.tsx — Tela 11: Cardápio semanal gerado por IA
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +18,8 @@ import { colors } from '../../../../../constants/colors';
 import { useNutricao } from '../../../../../hooks/useNutricao';
 import { usePets } from '../../../../../hooks/usePets';
 import type { CardapioDia } from '../../../../../hooks/useNutricao';
+import AiWaitTipsCarousel from '../../../../../components/AiWaitTipsCarousel';
+import { getFeedingTipsForPet } from '../../../../../constants/petFeedingTips';
 
 const WEEKDAY_COLORS = [
   colors.click, colors.petrol, colors.click, colors.success,
@@ -24,7 +27,7 @@ const WEEKDAY_COLORS = [
 ];
 
 export default function CardapioScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { id: petId } = useLocalSearchParams<{ id: string }>();
   const { pets } = usePets();
@@ -37,6 +40,13 @@ export default function CardapioScreen() {
     regenerarCardapio,
     isRegeneratingCardapio,
   } = useNutricao(petId ?? '');
+
+  // Dicas de alimentacao da raca/especie do pet — usadas no carrossel de espera.
+  // useMemo garante que so re-shuffla quando o pet muda, nao a cada render.
+  const feedingTips = useMemo(
+    () => getFeedingTipsForPet(pet?.species, pet?.breed, i18n.language),
+    [pet?.species, pet?.breed, i18n.language],
+  );
 
   useEffect(() => {
     console.log('[CardapioScreen] state — isLoading:', isLoadingCardapio, 'isRegenerating:', isRegeneratingCardapio, 'error:', cardapioError?.message ?? null, 'hasDays:', cardapio?.days?.length ?? null, 'isFallback:', cardapio?.is_fallback ?? null);
@@ -73,9 +83,20 @@ export default function CardapioScreen() {
           onHistory={handleOpenHistory}
           canExport={false}
         />
-        <View style={s.centered}>
-          <ActivityIndicator color={colors.click} size="large" />
+        <View style={s.loadingContent}>
+          <ActivityIndicator color={colors.ai} size="large" />
           <Text style={s.loadingText}>{t('nutrition.cardapioLoading')}</Text>
+          <Text style={s.loadingSub}>
+            {t('nutrition.cardapioLoadingSub', { name: petName })}
+          </Text>
+          <View style={s.carouselWrap}>
+            <AiWaitTipsCarousel
+              tips={feedingTips}
+              accentColor={colors.ai}
+              Icon={Utensils}
+              title={t('nutrition.cardapioTipsTitle', { name: petName })}
+            />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -200,6 +221,40 @@ export default function CardapioScreen() {
           <Text style={s.regenBtnText}>{t('nutrition.btnRegenerateMenu')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Overlay de regeneracao com carrossel de dicas. Bloqueia interacao
+          com o cardapio antigo enquanto a IA monta o novo (30-90s). */}
+      <Modal
+        visible={isRegeneratingCardapio}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+      >
+        <View style={s.regenOverlay}>
+          <View style={s.regenSheet}>
+            <View style={s.regenHeader}>
+              <Sparkles size={rs(18)} color={colors.ai} strokeWidth={2} />
+              <Text style={s.regenTitle}>
+                {t('nutrition.cardapioRegenerating')}
+              </Text>
+            </View>
+            <Text style={s.regenSub}>
+              {t('nutrition.cardapioRegeneratingSub', { name: petName })}
+            </Text>
+            <ActivityIndicator
+              color={colors.ai}
+              size="large"
+              style={{ marginVertical: rs(14) }}
+            />
+            <AiWaitTipsCarousel
+              tips={feedingTips}
+              accentColor={colors.ai}
+              Icon={Utensils}
+              title={t('nutrition.cardapioTipsTitle', { name: petName })}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -299,4 +354,66 @@ const s = StyleSheet.create({
   },
   regenBtnText: { fontSize: fs(14), color: '#FFFFFF', fontWeight: '700' },
   btnDisabled: { opacity: 0.5 },
+
+  // Loading inicial: spinner + carrossel de dicas
+  loadingContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: rs(40),
+    paddingHorizontal: rs(20),
+    gap: rs(10),
+  },
+  loadingSub: {
+    fontSize: fs(12),
+    color: colors.textDim,
+    textAlign: 'center',
+    lineHeight: fs(18),
+    marginBottom: rs(20),
+    paddingHorizontal: rs(20),
+  },
+  carouselWrap: {
+    width: '100%',
+    marginTop: rs(8),
+  },
+
+  // Overlay de regeneracao (Modal)
+  regenOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11, 18, 25, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: rs(20),
+  },
+  regenSheet: {
+    width: '100%',
+    maxWidth: rs(420),
+    backgroundColor: colors.bgCard,
+    borderRadius: rs(20),
+    paddingVertical: rs(24),
+    paddingHorizontal: rs(8),
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  regenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: rs(8),
+    paddingHorizontal: rs(20),
+  },
+  regenTitle: {
+    fontSize: fs(15),
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  regenSub: {
+    fontSize: fs(12),
+    color: colors.textDim,
+    textAlign: 'center',
+    marginTop: rs(6),
+    lineHeight: fs(18),
+    paddingHorizontal: rs(20),
+  },
 });

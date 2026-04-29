@@ -72,6 +72,8 @@ Deno.serve(async (req: Request) => {
 
     const schemas: Record<string, string> = {
       vaccine: `{
+  "detected_pet_name": "name of the patient/pet as written on the document, or null if not visible",
+  "detected_species": "dog|cat|other|null",
   "vaccines": [{
     "name": "vaccine name",
     "laboratory": "lab name or null",
@@ -85,6 +87,8 @@ Deno.serve(async (req: Request) => {
   }]
 }`,
       exam: `{
+  "detected_pet_name": "name of the patient/pet as written on the document, or null if not visible",
+  "detected_species": "dog|cat|other|null",
   "exams": [{
     "name": "exam name",
     "date": "YYYY-MM-DD",
@@ -96,6 +100,8 @@ Deno.serve(async (req: Request) => {
   }]
 }`,
       prescription: `{
+  "detected_pet_name": "name of the patient/pet as written on the document, or null if not visible",
+  "detected_species": "dog|cat|other|null",
   "medications": [{
     "name": "medication name + dosage",
     "type": "category (antibiotic, anti-inflammatory, supplement, etc)",
@@ -107,6 +113,8 @@ Deno.serve(async (req: Request) => {
   }]
 }`,
       general: `{
+  "detected_pet_name": "name of the patient/pet as written on the document, or null if not visible",
+  "detected_species": "dog|cat|other|null",
   "type": "vaccine|exam|prescription|consultation|surgery",
   "data": { ... extracted fields ... }
 }`,
@@ -121,7 +129,17 @@ Deno.serve(async (req: Request) => {
 Extract ALL text and data from the document photo with maximum accuracy.
 Return ONLY valid JSON matching the schema. No markdown, no explanation.
 Dates must be in YYYY-MM-DD format. Convert any date format to this.
-If a field is not visible/readable, set it to null.`;
+If a field is not visible/readable, set it to null.
+
+CRITICAL — PATIENT IDENTIFICATION:
+Vet documents typically show the patient name in fields labeled "Paciente", "Patient",
+"Animal", "Pet", "Nome", "Name". Extract this into "detected_pet_name".
+- Return ONLY the pet's first name (or full name if printed) — NOT the tutor/owner name.
+- If the document also shows tutor/owner ("Tutor", "Proprietario", "Owner"), do NOT confuse
+  the two. Use the field labeled as patient/pet.
+- If no patient name is visible anywhere on the document, return null. Do NOT guess.
+- For "detected_species": infer dog/cat from explicit text (e.g., "Especie: Canino"),
+  breed mentioned, or visual clues. Return null when unclear.`;
 
     const userPrompt = `Extract data from this ${document_type ?? 'veterinary'} document photo.
 Return JSON with this exact structure:

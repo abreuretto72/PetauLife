@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, ArrowRight,
+  ChevronLeft, Sparkles, AlertTriangle, ArrowRight, History,
   Stethoscope, Pill, ShieldCheck, MessageSquare, TrendingUp, Activity,
 } from 'lucide-react-native';
 
@@ -32,6 +32,8 @@ import { radii, spacing } from '../../../../constants/spacing';
 import { rs, fs } from '../../../../hooks/useResponsive';
 import { useToast } from '../../../../components/Toast';
 import { useProAgent, type AnamneseResponse } from '../../../../hooks/useProAgent';
+import { AgentHistorySheet, ANAMNESE_HISTORY } from '../../../../components/professional/AgentHistorySheet';
+import { supabase } from '../../../../lib/supabase';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 export default function AnamneseAgentScreen() {
@@ -41,6 +43,7 @@ export default function AnamneseAgentScreen() {
   const { petId } = useLocalSearchParams<{ petId?: string }>();
   const { run, isPending } = useProAgent<{ pet_id: string; language: string }, AnamneseResponse>('agent-anamnese');
   const [result, setResult] = useState<AnamneseResponse | null>(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!petId) {
@@ -50,6 +53,39 @@ export default function AnamneseAgentScreen() {
     try {
       const data = await run({ pet_id: petId, language: i18n.language });
       setResult(data);
+
+      // Persiste a anamnese gerada — vira histórico clínico do pet.
+      // Falhar aqui não impede o vet de ver o resultado na tela.
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        const profUserId = userData.user?.id;
+        if (profUserId) {
+          const { data: profRow } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', profUserId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          await supabase.from('anamneses').insert({
+            pet_id: petId,
+            professional_id: profRow?.id ?? null,
+            pet_summary: data.pet_summary,
+            vaccines_status: data.vaccines_status,
+            weight_trend: data.weight_trend,
+            recent_symptoms: data.recent_symptoms ?? [],
+            alerts: data.alerts ?? [],
+            suggested_questions: data.suggested_questions ?? [],
+            recent_consultations: data.recent_consultations ?? [],
+            current_medications: data.current_medications ?? [],
+            language: i18n.language,
+          });
+        }
+      } catch (persistErr) {
+        // Não bloqueia. Visível em logs e admin /errors.
+        console.warn('[anamnese] falha ao persistir:', persistErr);
+      }
     } catch (e) {
       toast(getErrorMessage(e), 'error');
     }
@@ -76,8 +112,21 @@ export default function AnamneseAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.anamnese.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={ANAMNESE_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>

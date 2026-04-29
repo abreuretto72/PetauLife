@@ -1,7 +1,7 @@
 # auExpert Edge Functions Codemap
 
 **Last Updated:** 2026-04-26
-**Status:** Production — 4 Core Functions + 6 Utility Functions + 1 Admin Function (delete-pet) + 2 Professional-grade Functions (scan-professional-document, reembed-pet-multi) + 8 Breed Intelligence Functions
+**Status:** Production — 4 Core Functions + 6 Utility Functions + 1 Admin Function (delete-pet) + 2 Professional-grade Functions (scan-professional-document, reembed-pet-multi) + 8 Breed Intelligence Functions + 5 Proactive Insight Functions (Camadas 4-8)
 
 ---
 
@@ -917,6 +917,85 @@ interface BreedPost {
 
 ---
 
+## Proactive AI Insight Functions (NEW 2026-04-28)
+
+All 5 functions share the same architecture:
+- Write to `pet_insights` table (severity + layer + evidence JSONB + scope_key)
+- 7-day cooldown per scope_key (avoid spam)
+- CRON-triggered (not user-triggered)
+- `verify_jwt = false` + `validateAuth()` or SERVICE_ROLE
+
+---
+
+### `generate-pet-ops-insights` — Camada 7: Operational Alerts
+
+**CRON:** 1×/day 06:30 UTC
+
+**Subcategories:**
+- `prescription_renewal` — active medication with end_date ≤ 14d
+- `vet_consultation_prep` — follow-up appointment in ≤ 5d (Opus 4.7 generates briefing)
+- `trip_anticipation` — trip in planning/upcoming, start_date 5–21d out
+- `preventive_documentation` — vaccine expiring + upcoming trip
+
+**Output severity:** `consider` / `attention`
+
+---
+
+### `generate-affective-milestones-insights` — Camada 8a: Affective Milestones
+
+**CRON:** 1×/day 09:00 UTC (morning — celebratory moments)
+
+**Subcategories (via `evidence.milestone_type`):**
+- `birthday` — pet's birthday (from `pets.birthdate`)
+- `adoption_anniversary` — from `pet_lifecycle_events`
+- `first_year_with_us` — 1 year since pet entered the app (created once)
+- `routine_streak` — 15/30/60/90/180/365 consecutive diary days
+
+**Tone:** Clarice Lispector contemplative. Severity ALWAYS `info` — celebration, not alert.
+**Cooldown:** 365d (once per year per milestone type)
+**Push:** Only if `layer8_enabled=true` (opt-in)
+
+---
+
+### `generate-chronic-care-insights` — Camada 8b: Chronic Care Guidance
+
+**CRON:** 1×/day
+
+**Scope:** Pets with active chronic diagnosis (from `consultations.is_chronic=true` or `medications.is_chronic=true`)
+
+**Generates:** Practical management tips, quality-of-life signals, gentle conversation prompts about end-of-life (extreme cases only). Never alarmist. Medical disclaimer mandatory.
+
+**Severity:** `consider` (guidance) → `attention` (deterioration signal)
+
+---
+
+### `generate-memorial-insights` — Camada 8c: Grief Support
+
+**CRON:** 1×/day
+
+**Trigger:** Pet with `deceased_at != null` AND `(NOW() - deceased_at) IN [1w, 1mo, 3mo, 6mo, 1yr]`
+
+**Generates:** Memorial letters, grief support messages, invitation to visit memorial screen. Acknowledges loss without pushing toxic positivity.
+
+**Tone:** Most delicate layer. Silence over hollow words. Zero cartoon register.
+
+---
+
+### `generate-tutor-difficulty-insights` — Camada 8d: Tutor Difficulty Detection
+
+**CRON:** 1×/day
+
+**Scope:** Detects signals that the TUTOR (not pet) may be struggling:
+- Diary entries drop drastically
+- Mood consistently `sad`/`anxious` for 14+ days
+- High expense spike + low diary activity
+
+**Output:** Soft invitation to share + helpful resources. NEVER diagnosis language.
+
+**Push:** Always opt-in only (`layer8_enabled=true`). Severity capped at `consider`.
+
+---
+
 ## Related Docs
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System design + JWT auth details
@@ -927,4 +1006,4 @@ interface BreedPost {
 ---
 
 **Maintained by:** Development team  
-**Last Reviewed:** 2026-04-26
+**Last Reviewed:** 2026-04-28

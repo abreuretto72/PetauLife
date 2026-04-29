@@ -234,6 +234,113 @@ INSTRUCTIONS:
 - Respond entirely in ${lang}`;
 }
 
+// ── Diag helper + parser robusto (instrumentacao 2026-04-28) ─────────────────
+
+async function diag(
+  sb: ReturnType<typeof createClient>,
+  requestId: string,
+  level: "info" | "warn" | "error",
+  message: string,
+  payload: Record<string, unknown> | null = null,
+): Promise<void> {
+  try {
+    await sb.from("edge_function_diag_logs").insert({
+      function_name: "generate-cardapio",
+      request_id: requestId,
+      level,
+      message: message.slice(0, 1000),
+      payload,
+    });
+  } catch (e) {
+    console.warn("[diag] failed:", String(e).slice(0, 100));
+  }
+}
+
+/** Parser em camadas: slice direto -> trailing-comma fix -> brace-walker -> auto-close. */
+function extractJsonRobust(raw: string):
+  | { ok: true; value: unknown; strategy: string; cleanedLen: number }
+  | { ok: false; error: string }
+{
+  let s = raw.trim();
+  s = s.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
+
+  const firstBrace = s.indexOf("{");
+  if (firstBrace < 0) return { ok: false, error: "no_opening_brace" };
+  const lastBrace = s.lastIndexOf("}");
+  if (lastBrace < firstBrace) return { ok: false, error: "no_closing_brace" };
+
+  // A) slice firstBrace..lastBrace
+  const sliced = s.slice(firstBrace, lastBrace + 1);
+  try {
+    return { ok: true, value: JSON.parse(sliced), strategy: "slice", cleanedLen: sliced.length };
+  } catch (_e1) { /* fall through */ }
+
+  // B) trailing comma fix
+  const noTrailing = sliced.replace(/,(\s*[}\]])/g, "$1");
+  if (noTrailing !== sliced) {
+    try {
+      return { ok: true, value: JSON.parse(noTrailing), strategy: "no_trailing", cleanedLen: noTrailing.length };
+    } catch (_e2) { /* fall through */ }
+  }
+
+  // C) brace-walker
+  const w = braceWalkerCardapio(s.slice(firstBrace));
+  if (w.ok) {
+    try {
+      return { ok: true, value: JSON.parse(w.candidate), strategy: "walker", cleanedLen: w.candidate.length };
+    } catch (_e3) {
+      const wn = w.candidate.replace(/,(\s*[}\]])/g, "$1");
+      try {
+        return { ok: true, value: JSON.parse(wn), strategy: "walker+no_trailing", cleanedLen: wn.length };
+      } catch (_e4) { /* fall through */ }
+    }
+  }
+
+  // D) auto-close: fecha aspas/colchetes/chaves abertos no final
+  const closed = autoCloseCardapio(sliced);
+  if (closed !== sliced) {
+    try {
+      return { ok: true, value: JSON.parse(closed), strategy: "auto_close", cleanedLen: closed.length };
+    } catch (_e5) { /* fall through */ }
+  }
+
+  return { ok: false, error: "all_strategies_failed" };
+}
+
+function braceWalkerCardapio(s: string): { ok: boolean; candidate: string } {
+  let depth = 0, inString = false, escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) return { ok: true, candidate: s.slice(0, i + 1) }; }
+  }
+  return { ok: false, candidate: "" };
+}
+
+function autoCloseCardapio(s: string): string {
+  let braces = 0, brackets = 0, inString = false, escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (c === "{") braces++;
+    else if (c === "}") braces--;
+    else if (c === "[") brackets++;
+    else if (c === "]") brackets--;
+  }
+  let out = s;
+  if (inString) out += '"';
+  while (brackets > 0) { out += "]"; brackets--; }
+  while (braces > 0) { out += "}"; braces--; }
+  return out;
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -241,6 +348,7 @@ Deno.serve(async (req) => {
 
   const timings: Record<string, number> = {};
   const t_start = Date.now();
+  const diagRequestId = crypto.randomUUID();
 
   // Telemetria
   const ctx: {
@@ -249,6 +357,8 @@ Deno.serve(async (req) => {
     model_used: string | null;
   } = { user_id: null, pet_id: null, model_used: null };
   const telemetryClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  await diag(telemetryClient, diagRequestId, "info", "request_start", { method: req.method, ts: t_start });
 
   try {
     // ── Auth ────────────────────────────────────────────────────────────────────
@@ -375,6 +485,12 @@ Deno.serve(async (req) => {
 
         const t_claude = Date.now();
         ctx.model_used = aiConfig.model_insights;
+        await diag(telemetryClient, diagRequestId, "info", "calling_claude", {
+          model: aiConfig.model_insights,
+          prompt_len: prompt.length,
+          modalidade,
+          natural_pct: naturalPct,
+        });
         let claudeResp: Response;
         try {
           claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -404,15 +520,37 @@ Deno.serve(async (req) => {
         }
         timings.claude_api = Date.now() - t_claude;
 
+        const anthropicReqId = claudeResp.headers.get("request-id")
+          ?? claudeResp.headers.get("anthropic-request-id")
+          ?? "";
+
         if (!claudeResp.ok) {
           const errBody = await claudeResp.text();
-          throw new Error(`Claude API ${claudeResp.status}: ${errBody.slice(0, 300)}`);
+          await diag(telemetryClient, diagRequestId, "error", "anthropic_http_error", {
+            http_status: claudeResp.status,
+            anthropic_request_id: anthropicReqId,
+            body_snippet: errBody.slice(0, 1000),
+            elapsed_ms: timings.claude_api,
+          });
+          throw new Error(`Claude API ${claudeResp.status} req=${anthropicReqId}: ${errBody.slice(0, 300)}`);
         }
 
         const claudeData = await claudeResp.json();
 
         // With output_config.format, content[0].text is guaranteed to be valid JSON.
         const rawText = claudeData.content?.[0]?.text ?? "";
+        const stopReason = claudeData.stop_reason ?? "unknown";
+
+        await diag(telemetryClient, diagRequestId, "info", "anthropic_response_received", {
+          anthropic_request_id: anthropicReqId,
+          stop_reason: stopReason,
+          raw_text_len: rawText.length,
+          tokens_in: claudeData.usage?.input_tokens ?? null,
+          tokens_out: claudeData.usage?.output_tokens ?? null,
+          first_120: rawText.slice(0, 120),
+          last_120: rawText.slice(-120),
+          elapsed_ms: timings.claude_api,
+        });
 
         // Log token usage for cost/caching tracking
         if (claudeData.usage) {
@@ -427,18 +565,25 @@ Deno.serve(async (req) => {
           );
         }
 
-        try {
-          cardapio = JSON.parse(rawText);
-        } catch (parseErr) {
-          // Legacy fallback in case ai_config points to a model without structured outputs support.
-          console.warn("[generate-cardapio] structured output parse failed, trying legacy extraction:", parseErr);
-          let jsonText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
-          if (!jsonText.startsWith("{")) {
-            const match = jsonText.match(/\{[\s\S]*\}/);
-            if (match) jsonText = match[0];
-          }
-          cardapio = JSON.parse(jsonText);
+        // Parser robusto em camadas (instrumentacao 2026-04-28).
+        // Salva resposta crua em diag_logs quando todas as estrategias falham.
+        const extracted = extractJsonRobust(rawText);
+        if (!extracted.ok) {
+          await diag(telemetryClient, diagRequestId, "error", "json_parse_failed", {
+            parse_error: extracted.error,
+            anthropic_request_id: anthropicReqId,
+            stop_reason: stopReason,
+            raw_text_truncated: rawText.slice(0, 30000),
+            raw_text_len: rawText.length,
+          });
+          throw new Error(`parse failed (req=${anthropicReqId}, stop=${stopReason}): ${extracted.error}`);
         }
+        cardapio = extracted.value as Record<string, unknown>;
+        await diag(telemetryClient, diagRequestId, "info", "json_parsed_ok", {
+          strategy: extracted.strategy,
+          cleaned_len: extracted.cleanedLen,
+          anthropic_request_id: anthropicReqId,
+        });
 
         // Defensive override — model sometimes ignores label when natural_pct=0
         (cardapio as Record<string, unknown>).modalidade_label =

@@ -12,7 +12,7 @@
  *   - Filters, FAB [+], pull-to-refresh
  *   - Photo upload on avatar tap
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
 } from 'react-native';
@@ -86,6 +86,15 @@ export default function PetScreen() {
   const [iaPdfModal, setIaPdfModal] = useState(false);
 
   const { data: pet, isLoading, refetch } = usePet(id!);
+
+  // Redirect automático pra tela memorial se o pet entrou em modo memorial.
+  // Só dispara se ainda não estamos navegando de lá (initialTab='memorial' nunca
+  // existe — checamos pelo pathname implicitamente via useEffect com guard).
+  useEffect(() => {
+    if (pet && (pet as any).deceased_at) {
+      router.replace(`/pet/${id}/memorial` as never);
+    }
+  }, [pet, id, router]);
   const { vaccines, overdueCount } = useVaccines(id!);
   const { allergies } = useAllergies(id!);
   const { moodLogs } = useMoodLogs(id!);

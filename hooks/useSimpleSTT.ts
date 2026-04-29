@@ -21,6 +21,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { setAudioModeAsync } from 'expo-audio';
 import { getLocales } from 'expo-localization';
+import i18n from '../i18n';
+
+/** Helper local — devolve string traduzida pra mensagens de erro do mic.
+ *  Usa `i18n.t` direto (nao precisa de hook) porque essas mensagens vao via
+ *  callback `onError` pra um toast no caller. */
+const tt = (k: string): string => i18n.t(k) as string;
 
 // Lazy-load do módulo nativo — falha silenciosa se ausente
 let SpeechModule: typeof import('expo-speech-recognition').ExpoSpeechRecognitionModule | null = null;
@@ -93,7 +99,7 @@ export function useSimpleSTT({ onTranscript, onError, lang }: Params): Result {
     if (fatal.includes(event.error)) {
       intentionalStopRef.current = true;
       setIsListening(false);
-      onErrorRef.current?.('Microfone indisponível. Verifique permissões.');
+      onErrorRef.current?.(tt('mic.errMicUnavailable'));
     }
     // Erros não-fatais: o handler 'end' restarta automaticamente
   });
@@ -109,17 +115,17 @@ export function useSimpleSTT({ onTranscript, onError, lang }: Params): Result {
   const start = useCallback(async () => {
     if (!SpeechModule) {
       console.warn('[useSimpleSTT] SpeechModule null — pacote expo-speech-recognition não carregou');
-      onErrorRef.current?.('Reconhecimento de voz não disponível neste dispositivo.');
+      onErrorRef.current?.(tt('mic.errSpeechNotAvailable'));
       return;
     }
     try {
       const { granted } = await SpeechModule.requestPermissionsAsync();
       if (!granted) {
-        onErrorRef.current?.('Permissão de microfone negada.');
+        onErrorRef.current?.(tt('mic.errMicDenied'));
         return;
       }
     } catch {
-      onErrorRef.current?.('Não foi possível solicitar permissão do microfone.');
+      onErrorRef.current?.(tt('mic.errMicPermissionFailed'));
       return;
     }
 
@@ -147,7 +153,7 @@ export function useSimpleSTT({ onTranscript, onError, lang }: Params): Result {
     } catch (e) {
       setIsListening(false);
       console.warn('[useSimpleSTT] start failed:', e);
-      onErrorRef.current?.('Não foi possível iniciar o microfone.');
+      onErrorRef.current?.(tt('mic.errMicStartFailed'));
     }
   }, [lang]);
 

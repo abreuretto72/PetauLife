@@ -36,6 +36,8 @@ export interface PetCardData {
   avatar_url?: string | null;
   last_diary_entry?: string | null;
   agenda_count?: number | null;
+  /** True se ha trip com status='active' associada — mostra badge sobre o icone de aviao. */
+  has_active_trip?: boolean;
 }
 
 interface PetCardProps {
@@ -125,7 +127,7 @@ const PetCard: React.FC<PetCardProps> = ({
 
           <View style={styles.tagsRow}>
             {[
-              pet.estimated_age_months ? formatAge(pet.estimated_age_months, i18n.language) : null,
+              pet.estimated_age_months ? formatAge(pet.estimated_age_months, i18n.language, { compact: true }) : null,
               pet.weight_kg ? formatWeight(pet.weight_kg) : null,
               isDog ? t('pets.dog') : t('pets.cat'),
             ]

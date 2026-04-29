@@ -1,4 +1,441 @@
 {
+  "travel": {
+    "title": "Trips",
+    "new": {
+      "title": "New trip",
+      "step": {
+        "destination": { "question": "Where are you going?" },
+        "dates": { "question": "When are you leaving and returning?" },
+        "transport": { "question": "How will you get there?" },
+        "purpose": { "question": "What's the trip for?" }
+      },
+      "confirm": {
+        "title": "Confirm trip",
+        "create": "Create trip"
+      }
+    },
+    "confirm": {
+      "people": "people",
+      "pets": "pet(s)"
+    },
+    "transport": {
+      "plane": "Plane",
+      "car": "Car",
+      "bus": "Bus",
+      "ship": "Ship",
+      "train": "Train",
+      "other": "Other"
+    },
+    "dates": {
+      "start": "Departure",
+      "end": "Return"
+    },
+    "empty": {
+      "title": "Start planning",
+      "desc": "Tap a destination below or say it in one sentence and let AI prepare everything.",
+      "cta": "Other destination"
+    },
+    "pets": {
+      "question": "Which pets are travelling?",
+      "hint": "Tap to select (one or more).",
+      "empty": "No pets registered yet.",
+      "empty_desc": "Register a pet first to plan the trip."
+    },
+    "purpose": {
+      "tourism": "Tourism",
+      "relocation": "Relocation",
+      "competition": "Competition",
+      "treatment": "Treatment",
+      "other": "Other"
+    },
+    "status": {
+      "planning": "Planning",
+      "preparing": "Preparing",
+      "active": "Travelling",
+      "returning": "Returning",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "checklist": {
+      "title": "Preparation checklist",
+      "attach_document": "Attach document",
+      "no_items": "No items in this list.",
+      "last_reviewed": "Last reviewed: {{date}}",
+      "item_status": {
+        "pending": "Pending",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "not_applicable": "Not applicable"
+      },
+      "category": {
+        "vaccination": "Vaccination",
+        "documentation": "Documentation",
+        "identification": "Identification",
+        "transport": "Transport",
+        "preparation": "Preparation",
+        "testing": "Testing"
+      },
+      "window": {
+        "between": "Between {{min}} and {{max}} days before travel",
+        "until": "Up to {{max}} days before travel",
+        "from": "From {{min}} days before travel"
+      }
+    },
+    "document": {
+      "review": {
+        "title": "Review extracted data",
+        "confirm": "Confirm",
+        "retake": "Retake photo"
+      },
+      "extracting": "Extracting information...",
+      "extraction_failed": "[TODO-EN] Não foi possível extrair os dados do documento. Tente outra foto."
+    },
+    "disclaimer": {
+      "ai_generated": "[TODO-EN] Esta lista foi gerada por IA com base em fontes públicas. Confirme com o veterinário, embaixada ou consulado e companhia aérea antes da viagem.",
+      "generic_fallback": "[TODO-EN] Regras específicas para este destino ainda não estão disponíveis. Esta é uma lista genérica para viagens internacionais. Consulte um veterinário e a embaixada ou consulado do destino antes de viajar.",
+      "static_review": "[TODO-EN] Última revisão: abril/2026. Regras podem mudar — confirme com o veterinário e a autoridade do destino antes de viajar.",
+      "consult_vet": "[TODO-EN] Sempre consulte um veterinário antes de viajar com seu pet."
+    },
+    "ai_generation": {
+      "in_progress": "[TODO-EN] Gerando lista para {{countryName}}...",
+      "completed": "[TODO-EN] Lista pronta para {{countryName}}.",
+      "failed": "[TODO-EN] Não foi possível gerar a lista para este destino. Usando lista genérica.",
+      "confidence": {
+        "high": "[TODO-EN] Confiança alta",
+        "medium": "[TODO-EN] Confiança média",
+        "low": "[TODO-EN] Confiança baixa"
+      }
+    },
+    "generic": {
+      "notes": "[TODO-EN] Lista genérica internacional. Consulte sempre o veterinário e a autoridade sanitária do destino antes de viajar."
+    },
+    "general_notes": {
+      "US": "[TODO-EN] O Brasil é considerado país de alto risco pelo CDC desde 2021. Cães precisam de protocolos adicionais (titulação RNATT, Dog Import Form). Confira sempre o site oficial do CDC.",
+      "JP": "[TODO-EN] O Japão exige protocolo de 180+ dias após teste antirrábico positivo (RNATT). Comece a preparação pelo menos 8 meses antes da viagem.",
+      "AU": "[TODO-EN] Austrália tem regras estritas. Inclui Import Permit, quarentena obrigatória e múltiplos exames. Processo de 6+ meses.",
+      "NZ": "[TODO-EN] Nova Zelândia tem regras parecidas com a Austrália. Inclui quarentena obrigatória. Processo de 6+ meses."
+    },
+    "req": {
+      "eu_microchip_iso": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 implantado. Deve ser legível por leitor universal."
+      },
+      "eu_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica aplicada APÓS o microchip. Válida entre 21 dias e 1 ano antes da viagem."
+      },
+      "eu_health_certificate": {
+        "title": "[TODO-EN] Atestado de saúde europeu",
+        "description": "[TODO-EN] EU Health Certificate ou Pet Passport, emitido até 10 dias antes do embarque por veterinário oficial."
+      },
+      "eu_pet_passport": {
+        "title": "[TODO-EN] Passaporte europeu para pets",
+        "description": "[TODO-EN] EU Pet Passport — só pode ser emitido se o pet tiver entrado pelo menos uma vez na União Europeia."
+      },
+      "eu_echinococcus_treatment": {
+        "title": "[TODO-EN] Tratamento contra Echinococcus",
+        "description": "[TODO-EN] Tratamento antiparasitário contra Echinococcus aplicado entre 24h e 120h antes da viagem. Obrigatório para cães em IE, FI, MT, NO, GB."
+      },
+      "mercosul_cvi": {
+        "title": "[TODO-EN] CVI Mercosul",
+        "description": "[TODO-EN] Certificado Veterinário Internacional Mercosul, emitido pelo MAPA até 60 dias antes da viagem."
+      },
+      "mercosul_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica em dia, aplicada entre 30 dias e 1 ano antes da viagem."
+      },
+      "mercosul_microchip": {
+        "title": "[TODO-EN] Microchip (recomendado)",
+        "description": "[TODO-EN] Microchip ISO recomendado para identificação. Não é obrigatório em todos os países do Mercosul, mas evita problemas em fiscalização."
+      },
+      "cl_parasitic_treatment": {
+        "title": "[TODO-EN] Tratamento antiparasitário",
+        "description": "[TODO-EN] Tratamento antiparasitário interno e externo aplicado entre 24h e 7 dias antes da entrada no Chile."
+      },
+      "br_cvi_export": {
+        "title": "[TODO-EN] CVI MAPA (saída do Brasil)",
+        "description": "[TODO-EN] Certificado Veterinário Internacional emitido pelo MAPA, obrigatório para qualquer saída internacional do Brasil. Validade típica de até 60 dias."
+      },
+      "gb_animal_health_certificate": {
+        "title": "[TODO-EN] Animal Health Certificate (AHC)",
+        "description": "[TODO-EN] Atestado oficial pós-Brexit, substitui o EU Pet Passport. Emitido por veterinário oficial até 10 dias antes do embarque."
+      },
+      "gb_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 obrigatório."
+      },
+      "gb_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica aplicada APÓS o microchip. Válida entre 21 dias e 1 ano antes da viagem."
+      },
+      "gb_tapeworm_treatment": {
+        "title": "[TODO-EN] Tratamento contra Echinococcus",
+        "description": "[TODO-EN] Tratamento antiparasitário contra tênia (Echinococcus) aplicado entre 24h e 120h antes da entrada. Obrigatório para cães."
+      },
+      "us_aphis_health_certificate": {
+        "title": "[TODO-EN] USDA APHIS Health Certificate",
+        "description": "[TODO-EN] Atestado oficial USDA APHIS emitido até 10 dias antes do embarque, com endosso de veterinário oficial."
+      },
+      "us_cdc_high_risk_protocol": {
+        "title": "[TODO-EN] Protocolo CDC alto risco",
+        "description": "[TODO-EN] Brasil é classificado pelo CDC como país de alto risco para raiva canina. Cães precisam de Dog Import Form, atestado de microchip e protocolo de revacinação. Confira o site do CDC."
+      },
+      "us_rabies_titer": {
+        "title": "[TODO-EN] Teste de titulação antirrábica (RNATT)",
+        "description": "[TODO-EN] Teste laboratorial de anticorpos antirrábicos exigido para cães vindos de países de alto risco. Validade típica de 1 ano."
+      },
+      "us_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 implantado antes da vacinação antirrábica."
+      },
+      "ca_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica em dia. CFIA aceita comprovante simples assinado por veterinário."
+      },
+      "ca_health_certificate": {
+        "title": "[TODO-EN] Atestado de saúde",
+        "description": "[TODO-EN] Atestado de saúde recente, geralmente até 30 dias antes do embarque."
+      },
+      "mx_health_certificate": {
+        "title": "[TODO-EN] Atestado de saúde SENASICA",
+        "description": "[TODO-EN] Atestado de saúde reconhecido pela SENASICA, emitido até 15 dias antes do embarque."
+      },
+      "mx_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica em dia, com pelo menos 30 dias da última aplicação."
+      },
+      "jp_advance_notification": {
+        "title": "[TODO-EN] Notificação prévia ao Japão",
+        "description": "[TODO-EN] Notificar o Animal Quarantine Service japonês com pelo menos 40 dias de antecedência. Sem notificação, o pet pode ficar em quarentena prolongada."
+      },
+      "jp_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 implantado ANTES da primeira vacina antirrábica."
+      },
+      "jp_rabies_two_doses": {
+        "title": "[TODO-EN] Duas doses de vacina antirrábica",
+        "description": "[TODO-EN] Duas doses de vacina antirrábica com intervalo mínimo de 30 dias, aplicadas após o microchip."
+      },
+      "jp_rabies_titer": {
+        "title": "[TODO-EN] Teste RNATT",
+        "description": "[TODO-EN] Teste de titulação de anticorpos antirrábicos colhido após a segunda dose, com resultado igual ou superior a 0.5 UI/ml."
+      },
+      "jp_180_days_wait": {
+        "title": "[TODO-EN] Período de espera de 180 dias",
+        "description": "[TODO-EN] Aguardar 180 dias completos após a colheita do RNATT antes de embarcar para o Japão."
+      },
+      "jp_export_certificate": {
+        "title": "[TODO-EN] Atestado de exportação",
+        "description": "[TODO-EN] Atestado oficial MAPA com tradução juramentada, emitido até 10 dias antes do embarque."
+      },
+      "au_import_permit": {
+        "title": "[TODO-EN] Import Permit",
+        "description": "[TODO-EN] Pré-aprovação obrigatória pelo Australian Government Department of Agriculture. Iniciar processo com pelo menos 30 dias de antecedência."
+      },
+      "au_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 implantado antes de qualquer outro procedimento."
+      },
+      "au_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica aplicada após o microchip, válida há pelo menos 180 dias antes do embarque."
+      },
+      "au_rnatt": {
+        "title": "[TODO-EN] Teste RNATT (titulação)",
+        "description": "[TODO-EN] Teste laboratorial de anticorpos antirrábicos com mínimo de 180 dias entre coleta e embarque."
+      },
+      "au_disease_tests": {
+        "title": "[TODO-EN] Exames de doenças específicas",
+        "description": "[TODO-EN] Exames laboratoriais para leishmaniose, brucelose canina (cães), Ehrlichia, e outros conforme exigência da DAFF."
+      },
+      "au_parasitic_treatment": {
+        "title": "[TODO-EN] Tratamento antiparasitário",
+        "description": "[TODO-EN] Tratamento contra parasitas internos e externos aplicado entre 24h e 21 dias antes da viagem."
+      },
+      "au_export_certificate": {
+        "title": "[TODO-EN] Atestado de exportação",
+        "description": "[TODO-EN] Atestado oficial emitido por veterinário endossado pelo MAPA, até 5 dias antes do embarque."
+      },
+      "au_quarantine": {
+        "title": "[TODO-EN] Quarentena no destino",
+        "description": "[TODO-EN] Quarentena obrigatória no destino, geralmente entre 10 e 30 dias dependendo da conformidade com o protocolo."
+      },
+      "ae_import_permit": {
+        "title": "[TODO-EN] Import Permit",
+        "description": "[TODO-EN] Permissão de importação emitida pelo Ministry of Climate Change and Environment. Solicitar com pelo menos 7 dias de antecedência."
+      },
+      "ae_rabies_vaccine": {
+        "title": "[TODO-EN] Vacina antirrábica",
+        "description": "[TODO-EN] Vacina antirrábica em dia, aplicada entre 21 dias e 1 ano antes da viagem."
+      },
+      "ae_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785 obrigatório."
+      },
+      "ae_health_certificate": {
+        "title": "[TODO-EN] Atestado de saúde",
+        "description": "[TODO-EN] Atestado oficial emitido até 10 dias antes do embarque."
+      },
+      "generic_microchip": {
+        "title": "[TODO-EN] Microchip ISO",
+        "description": "[TODO-EN] Microchip padrão ISO 11784/11785. A maioria dos destinos internacionais exige."
+      },
+      "generic_rabies": {
+        "title": "[TODO-EN] Vacina antirrábica em dia",
+        "description": "[TODO-EN] Vacina antirrábica aplicada entre 30 dias e 1 ano antes da viagem. Praticamente todos os países exigem."
+      },
+      "generic_health_certificate": {
+        "title": "[TODO-EN] Atestado de saúde recente",
+        "description": "[TODO-EN] Atestado de saúde emitido por veterinário entre 7 e 30 dias antes da viagem."
+      },
+      "generic_vaccines": {
+        "title": "[TODO-EN] Vacinas obrigatórias em dia",
+        "description": "[TODO-EN] V8 ou V10 (cães), V4 ou V5 (gatos), conforme orientação do veterinário."
+      },
+      "generic_dewormer": {
+        "title": "[TODO-EN] Vermífugo em dia",
+        "description": "[TODO-EN] Vermifugação aplicada nos 30 dias anteriores à viagem."
+      },
+      "generic_transport_doc": {
+        "title": "[TODO-EN] Documentação de transporte",
+        "description": "[TODO-EN] Bilhete pet aéreo, declaração de companhia ou autorização de transporte rodoviário."
+      },
+      "generic_iata_crate": {
+        "title": "[TODO-EN] Caixa de transporte IATA",
+        "description": "[TODO-EN] Caixa de transporte adequada às normas IATA para transporte aéreo de animais. Confira tamanho e ventilação com a companhia aérea."
+      },
+      "br_domestic_health": {
+        "title": "[TODO-EN] Atestado de saúde",
+        "description": "[TODO-EN] Atestado de saúde emitido por veterinário, geralmente até 10 dias antes do embarque doméstico."
+      },
+      "br_domestic_vaccines": {
+        "title": "[TODO-EN] Vacinas em dia",
+        "description": "[TODO-EN] Vacinação antirrábica e polivalente em dia. Companhias aéreas brasileiras exigem comprovante."
+      }
+    },
+    "country": {
+      "BR": "Brazil",
+      "AR": "Argentina",
+      "UY": "Uruguay",
+      "PY": "Paraguay",
+      "CL": "Chile",
+      "CO": "Colombia",
+      "PT": "Portugal",
+      "ES": "Spain",
+      "FR": "France",
+      "IT": "Italy",
+      "DE": "Germany",
+      "NL": "Netherlands",
+      "BE": "Belgium",
+      "AT": "Austria",
+      "IE": "Ireland",
+      "GR": "Greece",
+      "SE": "Sweden",
+      "GB": "United Kingdom",
+      "US": "United States",
+      "CA": "Canada",
+      "MX": "Mexico",
+      "JP": "Japan",
+      "AU": "Australia",
+      "NZ": "New Zealand",
+      "AE": "United Arab Emirates",
+      "CH": "Switzerland",
+      "__GENERIC__": "International destination"
+    }
+  },
+  "petCard": {
+    "startTrip": {
+      "label": "Start a new trip with {{petName}}"
+    },
+    "activeTrip": {
+      "badge": "Active trip"
+    }
+  },
+  "travelActive": {
+    "embark_button": "I've embarked",
+    "embark_confirm": "Confirm trip has started?",
+    "return_button": "Heading home",
+    "return_confirm": "Mark return as started?",
+    "arrived_button": "I'm home",
+    "arrived_confirm": "Confirm arrival home?"
+  },
+  "travelMoment": {
+    "type": {
+      "meal": "Meal",
+      "potty": "Potty",
+      "sleep": "Sleep",
+      "walk": "Walk",
+      "play": "Play",
+      "first_time": "First time",
+      "concern": "Concern",
+      "photo_only": "Photo",
+      "other": "Other"
+    },
+    "shortcut": {
+      "meal": "Ate",
+      "potty": "Potty",
+      "sleep": "Slept",
+      "walk": "Walk",
+      "play": "Played",
+      "first_time": "First"
+    }
+  },
+  "travelActiveScreen": {
+    "day_counter": "Day {{current}} of {{total}} in {{city}}",
+    "log_moment": "Log a moment",
+    "timeline_title": "Timeline"
+  },
+  "travelConsultation": {
+    "choose_vet_language": "Veterinarian's language",
+    "tabs": {
+      "record": "Record",
+      "conversation": "Conversation",
+      "share": "Share"
+    },
+    "preparing_record": "Preparing translated medical record...",
+    "share": {
+      "show_screen": "Open full medical record",
+      "export_pdf": "Export PDF",
+      "public_link": "Generate temporary public link",
+      "expiry_1h": "1 hour",
+      "expiry_24h": "24 hours",
+      "expiry_7d": "7 days"
+    },
+    "conversation": {
+      "tutor_button": "I speak",
+      "vet_button": "Vet speaks",
+      "translating": "Translating...",
+      "offline_warning": "Offline translation unavailable — audio saved for later",
+      "empty_hint": "Hold a button and speak."
+    },
+    "end": {
+      "title": "Consultation ended.",
+      "confirm": "End consultation? A summary will be generated."
+    },
+    "disclaimer": {
+      "medical_legal": "[TODO-EN] Documento informativo gerado pelo tutor a partir de registros pessoais. O veterinário local deve fazer a sua própria avaliação clínica.",
+      "translation_quality": "[TODO-EN] Tradução automática. Confirme termos críticos com o veterinário."
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "emptyTitle": "No documents yet",
+    "emptyDesc": "Clinical documents created by the veterinarian show up here.",
+    "signedBadge": "Signed",
+    "draftBadge": "Draft",
+    "prescriptionCommon": "Standard prescription",
+    "prescriptionControlled": "Controlled prescription",
+    "prescriptionSpecial": "Special prescription",
+    "types": {
+      "prontuario": "Medical record",
+      "receituario": "Prescription",
+      "asa": "Health certificate",
+      "tci": "Consent term",
+      "anamnese": "Anamnesis",
+      "alta": "Discharge report",
+      "notificacao": "Sanitary notification"
+    }
+  },
   "breedIntel": {
     "title": "Breed Intelligence",
     "subtitle": "Exclusive content for {{petName}}'s breed",
@@ -61,6 +498,7 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "add": "Add",
     "back": "Back",
     "next": "Next",
     "delete": "Delete",
@@ -85,6 +523,13 @@
     "diary": "Diary",
     "placeholderDate": "MM/DD/YYYY",
     "aiVetDisclaimer": "AI-generated analysis — Does not replace professional veterinary evaluation"
+  },
+  "docMismatch": {
+    "title": "Different pet detected",
+    "messageWithSuggestion": "The document appears to belong to {{detectedName}}, which is registered as another of your pets. Continue and add it to {{activeName}} anyway?",
+    "messageGeneric": "The document appears to belong to {{detectedName}}, not to {{activeName}}. Continue and add it to {{activeName}} anyway?",
+    "continue": "Continue",
+    "cancel": "Cancel"
   },
   "auth": {
     "login": "Sign In",
@@ -1641,7 +2086,127 @@
       "title": "Low energy or locomotion issues detected",
       "bodyMetrics": "Energy: {{energy}}/100. Locomotion: {{locomotion}}/100."
     },
-    "tab": "Insights"
+    "tab": "Insights",
+    "feed": {
+      "title": "Insights",
+      "empty": "No insights right now",
+      "empty_desc": "AI runs daily checks. When something deserves your attention, it shows up here.",
+      "error_loading": "Could not load insights.",
+      "filter": {
+        "all": "All",
+        "health": "Health",
+        "reminders": "Reminders",
+        "patterns": "Patterns",
+        "longterm": "Long-term",
+        "coach": "Coach",
+        "family": "Family",
+        "ops": "Ops",
+        "companion": "Companion",
+        "milestones": "Milestones"
+      },
+      "confirm_dismiss": "Dismiss this insight? It leaves the feed.",
+      "dismissed": "Insight dismissed.",
+      "regenerated": "Checks triggered. New insights appear in a few seconds."
+    },
+    "card": {
+      "dismiss": "Dismiss",
+      "see_evidence": "See data"
+    },
+    "cta": {
+      "default": "See details",
+      "open_consultation": "Open consultation",
+      "open_vet_finder": "Find a vet",
+      "log_diary": "Log to diary",
+      "schedule_reminder": "Schedule reminder",
+      "view_chart": "View chart",
+      "open_pharmacy_finder": "Find pharmacy",
+      "open_health_screen": "Open health",
+      "open_pet_screen": "Open pet",
+      "open_trip_screen": "Open trip",
+      "monitor": "Monitor"
+    },
+    "detail": {
+      "title": "Detail",
+      "evidence": "Evidence",
+      "history": "History",
+      "chart": "Chart",
+      "talking_points": "Talking points",
+      "support_resources": "Support resources",
+      "not_found": "Insight not found."
+    },
+    "severity": {
+      "info": "Info",
+      "consider": "Consider",
+      "attention": "Attention",
+      "urgent": "Urgent"
+    },
+    "subcategory": {
+      "vaccine_due": "Vaccine due",
+      "vermifuge_due": "Dewormer due",
+      "antipulgas_due": "Flea / tick treatment",
+      "bath_overdue": "Bath",
+      "birthday_upcoming": "Birthday",
+      "routine_checkup_due": "Routine check-up",
+      "medication_running_out": "Medication ending",
+      "food_running_out": "Food running out",
+      "microchip_missing": "Microchip pending",
+      "appetite_change": "Appetite change",
+      "appetite_decreased": "Appetite decreased",
+      "appetite_increased": "Appetite increased",
+      "potty_change": "Potty change",
+      "sleep_change": "Sleep change",
+      "weight_change": "Weight change",
+      "mood_change": "Mood change",
+      "scratching_recurrent": "Recurrent scratching",
+      "silent_anomaly": "Unusual silence",
+      "extreme_heat": "Extreme heat",
+      "extreme_cold": "Extreme cold",
+      "storm": "Storm forecast",
+      "air_quality": "Air quality",
+      "no_walks_streak": "No walks recently",
+      "birthdays_milestones": "Milestones",
+      "life_phase_change": "Life phase change",
+      "seasonality": "Seasonality",
+      "food_correlation": "Food correlation",
+      "travel_pattern": "Travel pattern",
+      "social_pattern": "Social pattern",
+      "treatment_efficacy": "Treatment efficacy",
+      "monthly_summary": "Monthly summary",
+      "yearly_summary": "Yearly summary"
+    },
+    "settings": {
+      "title": "Proactive AI",
+      "intro": "auExpert AI analyses your pet daily across 4 layers. You decide what it watches and how often it can notify you.",
+      "expand": "Adjust categories",
+      "collapse": "Collapse categories",
+      "max_per_day": "Max alerts per day",
+      "quiet_hours": {
+        "start": "Quiet hours start",
+        "end": "Quiet hours end"
+      },
+      "regenerate_now": "Check now",
+      "dismissed_history": "Dismissed history",
+      "footer": "Analyses run automatically across the day. You can force an immediate check using the button above.",
+      "layer1": {
+        "title": "Deduced reminders",
+        "description": "Vaccine, dewormer, bath, birthday, medication ending."
+      },
+      "layer2": {
+        "title": "Patterns and anomalies",
+        "description": "Appetite, weight, mood, recurrent scratching, unusual silence."
+      },
+      "layer3": {
+        "title": "Context: weather and activity",
+        "description": "Extreme heat, cold, storm, air quality, days without walks."
+      },
+      "layer4": {
+        "title": "Long-term insights",
+        "description": "Seasonality, food correlations, monthly and yearly summaries."
+      }
+    },
+    "disclaimer": {
+      "not_diagnosis": "This analysis does not replace veterinary evaluation. In case of doubt or persistent symptoms, consult a veterinarian."
+    }
   },
   "ia": {
     "tab": "My AI",
@@ -2012,6 +2577,14 @@
     "bestFriend": "BEST FRIEND",
     "listTitle": "All friends",
     "meets": "meets",
+    "meet": "meet",
+    "addPhotoHint": "Add a photo",
+    "species_dog": "Dog",
+    "species_cat": "Cat",
+    "species_bird": "Bird",
+    "species_rabbit": "Rabbit",
+    "species_other": "Other",
+    "species_unknown": "",
     "lastSeen": "Last",
     "owner": "Owner",
     "emptyTitle": "No friends yet!",
@@ -2023,6 +2596,35 @@
     "typeRival": "Rival",
     "typeCaretaker": "Caretaker",
     "typeUnknown": "Acquaintance"
+  },
+  "addFriend": {
+    "title": "Add friend",
+    "nameLabel": "Friend's name",
+    "namePlaceholder": "Ex: Bento, Lily, Max...",
+    "nameRequired": "Enter the friend's name.",
+    "speciesLabel": "Species",
+    "typeLabel": "Relationship",
+    "photosLabel": "Photos",
+    "maxPhotosReached": "Max 4 photos.",
+    "notesLabel": "How was the meeting?",
+    "notesPlaceholder": "Tell how they met, what happened, what they shared...",
+    "saved": "Friend recorded."
+  },
+  "addTravel": {
+    "title": "Add trip",
+    "destinationLabel": "Destination",
+    "destinationPlaceholder": "Ex: Yellowstone, Lisbon, Tokyo...",
+    "destinationRequired": "Enter the destination.",
+    "regionLabel": "State/Country (optional)",
+    "regionPlaceholder": "CA · USA · Italy...",
+    "typeLabel": "Trip type",
+    "statusLabel": "Status",
+    "startDateLabel": "Departure",
+    "endDateLabel": "Return",
+    "photosLabel": "Photos",
+    "notesLabel": "How was the trip?",
+    "notesPlaceholder": "Share the best moments, stops, discoveries...",
+    "saved": "Trip recorded."
   },
   "settings": {
     "title": "Preferences",
@@ -2042,6 +2644,14 @@
     "deleteAccountDesc": "This action is permanent and removes all your data",
     "deleteConfirm": "Are you sure? All your pets data will be lost.",
     "dangerZone": "Danger zone",
+    "dangerZoneWarning": "These actions are permanent and cannot be undone. Proceed only if you are sure.",
+    "deletePet": "Delete pet",
+    "deletePetDesc": "Removes the selected pet and its entire history.",
+    "deletePetSelect": "Select the pet",
+    "deletePetPasswordHint": "Enter your password to confirm",
+    "deletePetConfirm": "Delete {{name}} and its entire history? This action is permanent.",
+    "deletePetSuccess": "{{name}} has been removed.",
+    "wrongPassword": "Wrong password. Please try again.",
     "privacy": "Privacy",
     "aiTraining": "Contribute to veterinary AI",
     "aiTrainingDesc": "Share anonymous diary data to train our veterinary AI",
@@ -2591,11 +3201,56 @@
       "noPermission": "No permission to access this pet.",
       "aiFailed": "The AI is unavailable. Try again in a few minutes.",
       "biometricUnavailable": "Biometrics not available on this device. Register a fingerprint or Face ID.",
-      "biometricFailed": "Could not confirm your identity. Try again."
+      "biometricFailed": "Could not confirm your identity. Try again.",
+      "signOffline": "A connection is required to sign documents.",
+      "signNoPermission": "You don't have permission to sign this document. Check that the tutor granted signing access.",
+      "signAlreadySigned": "This document has already been signed.",
+      "signGeneric": "Could not sign the document."
     },
+    "signaturePrompt": "Confirm your digital signature",
     "signed": "Document signed.",
     "signedAt": "Signed at {{date}}",
     "alreadySigned": "Document already signed.",
+    "history": {
+      "openLabel": "Open history",
+      "draft": "Draft",
+      "signed": "Signed",
+      "amended": "Amended",
+      "awaitingTutor": "Awaiting tutor",
+      "titleProntuario": "Medical record history",
+      "untitledProntuario": "Medical record without complaint",
+      "emptyTitleProntuario": "No medical records yet",
+      "emptyDescProntuario": "The first medical record created for this pet will appear here.",
+      "titleReceituario": "Prescription history",
+      "untitledReceituario": "Prescription",
+      "emptyTitleReceituario": "No prescriptions yet",
+      "emptyDescReceituario": "The first prescription issued for this pet will appear here.",
+      "rxControlled": "Controlled prescription",
+      "rxSpecial": "Special prescription",
+      "rxCommon": "Common prescription",
+      "titleAsa": "Health certificate history",
+      "untitledAsa": "Health certificate",
+      "emptyTitleAsa": "No certificates yet",
+      "emptyDescAsa": "The first certificate issued for this pet will appear here.",
+      "titleTci": "Consent form history",
+      "untitledTci": "Consent form",
+      "emptyTitleTci": "No consent forms yet",
+      "emptyDescTci": "The first consent form sent for this pet will appear here.",
+      "titleNotificacao": "Notification history",
+      "untitledNotificacao": "Sanitary notification",
+      "emptyTitleNotificacao": "No notifications yet",
+      "emptyDescNotificacao": "Suspected disease cases recorded for this pet will appear here.",
+      "notifPending": "Pending",
+      "notifSent": "Notified",
+      "titleAnamnese": "Anamnesis history",
+      "untitledAnamnese": "Anamnesis",
+      "emptyTitleAnamnese": "No anamnesis yet",
+      "emptyDescAnamnese": "Pre-consultation briefings generated for this pet will appear here.",
+      "titleAlta": "Discharge report history",
+      "untitledAlta": "Discharge report",
+      "emptyTitleAlta": "No discharge reports yet",
+      "emptyDescAlta": "Discharge reports issued for this pet will appear here."
+    },
     "anamnese": {
       "title": "Anamnesis",
       "heroTitle": "Pre-consultation briefing",
@@ -3346,6 +4001,10 @@
     "cardapioTitle": "Weekly Menu",
     "cardapioSubtitle": "7 personalized days for {{name}}",
     "cardapioLoading": "Generating menu with AI...",
+    "cardapioLoadingSub": "It may take up to a minute. Meanwhile, a few feeding tips for {{name}}.",
+    "cardapioRegenerating": "Regenerating menu with AI",
+    "cardapioRegeneratingSub": "Please wait while the AI builds a new plan for {{name}}.",
+    "cardapioTipsTitle": "Feeding tips for {{name}}",
     "cardapioError": "Could not generate the menu",
     "cardapioGenerated": "Generated on {{date}}",
     "cardapioIsFallback": "Generic menu — add current food to personalize",
@@ -3558,7 +4217,12 @@
     "lenteConexaoDesc": "Friend name and species",
     "lenteMomento": "Moment",
     "lenteMomentoDesc": "General daily record",
-    "transcriptionTitle": "Record"
+    "transcriptionTitle": "Record",
+    "errMicUnavailable": "Microphone unavailable. Check permissions.",
+    "errSpeechNotAvailable": "Speech recognition is not available on this device.",
+    "errMicDenied": "Microphone permission denied.",
+    "errMicPermissionFailed": "Could not request microphone permission.",
+    "errMicStartFailed": "Could not start the microphone."
   },
   "notifications": {
     "today": "Today!",

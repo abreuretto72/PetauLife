@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  ChevronLeft, Sparkles, AlertTriangle, ShieldAlert, CheckCircle, Building2,
+  ChevronLeft, Sparkles, AlertTriangle, ShieldAlert, CheckCircle, Building2, History, Send,
 } from 'lucide-react-native';
 
 import { colors } from '../../../../constants/colors';
@@ -21,6 +21,8 @@ import { rs, fs } from '../../../../hooks/useResponsive';
 import { useToast } from '../../../../components/Toast';
 import { useProAgent, type NotificacaoResponse } from '../../../../hooks/useProAgent';
 import { AgentVoiceInput } from '../../../../components/professional/AgentVoiceInput';
+import { AgentHistorySheet, NOTIFICACAO_HISTORY } from '../../../../components/professional/AgentHistorySheet';
+import { supabase } from '../../../../lib/supabase';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 
 export default function NotificacaoAgentScreen() {
@@ -35,6 +37,10 @@ export default function NotificacaoAgentScreen() {
 
   const [diseaseName, setDiseaseName] = useState('');
   const [result, setResult] = useState<NotificacaoResponse | null>(null);
+  const [notificacaoId, setNotificacaoId] = useState<string | null>(null);
+  const [protocolNumber, setProtocolNumber] = useState('');
+  const [marking, setMarking] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!petId) { toast(t('agents.errors.missingPet'), 'error'); return; }
@@ -48,10 +54,74 @@ export default function NotificacaoAgentScreen() {
         language: i18n.language,
       });
       setResult(data);
+
+      // Persiste APENAS quando a IA classificou como notificável.
+      // Casos não-notificáveis viram só conselho clínico — não viram registro
+      // sanitário oficial (evita poluir o histórico com falsos positivos).
+      if (data.is_notifiable) {
+        const { data: userData } = await supabase.auth.getUser();
+        const profUserId = userData.user?.id;
+        if (!profUserId) {
+          toast(t('agents.errors.aiFailed'), 'error');
+          return;
+        }
+        const { data: profRow } = await supabase
+          .from('professionals')
+          .select('id')
+          .eq('user_id', profUserId)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const { data: inserted, error: insertErr } = await supabase
+          .from('notificacoes_sanitarias')
+          .insert({
+            pet_id: petId,
+            professional_id: profRow?.id ?? null,
+            disease_name: diseaseName.trim(),
+            cid_code: data.cid_code ?? null,
+            suspicion_level: data.suspicion_level ?? null,
+            notified_agency: data.notified_agency ?? null,
+            observations: data.observations ?? null,
+            // notified_at fica NULL = pendente. Vet marca como enviada
+            // depois que registrou na agência sanitária.
+          })
+          .select('id')
+          .maybeSingle();
+        if (insertErr) {
+          // Não bloqueia o fluxo — vet vê resultado da IA mesmo se persistência falhar.
+          // Isso será visto nos logs e admin /errors.
+          console.warn('[notificacao] falha ao persistir:', insertErr);
+        } else if (inserted) {
+          setNotificacaoId(inserted.id);
+        }
+      }
     } catch (e) {
       toast(getErrorMessage(e), 'error');
     }
   }, [petId, diseaseName, run, toast, t, i18n.language]);
+
+  const handleMarkAsNotified = useCallback(async () => {
+    if (!notificacaoId) return;
+    setMarking(true);
+    try {
+      const { error } = await supabase
+        .from('notificacoes_sanitarias')
+        .update({
+          notified_at: new Date().toISOString(),
+          protocol_number: protocolNumber.trim() || null,
+        })
+        .eq('id', notificacaoId);
+      if (error) throw error;
+      toast(t('agents.notificacao.markedSent', { defaultValue: 'Notificação marcada como enviada.' }), 'success');
+      router.back();
+    } catch (e) {
+      toast(getErrorMessage(e), 'error');
+    } finally {
+      setMarking(false);
+    }
+  }, [notificacaoId, protocolNumber, toast, t, router]);
 
   if (!petId) {
     return (
@@ -71,8 +141,21 @@ export default function NotificacaoAgentScreen() {
           <ChevronLeft size={rs(26)} color={colors.click} strokeWidth={1.8} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{t('agents.notificacao.title')}</Text>
-        <View style={{ width: rs(26) }} />
+        <TouchableOpacity
+          onPress={() => setHistoryVisible(true)}
+          hitSlop={12}
+          accessibilityLabel={t('agents.history.openLabel')}
+        >
+          <History size={rs(22)} color={colors.click} strokeWidth={1.8} />
+        </TouchableOpacity>
       </View>
+
+      <AgentHistorySheet
+        petId={petId}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        config={NOTIFICACAO_HISTORY}
+      />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={s.heroCard}>
@@ -198,6 +281,38 @@ export default function NotificacaoAgentScreen() {
                 {result.alerts.map((a, i) => (
                   <Text key={i} style={s.alertItem}>• {a}</Text>
                 ))}
+              </View>
+            )}
+
+            {/* Marcar como notificada — só pra notifiable que persistiu */}
+            {result.is_notifiable && notificacaoId && (
+              <View style={[s.card, { marginTop: spacing.md }]}>
+                <Text style={s.cardTitle}>{t('agents.notificacao.markSentTitle', { defaultValue: 'Já notificou a autoridade?' })}</Text>
+                <Text style={[s.cardBody, { marginBottom: rs(10), fontSize: fs(11), color: colors.textSec }]}>
+                  {t('agents.notificacao.markSentDesc', { defaultValue: 'Após registrar a notificação na agência sanitária, marque aqui e informe o protocolo (opcional).' })}
+                </Text>
+                <TextInput
+                  style={s.input}
+                  value={protocolNumber}
+                  onChangeText={setProtocolNumber}
+                  placeholder={t('agents.notificacao.protocolPlaceholder', { defaultValue: 'Número do protocolo (opcional)' })}
+                  placeholderTextColor={colors.textDim}
+                />
+                <TouchableOpacity
+                  style={[s.primaryBtn, { marginTop: rs(10) }, marking && s.primaryBtnDisabled]}
+                  onPress={handleMarkAsNotified}
+                  disabled={marking}
+                  activeOpacity={0.85}
+                >
+                  {marking ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Send size={rs(16)} color="#fff" strokeWidth={2} />
+                      <Text style={s.primaryBtnTxt}>{t('agents.notificacao.markAsSent', { defaultValue: 'Marcar como notificada' })}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
 

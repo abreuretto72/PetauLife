@@ -36,7 +36,7 @@
  * (escrita desabilitada). Reusa os átomos stateless
  * (ExpandableCard/InfoRow/EmptyState) da mesma pasta — esses são puros.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, FlatList, Image,
@@ -54,6 +54,7 @@ import {
 import { DocumentsList } from '../../../../components/professional/DocumentsList';
 import { AgentsTabEmbed } from '../../../../components/professional/AgentsTabEmbed';
 import { useProfessionalCapabilities } from '../../../../hooks/useProfessionalCapabilities';
+import { useFeatureFlag } from '../../../../hooks/useFeatureFlag';
 
 import { colors } from '../../../../constants/colors';
 import { radii, spacing } from '../../../../constants/spacing';
@@ -792,6 +793,19 @@ export default function ProPetViewScreen() {
   // Capabilities por professional_type (esconde abas/botoes que esse role nao deve ver)
   const { data: caps } = useProfessionalCapabilities(id);
 
+  // Kill switch dos 7 agentes vet — postergados pra fase B2B em 2026-04-28.
+  // Enquanto false, esconde a aba AGENTES (evita 404 silencioso ao gerar IA).
+  // Reabrir = UPDATE app_config SET value='true' WHERE key='vet_agents_enabled'.
+  const vetAgentsEnabled = useFeatureFlag('vet_agents_enabled', false);
+
+  // Se o flag mudar de true->false enquanto a aba AGENTES esta ativa,
+  // volta pro overview pra nao deixar conteudo orfao na tela.
+  useEffect(() => {
+    if (!vetAgentsEnabled && activeTab === 'agents') {
+      setActiveTab('overview');
+    }
+  }, [vetAgentsEnabled, activeTab]);
+
   // Patient metadata (grant, tutor, role, scope_notes) — do cache de /pro
   const { patients } = useMyPatients();
   const patient = useMemo(
@@ -939,14 +953,14 @@ export default function ProPetViewScreen() {
           ...(caps?.read_clinical ? ['clinical' as const] : []),
           ...(caps?.read_diary ? ['diary' as const] : []),
           'documents',
-          ...(caps?.analyze_image || caps?.read_clinical ? ['agents' as const] : []),
+          ...(vetAgentsEnabled && (caps?.analyze_image || caps?.read_clinical) ? ['agents' as const] : []),
         ]}
       />
 
       {/* Content */}
       {activeTab === 'documents' ? (
         <DocumentsList petId={id!} />
-      ) : activeTab === 'agents' ? (
+      ) : activeTab === 'agents' && vetAgentsEnabled ? (
         <AgentsTabEmbed petId={id!} />
       ) : activeTab === 'diary' ? (
         // Diary usa FlatList próprio (scroll virtual pra paginação)
