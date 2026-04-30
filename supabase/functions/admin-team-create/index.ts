@@ -1,9 +1,9 @@
 /**
- * admin-team-create — super-admin cria membro com email + senha temporária.
+ * admin-team-create — super-admin cria OU promove membro com email + senha.
  *
- * Diferente de admin-team-invite: NÃO gera token, NÃO envia email.
- * O super-admin entrega a credencial direto pra pessoa, que troca a senha
- * depois (via "Esqueci minha senha" ou tela de perfil).
+ * Comportamento upsert: se o email já existe (tutor ou admin), a função
+ * atualiza a senha e o role do usuário existente em vez de devolver 409.
+ * Convites pendentes pra esse email são revogados silenciosamente.
  *
  * POST body: { email: string, password: string, full_name?: string, role: AdminRole }
  * Auth: Bearer JWT obrigatório, role='admin' (super-admin)
@@ -15,15 +15,16 @@
  *     email: string,
  *     role: AdminRole,
  *     full_name: string,
- *     must_change_password: true        // dica pra UI mostrar aviso
+ *     must_change_password: true,
+ *     promoted: boolean,           // true se atualizou usuário existente
+ *     previous_role?: string       // só presente quando promoted=true
  *   }
  *
  * Erros:
  *   401 sem JWT / JWT inválido
  *   403 caller não é super-admin
  *   400 email/senha/role inválidos
- *   409 usuário com este email já existe (ativo) ou tem convite pendente
- *   500 falha ao criar no auth ou atualizar public.users
+ *   500 falha ao criar/atualizar no auth ou em public.users
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -91,51 +92,87 @@ Deno.serve(async (req: Request) => {
     const pwd = validatePassword(password);
     if (!pwd.ok) return jsonResp({ error: 'invalid password', details: pwd.reason }, 400);
 
-    // ── Idempotência: já existe alguém com esse email? ───────────────────
+    // ── Já existe alguém com esse email? Upsert: atualiza ou cria. ──────
     const { data: existingUser } = await sb
       .from('users')
-      .select('id, email, role, is_active')
+      .select('id, email, role, is_active, full_name')
       .eq('email', email)
       .maybeSingle();
 
-    if (existingUser) {
-      // Usuário existente — caminho diferente (ele já tem conta, só falta role).
-      // Pra evitar surpresa, recusamos e instruímos a usar o fluxo de elevação.
-      return jsonResp({
-        error: 'user already exists',
-        details: existingUser.role === 'tutor_owner'
-          ? 'Esse e-mail já tem conta de tutor. Use o convite (admin-team-invite) para promover.'
-          : `Já existe admin com este e-mail (role atual: ${existingUser.role}).`,
-        existing_user_id: existingUser.id,
-        existing_role:    existingUser.role,
-      }, 409);
-    }
-
-    const { data: pendingInvite } = await sb
-      .from('admin_invites')
-      .select('id')
+    // Convites pendentes pra esse email são revogados silenciosamente — a
+    // operação direta substitui qualquer convite em aberto.
+    await sb.from('admin_invites')
+      .update({ revoked_at: new Date().toISOString() })
       .eq('email', email)
       .is('accepted_at', null)
-      .is('revoked_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .maybeSingle();
-    if (pendingInvite) {
+      .is('revoked_at', null);
+
+    if (existingUser) {
+      // ── Caminho UPDATE: usuário existe, atualiza senha + role ───────────
+      const newFullName = fullName || existingUser.full_name || email.split('@')[0];
+
+      const { error: pwdErr } = await sb.auth.admin.updateUserById(
+        existingUser.id,
+        {
+          password,
+          user_metadata: {
+            full_name:             newFullName,
+            promoted_via:          'admin-team-create',
+            password_set_by_admin: true,
+            promoted_by:           caller.id,
+            promoted_at:           new Date().toISOString(),
+          },
+        },
+      );
+      if (pwdErr) {
+        console.error('[admin-team-create] updateUserById failed:', pwdErr);
+        return jsonResp({
+          error:   'failed to update password',
+          details: pwdErr.message,
+        }, 500);
+      }
+
+      const { error: updErr } = await sb
+        .from('users')
+        .update({
+          role,
+          full_name: newFullName,
+          is_active: true,
+        })
+        .eq('id', existingUser.id);
+      if (updErr) {
+        console.error('[admin-team-create] users update failed:', updErr);
+        return jsonResp({
+          error:   'failed to update user',
+          details: updErr.message,
+        }, 500);
+      }
+
+      console.log(
+        `[admin-team-create] PROMOTED user ${existingUser.id} (${email}) ${existingUser.role} → ${role} by ${caller.email}`,
+      );
+
       return jsonResp({
-        error: 'pending invite already exists for this email',
-        invite_id: pendingInvite.id,
-        details:   'Já existe convite pendente. Cancele-o antes de criar com senha direta.',
-      }, 409);
+        ok:                   true,
+        user_id:              existingUser.id,
+        email,
+        role,
+        full_name:            newFullName,
+        must_change_password: true,
+        promoted:             true,
+        previous_role:        existingUser.role,
+      });
     }
 
-    // ── Cria no auth.users com email já confirmado ───────────────────────
+    // ── Caminho CREATE: usuário novo no auth.users (email já confirmado) ──
     const { data: created, error: createErr } = await sb.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,                  // pula confirmação por email
+      email_confirm: true,
       user_metadata: {
-        full_name: fullName || email.split('@')[0],
+        full_name:             fullName || email.split('@')[0],
         created_via:           'admin-team-create',
-        password_set_by_admin: true,        // hint pra UI sugerir troca
+        password_set_by_admin: true,
         invited_by:            caller.id,
       },
     });
@@ -149,8 +186,8 @@ Deno.serve(async (req: Request) => {
 
     const newUserId = created.user.id;
 
-    // ── Atualiza public.users — trigger trg_on_auth_user_created já criou
-    //    a linha com role default 'tutor_owner'. Sobrescrevemos com role admin.
+    // Trigger trg_on_auth_user_created criou a linha em public.users com
+    // role default 'tutor_owner'. Sobrescreve com role admin.
     const { error: updErr } = await sb
       .from('users')
       .update({
@@ -162,7 +199,7 @@ Deno.serve(async (req: Request) => {
 
     if (updErr) {
       console.error('[admin-team-create] users update failed:', updErr);
-      // Tenta rollback do auth pra não deixar lixo
+      // Rollback do auth pra não deixar lixo
       await sb.auth.admin.deleteUser(newUserId).catch((e) =>
         console.warn('[admin-team-create] rollback deleteUser failed:', e),
       );
@@ -172,7 +209,9 @@ Deno.serve(async (req: Request) => {
       }, 500);
     }
 
-    console.log(`[admin-team-create] user ${newUserId} (${email}) created as ${role} by ${caller.email}`);
+    console.log(
+      `[admin-team-create] CREATED user ${newUserId} (${email}) as ${role} by ${caller.email}`,
+    );
 
     return jsonResp({
       ok:                   true,
@@ -181,6 +220,7 @@ Deno.serve(async (req: Request) => {
       role,
       full_name:            fullName || email.split('@')[0],
       must_change_password: true,
+      promoted:             false,
     });
   } catch (err) {
     console.error('[admin-team-create] unhandled error:', err);
