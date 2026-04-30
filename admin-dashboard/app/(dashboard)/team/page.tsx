@@ -18,7 +18,7 @@ export default async function TeamPage() {
       <header>
         <h1 className="font-display text-4xl mb-2">Equipe do admin</h1>
         <p className="text-text-muted">
-          Convide pessoas com acesso restrito ao painel. Cada perfil vê apenas as telas correspondentes.
+          Adicione pessoas com acesso restrito ao painel. Cada perfil vê apenas as telas correspondentes.
         </p>
       </header>
 

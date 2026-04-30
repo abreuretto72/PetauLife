@@ -1,38 +1,87 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Pencil, Trash2, UserPlus, Copy, Check, X, Mail } from 'lucide-react';
+import { Trash2, UserPlus, Copy, Check, X, Eye, EyeOff } from 'lucide-react';
 import { ADMIN_ROLE_LABELS, type AdminRole, type AdminTeamMember, type AdminInviteRow } from '@/lib/types';
 import { fmtDate } from '@/lib/utils';
-import { inviteAdmin, changeRole, revokeAdminAccess, revokeInvite } from './actions';
+import { createAdminDirect, changeRole, revokeAdminAccess, revokeInvite } from './actions';
 
 interface Props {
   members: AdminTeamMember[];
   pendingInvites: AdminInviteRow[];
 }
 
+interface DirectResult {
+  email: string;
+  password: string;     // mantido em memória só pra exibir uma vez ao super-admin
+  full_name: string;
+  role: AdminRole;
+}
+
 export function TeamManager({ members, pendingInvites }: Props) {
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteResult, setInviteResult] = useState<{ accept_url: string; emailed: boolean } | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [result, setResult] = useState<DirectResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   // Form state
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<AdminRole>('admin_support');
 
-  function handleInvite() {
+  function resetForm() {
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setShowPassword(false);
+  }
+
+  function closeForm() {
+    setShowForm(false);
     setError(null);
-    setInviteResult(null);
+    setResult(null);
+    resetForm();
+  }
+
+  function handleCreate() {
+    setError(null);
+    setResult(null);
     startTransition(async () => {
-      const r = await inviteAdmin({ email: email.trim(), role });
+      const r = await createAdminDirect({
+        email:     email.trim(),
+        password,
+        full_name: fullName.trim() || undefined,
+        role,
+      });
       if (!r.ok) {
         setError(r.error ?? 'Erro desconhecido');
         return;
       }
-      setInviteResult({ accept_url: r.accept_url ?? '', emailed: r.emailed ?? false });
-      setEmail('');
+      setResult({
+        email:     r.email!,
+        password,
+        full_name: r.full_name ?? '',
+        role:      r.role!,
+      });
+      resetForm();
     });
+  }
+
+  /** Sugere uma senha temporária válida com 12 chars (1 maiúscula, 1 num, 1 esp). */
+  function suggestPassword() {
+    const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower  = 'abcdefghijkmnpqrstuvwxyz';
+    const digits = '23456789';
+    const specs  = '!@#$%&*?';
+    const all    = upper + lower + digits + specs;
+    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+    let pwd = pick(upper) + pick(lower) + pick(digits) + pick(specs);
+    while (pwd.length < 12) pwd += pick(all);
+    pwd = pwd.split('').sort(() => Math.random() - 0.5).join('');
+    setPassword(pwd);
+    setShowPassword(true);
   }
 
   function handleChangeRole(userId: string, newRole: AdminRole) {
@@ -43,7 +92,7 @@ export function TeamManager({ members, pendingInvites }: Props) {
   }
 
   function handleRevoke(userId: string, label: string) {
-    if (!confirm(`Revogar acesso admin de ${label}? A pessoa vira tutor comum.`)) return;
+    if (!confirm(`Revogar acesso de ${label}? A pessoa vira tutor comum.`)) return;
     startTransition(async () => {
       const r = await revokeAdminAccess(userId);
       if (!r.ok) alert(r.error ?? 'Erro ao revogar');
@@ -60,30 +109,31 @@ export function TeamManager({ members, pendingInvites }: Props) {
 
   return (
     <>
-      {/* Form de convite */}
+      {/* Form de criação direta */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-ametista text-xs uppercase tracking-wider font-medium">
             Membros ativos ({members.length})
           </h2>
-          {!showInviteForm && (
+          {!showForm && (
             <button
-              onClick={() => { setShowInviteForm(true); setInviteResult(null); setError(null); }}
+              onClick={() => { setShowForm(true); setResult(null); setError(null); }}
               className="flex items-center gap-2 px-4 py-2 bg-jade/10 border border-jade/30 text-jade rounded-lg text-sm font-medium hover:bg-jade/20 transition"
             >
               <UserPlus size={16} strokeWidth={2} />
-              Convidar pessoa
+              Adicionar pessoa
             </button>
           )}
         </div>
 
-        {showInviteForm && (
+        {showForm && (
           <div className="bg-bg-card border border-jade/30 rounded-xl p-5 mb-4 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-jade text-sm font-medium">Novo convite</h3>
+              <h3 className="text-jade text-sm font-medium">Adicionar pessoa</h3>
               <button
-                onClick={() => { setShowInviteForm(false); setInviteResult(null); setError(null); }}
+                onClick={closeForm}
                 className="text-text-muted hover:text-text"
+                aria-label="Fechar"
               >
                 <X size={18} />
               </button>
@@ -105,6 +155,55 @@ export function TeamManager({ members, pendingInvites }: Props) {
               </label>
               <label className="block">
                 <span className="text-text-muted text-xs uppercase tracking-wider font-medium block mb-1.5">
+                  Nome (opcional)
+                </span>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="Maria da Silva"
+                  className="input"
+                  disabled={pending}
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-text-muted text-xs uppercase tracking-wider font-medium flex items-center justify-between mb-1.5">
+                  <span>Senha *</span>
+                  <button
+                    type="button"
+                    onClick={suggestPassword}
+                    disabled={pending}
+                    className="text-jade hover:text-jade/80 text-[10px] font-mono lowercase"
+                  >
+                    gerar
+                  </button>
+                </span>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Min 8 chars, 1 maiúscula, 1 número, 1 especial"
+                    className="input pr-10"
+                    disabled={pending}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(s => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </label>
+              <label className="block">
+                <span className="text-text-muted text-xs uppercase tracking-wider font-medium block mb-1.5">
                   Perfil *
                 </span>
                 <select
@@ -120,47 +219,75 @@ export function TeamManager({ members, pendingInvites }: Props) {
               </label>
             </div>
 
+            <div className="text-text-dim text-xs italic">
+              A pessoa entra com essa senha e pode trocá-la depois pelo perfil ou
+              por &quot;Esqueci minha senha&quot;.
+            </div>
+
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button
-                onClick={() => { setShowInviteForm(false); setError(null); }}
+                onClick={closeForm}
                 disabled={pending}
                 className="px-4 py-2 text-sm text-text-muted hover:text-text rounded-lg disabled:opacity-40"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleInvite}
-                disabled={pending || !email.trim()}
+                onClick={handleCreate}
+                disabled={pending || !email.trim() || password.length < 8}
                 className="flex items-center gap-2 px-4 py-2 bg-jade text-bg-deep rounded-lg text-sm font-medium hover:bg-jade/80 disabled:opacity-40"
               >
-                <Mail size={16} strokeWidth={2.5} />
-                {pending ? 'Enviando…' : 'Gerar convite'}
+                <UserPlus size={16} strokeWidth={2.5} />
+                {pending ? 'Criando…' : 'Criar conta'}
               </button>
             </div>
 
             {error && <div className="text-danger text-sm border-t border-danger/30 pt-2">{error}</div>}
 
-            {inviteResult && (
-              <div className="bg-jade/5 border border-jade/30 rounded-lg p-4 mt-3 space-y-2">
+            {result && (
+              <div className="bg-jade/5 border border-jade/30 rounded-lg p-4 mt-3 space-y-3">
                 <div className="text-jade text-sm font-medium flex items-center gap-2">
-                  <Check size={16} /> Convite gerado!
+                  <Check size={16} /> Conta criada
                 </div>
                 <div className="text-text-muted text-xs">
-                  {inviteResult.emailed
-                    ? 'E-mail enviado automaticamente.'
-                    : 'E-mail automático não disponível. Copie o link abaixo e envie manualmente:'}
+                  Entregue estas credenciais à pessoa. A senha aparece apenas
+                  uma vez nesta tela.
                 </div>
-                <div className="flex items-center gap-2 bg-bg-deep border border-border rounded p-2">
-                  <code className="text-jade text-xs font-mono truncate flex-1">{inviteResult.accept_url}</code>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(inviteResult.accept_url)}
-                    className="text-jade hover:text-jade/80"
-                    title="Copiar link"
-                  >
-                    <Copy size={14} />
-                  </button>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center gap-2 bg-bg-deep border border-border rounded p-2">
+                    <span className="text-text-dim text-[10px] uppercase tracking-wider w-16 shrink-0">E-mail</span>
+                    <code className="text-jade text-xs font-mono truncate flex-1">{result.email}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(result.email)}
+                      className="text-jade hover:text-jade/80"
+                      title="Copiar e-mail"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 bg-bg-deep border border-border rounded p-2">
+                    <span className="text-text-dim text-[10px] uppercase tracking-wider w-16 shrink-0">Senha</span>
+                    <code className="text-jade text-xs font-mono truncate flex-1">{result.password}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(result.password)}
+                      className="text-jade hover:text-jade/80"
+                      title="Copiar senha"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-text-dim text-xs">Válido por 24h.</div>
+
+                <button
+                  onClick={() => {
+                    const block = `E-mail: ${result.email}\nSenha: ${result.password}\nPerfil: ${ADMIN_ROLE_LABELS[result.role]}\nAcesso: https://admin.auexpert.com.br`;
+                    navigator.clipboard.writeText(block);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-jade/10 border border-jade/30 text-jade rounded text-xs font-medium hover:bg-jade/20"
+                >
+                  <Copy size={12} /> Copiar bloco completo
+                </button>
               </div>
             )}
           </div>
@@ -220,7 +347,7 @@ export function TeamManager({ members, pendingInvites }: Props) {
         </div>
       </section>
 
-      {/* Convites pendentes */}
+      {/* Convites pendentes — só aparece se houver legado do fluxo de convite */}
       {pendingInvites.length > 0 && (
         <section>
           <h2 className="text-ametista text-xs uppercase tracking-wider font-medium mb-3">
