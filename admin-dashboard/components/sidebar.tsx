@@ -20,7 +20,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { href: '/',          label: 'Visão geral',  icon: LayoutDashboard },
+  { href: '/',          label: 'Visão geral',  icon: LayoutDashboard, roles: ['admin', 'admin_financial'] },
   { href: '/users',     label: 'Usuários',     icon: Users,         roles: ['admin'] },
   { href: '/invites',   label: 'Convites',     icon: Mail,          roles: ['admin', 'admin_support'] },
   { href: '/support',   label: 'Suporte',      icon: MessageCircle, roles: ['admin', 'admin_support'] },

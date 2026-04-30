@@ -81,9 +81,10 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/costs';
       return NextResponse.redirect(url);
     }
-    // Suporte não acessa /costs nem /ai-costs (mas acessa /invites)
+    // Suporte não acessa /costs, /ai-costs nem a Visão geral (/)
     if (userRow.role === 'admin_support' &&
-        (pathname.startsWith('/costs') || pathname.startsWith('/ai-costs'))) {
+        (pathname === '/' ||
+         pathname.startsWith('/costs') || pathname.startsWith('/ai-costs'))) {
       const url = request.nextUrl.clone();
       url.pathname = '/support';
       return NextResponse.redirect(url);
