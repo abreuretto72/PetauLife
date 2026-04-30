@@ -61,6 +61,9 @@
       "attach_document": "Anexar documento",
       "no_items": "Nenhum item nesta lista.",
       "last_reviewed": "Última revisão: {{date}}",
+      "howToObtain": "Como obter",
+      "whereToGet": "Onde",
+      "estimatedCost": "Custo estimado",
       "item_status": {
         "pending": "Pendente",
         "in_progress": "Em andamento",
@@ -118,15 +121,45 @@
     "req": {
       "eu_microchip_iso": {
         "title": "Microchip ISO",
-        "description": "Microchip padrão ISO 11784/11785 implantado. Deve ser legível por leitor universal."
+        "description": "Microchip padrão ISO 11784/11785 implantado. Deve ser legível por leitor universal.",
+        "whereToGet": "Clínica veterinária com aplicador ISO",
+        "estimatedCost": "R$ 80 a R$ 150",
+        "instructions": [
+          "Agende consulta em clínica veterinária e confirme que o chip é padrão ISO 11784/11785 — único aceito pela União Europeia.",
+          "A aplicação leva poucos minutos, é feita com agulha aplicadora e não requer anestesia.",
+          "Solicite o certificado de implantação contendo número do chip, data e assinatura/carimbo do veterinário.",
+          "Importante: o microchip deve ser implantado ANTES ou no mesmo dia da vacinação antirrábica. Caso contrário, a vacina não será válida para fins de viagem.",
+          "Em uma consulta posterior, peça pra testar a leitura do chip e confirmar funcionamento.",
+          "Após providenciar, fotografe o documento e adicione no diário do auExpert para registro automático."
+        ]
       },
       "eu_rabies_vaccine": {
         "title": "Vacina antirrábica",
-        "description": "Vacina antirrábica aplicada APÓS o microchip. Válida entre 21 dias e 1 ano antes da viagem."
+        "description": "Vacina antirrábica aplicada APÓS o microchip. Válida entre 21 dias e 1 ano antes da viagem.",
+        "whereToGet": "Clínica veterinária particular",
+        "estimatedCost": "R$ 60 a R$ 120 (gratuito em campanhas)",
+        "instructions": [
+          "Aplique a vacina antirrábica APÓS a implantação do microchip — esta ordem é obrigatória pela União Europeia.",
+          "Aguarde o período de carência de 21 dias após a aplicação antes da viagem (a vacina só passa a ser considerada válida após esse prazo).",
+          "Aplique com no mínimo 21 dias e no máximo 365 dias antes do embarque.",
+          "Solicite ao veterinário o atestado de vacinação com: número do microchip, data da aplicação, fabricante, lote, validade e assinatura com CRMV.",
+          "Guarde a carteira de vacinação original — será exigida no MAPA e na chegada à União Europeia.",
+          "Após providenciar, fotografe o documento e adicione no diário do auExpert para registro automático."
+        ]
       },
       "eu_health_certificate": {
         "title": "Atestado de saúde europeu",
-        "description": "EU Health Certificate ou Pet Passport, emitido até 10 dias antes do embarque por veterinário oficial."
+        "description": "EU Health Certificate ou Pet Passport, emitido até 10 dias antes do embarque por veterinário oficial.",
+        "whereToGet": "Médico veterinário com CRMV ativo (para Atestado de Saúde) e MAPA/VIGIAGRO (para emissão do CVI/EU Health Certificate)",
+        "estimatedCost": "R$ 100 a R$ 250 (atestado clínico) + emissão MAPA gratuita",
+        "instructions": [
+          "Agende a consulta veterinária no máximo 10 dias antes do embarque (idealmente entre 5 e 7 dias antes).",
+          "O veterinário deve examinar o pet e atestar que está clinicamente saudável, livre de parasitas e apto a viajar.",
+          "O atestado precisa conter: dados do tutor, identificação do pet (raça, idade, peso, cor, microchip), histórico vacinal e assinatura com CRMV.",
+          "Esse documento é a base para a emissão do CVI no MAPA e é exigido pela companhia aérea.",
+          "Faça upload do atestado no sistema do MAPA dentro da janela de 10 dias antes do embarque para emissão do certificado oficial UE.",
+          "Após providenciar, fotografe o documento e adicione no diário do auExpert para registro automático."
+        ]
       },
       "eu_pet_passport": {
         "title": "Passaporte europeu para pets",
@@ -134,7 +167,16 @@
       },
       "eu_echinococcus_treatment": {
         "title": "Tratamento contra Echinococcus",
-        "description": "Tratamento antiparasitário contra Echinococcus aplicado entre 24h e 120h antes da viagem. Obrigatório para cães em IE, FI, MT, NO, GB."
+        "description": "Tratamento antiparasitário contra Echinococcus aplicado entre 24h e 120h antes da viagem. Obrigatório para cães em IE, FI, MT, NO, GB.",
+        "whereToGet": "Clínica veterinária (com prescrição e administração registrada)",
+        "estimatedCost": "R$ 50 a R$ 120",
+        "instructions": [
+          "Solicite ao veterinário a administração de vermífugo com Praziquantel — princípio ativo aceito contra Echinococcus.",
+          "O tratamento DEVE ser aplicado dentro da janela de 24 a 120 horas (1 a 5 dias) antes da entrada no país.",
+          "Peça pro veterinário registrar no atestado de saúde: data e hora da administração, produto utilizado, princípio ativo (Praziquantel) e dose.",
+          "Sem esse registro com timing correto, a entrada pode ser recusada na fronteira de IE, FI, MT, NO ou GB.",
+          "Após providenciar, fotografe o documento e adicione no diário do auExpert para registro automático."
+        ]
       },
       "mercosul_cvi": {
         "title": "CVI Mercosul",
@@ -154,7 +196,18 @@
       },
       "br_cvi_export": {
         "title": "CVI MAPA (saída do Brasil)",
-        "description": "Certificado Veterinário Internacional emitido pelo MAPA, obrigatório para qualquer saída internacional do Brasil. Validade típica de até 60 dias."
+        "description": "Certificado Veterinário Internacional emitido pelo MAPA, obrigatório para qualquer saída internacional do Brasil. Validade típica de até 60 dias.",
+        "whereToGet": "Sistema e-CAC do MAPA (online) + unidade VIGIAGRO no aeroporto",
+        "estimatedCost": "Gratuito (emissão pelo MAPA)",
+        "instructions": [
+          "Acesse o sistema e-CAC do MAPA (gov.br/agricultura) e cadastre o seu pet com login Gov.br.",
+          "Faça upload dos documentos: atestado de saúde, carteira de vacinação com antirrábica, comprovante de microchip e RG/CPF do tutor.",
+          "Solicite o CVI até 10 dias antes do embarque — o MAPA analisa e emite o CVI digital.",
+          "Imprima o CVI emitido pelo sistema e leve original + cópias no dia do voo.",
+          "No aeroporto de embarque, dirija-se ao VIGIAGRO antes do check-in pra validação física do CVI (chegue com 4 horas de antecedência).",
+          "O CVI tem validade típica de 10 dias para entrada na União Europeia (60 dias para outros destinos).",
+          "Após providenciar, fotografe o documento e adicione no diário do auExpert para registro automático."
+        ]
       },
       "gb_animal_health_certificate": {
         "title": "Animal Health Certificate (AHC)",
@@ -384,6 +437,77 @@
     "day_counter": "Dia {{current}} de {{total}} em {{city}}",
     "log_moment": "Registrar momento",
     "timeline_title": "Linha do tempo"
+  },
+  "travelConcierge": {
+    "filter": {
+      "label": "Mostrar",
+      "title": "Mostrar seção",
+      "all": "Tudo",
+      "transport": "Passagens / transporte"
+    },
+    "timeline": {
+      "before": "antes"
+    },
+    "pdf": {
+      "title": "Roteiro com IA"
+    },
+    "regenerate": "Gerar novo roteiro",
+    "regenerating": "Gerando...",
+    "generating_progress": "Gerando ({{done}}/{{total}})",
+    "starting": "Iniciando...",
+    "generated": "Roteiro pronto.",
+    "jobStarted": "Gerando roteiro em paralelo. Acompanhe abaixo.",
+    "jobReused": "Já há uma geração em andamento — acompanhando.",
+    "live": {
+      "title": "Gerando seu roteiro com IA",
+      "progress": "{{done}} de {{total}} seções prontas · {{seconds}}s decorridos",
+      "someErrors": "{{n}} seção(ões) tiveram erro — o roteiro segue com as demais.",
+      "statusDone": "Pronto",
+      "statusRunning": "Pesquisando...",
+      "statusError": "Erro — tente novamente",
+      "statusSkipped": "Não aplicável",
+      "statusQueued": "Aguardando",
+      "bannerUpdating": "Gerando novo roteiro em paralelo · {{done}}/{{total}} prontas · {{seconds}}s"
+    },
+    "summary": {
+      "origin": "Origem",
+      "destination": "Destino",
+      "airports": "Aeroportos",
+      "stations": "Estações",
+      "dates": "Datas",
+      "daysSuffix": "d",
+      "pets": "Pets"
+    },
+    "docStatus": {
+      "have": "Já registrado",
+      "valid": "Em dia",
+      "expired": "Vencido — renovar",
+      "missing": "Falta providenciar",
+      "howToObtain": "Como obter:",
+      "howToRenew": "Como renovar:",
+      "afterDoneHint": "Depois de providenciar, fotografe o documento e adicione no diário — eu cadastro automaticamente.",
+      "askVet": "Procure orientação do veterinário sobre como providenciar este item."
+    },
+    "budget": {
+      "cat": {
+        "transport": "Transporte",
+        "hotel": "Hospedagem",
+        "hotels": "Hospedagem",
+        "lodging": "Hospedagem",
+        "supplies": "Suprimentos",
+        "documents": "Documentos",
+        "documentation": "Documentação",
+        "pet_transport": "Transporte de pet",
+        "pet_services": "Serviços do pet",
+        "vet_consultations": "Consultas veterinárias",
+        "vaccines": "Vacinas",
+        "food": "Alimentação",
+        "extras_destino": "Extras no destino",
+        "extras": "Extras",
+        "insurance": "Seguro",
+        "emergency": "Reserva de emergência"
+      }
+    }
   },
   "travelConsultation": {
     "choose_vet_language": "Idioma do veterinário",
@@ -2586,7 +2710,47 @@
     "typeAllergy": "Alergia registrada",
     "typeDiaryEntry": "Registro no diário",
     "subRecurring": "Recorrente diário",
-    "subWith": "Com {{name}}"
+    "subWith": "Com {{name}}",
+    "eventType": {
+      "consultation":        "Consulta veterinária",
+      "return_visit":        "Retorno",
+      "exam":                "Exame",
+      "surgery":             "Cirurgia",
+      "physiotherapy":       "Fisioterapia",
+      "alternative_therapy": "Acupuntura / terapia complementar",
+      "vaccine":             "Vacina",
+      "travel_vaccine":      "Vacina de viagem",
+      "nutrition_consult":   "Consulta com nutricionista",
+      "medication_dose":     "Medicação (dose)",
+      "medication_series":   "Medicação (série)",
+      "deworming":           "Vermífugo",
+      "antiparasitic":       "Antipulgas / carrapato",
+      "grooming":            "Banho e tosa",
+      "nail_trim":           "Corte de unhas",
+      "ear_cleaning":        "Limpeza de ouvido",
+      "dental_cleaning":     "Escovação dental",
+      "microchip":           "Microchip",
+      "food_change":         "Troca de ração",
+      "diet_start":          "Início de dieta",
+      "training":            "Adestramento",
+      "behaviorist":         "Sessão com behaviorista",
+      "sport_class":         "Aula de agility / esporte",
+      "socialization":       "Socialização",
+      "asa_expiry":          "Vencimento do ASA",
+      "prescription_expiry": "Vencimento de receituário",
+      "municipal_license":   "Renovação de licença municipal",
+      "pet_sitter":          "Pet sitter",
+      "dog_walker":          "Dog walker",
+      "boarding":            "Hotel pet",
+      "daycare":             "Creche / day care",
+      "travel_checklist":    "Viagem com pet",
+      "pet_transport":       "Transporte especializado",
+      "plan_renewal":        "Renovação de plano",
+      "insurance_renewal":   "Renovação de seguro",
+      "plan_payment":        "Pagamento de plano",
+      "product_expiry":      "Vencimento de produto",
+      "custom":              "Compromisso"
+    }
   },
   "friends": {
     "screenTitle": "AMIGOS DO {{name}}",
@@ -2840,7 +3004,8 @@
     "privacy": "Privacidade",
     "terms": "Termos de uso",
     "allRightsReserved": "Todos os direitos reservados.",
-    "emailSubject": "Suporte auExpert (v{{version}})"
+    "emailSubject": "Suporte auExpert (v{{version}})",
+    "devMode": "dev (Expo Go)"
   },
   "toast": {
     "cameraPermission": "Ei, preciso da câmera pra te ver! Libera lá nas configurações?",
@@ -4218,7 +4383,60 @@
     "timeJustNow": "Agora mesmo",
     "timeMinutesAgo": "Há {{count}} min",
     "timeHoursAgo": "Há {{count}} h",
-    "timeDaysAgo": "Há {{count}} d"
+    "timeDaysAgo": "Há {{count}} d",
+    "tabUnread": "Não lidas",
+    "tabRead": "Lidas",
+    "filters": "Filtros",
+    "clearFilters": "Limpar",
+    "filterByType": "Tipo",
+    "filterByPet": "Pet",
+    "allTypes": "Todos",
+    "allPets": "Todos",
+    "emptyReadTitle": "Nada lido por aqui",
+    "emptyReadHint": "Quando uma notificação for marcada como lida, ela aparece neste filtro.",
+    "emptyFilteredHint": "Nenhuma notificação corresponde aos filtros selecionados."
+  },
+  "nutritionTips": {
+    "tipLabel": "Você sabia?",
+    "tipFooter": "A IA está avaliando o cardápio do seu pet…",
+    "fallbackBreed": "essa raça",
+    "speciesDog": "cão",
+    "speciesCat": "gato",
+    "carousel": [
+      "A nutrição ideal para a raça {{breed}} considera porte, idade e nível de atividade. A IA cruza esses fatores antes de gerar o score.",
+      "Cães da raça {{breed}} têm necessidades calóricas específicas. Ração genérica raramente atende com precisão.",
+      "Para um {{species}} adulto, proteína animal de qualidade deve ser o primeiro ingrediente da lista — a IA verifica isso na embalagem.",
+      "{{name}} se beneficia de uma dieta com gordura controlada quando há predisposição racial à pancreatite. A IA sinaliza esse risco.",
+      "Hidratação é parte da nutrição: rações secas exigem mais água por dia que úmidas. A IA considera o tipo no cálculo diário.",
+      "Aditivos naturais (taurina, ômega-3, glucosamina) ajudam raças predispostas a problemas cardíacos ou articulares como a {{breed}}.",
+      "Evite trocar de ração de uma vez. A transição correta leva 7 a 10 dias para preservar a flora intestinal do {{name}}.",
+      "Petiscos somam até 10% do total calórico do dia. Acima disso, o equilíbrio nutricional da ração principal se desfaz.",
+      "Filhotes da raça {{breed}} precisam de mais cálcio, mas o excesso pode comprometer o desenvolvimento ósseo. A IA modula a recomendação.",
+      "Ingredientes na lista da ração aparecem em ordem decrescente de quantidade. Se proteína vier depois de cereais, é sinal de baixa qualidade.",
+      "Ração premium ou super-premium oferece densidade nutricional maior — porções menores costumam ser suficientes.",
+      "Gato adulto precisa de no mínimo 30% de proteína bruta na dieta. Para cão, o piso varia de 18% a 25% conforme idade e porte da raça."
+    ]
+  },
+  "prontuarioTips": {
+    "tipLabel": "Você sabia?",
+    "tipFooter": "A IA está cruzando os dados do seu pet…",
+    "fallbackBreed": "essa raça",
+    "speciesDog": "cão",
+    "speciesCat": "gato",
+    "carousel": [
+      "O prontuário do {{name}} consolida vacinas, alergias, exames e medicações em um único documento.",
+      "Para a raça {{breed}}, a IA verifica predisposições genéticas frequentes e ajusta os alertas de prevenção.",
+      "Cada {{species}} tem um calendário vacinal próprio. O auExpert acompanha vencimentos e lembra antes da data.",
+      "A IA cruza o histórico de peso, exames e consultas pra detectar tendências que passam despercebidas no dia a dia.",
+      "Alergias confirmadas ficam destacadas no topo do prontuário — útil em emergências fora da clínica de costume.",
+      "O score de saúde considera idade, raça, vacinação em dia, exames recentes e padrões de humor registrados no diário.",
+      "Predisposições da raça {{breed}} variam conforme a idade. A IA reposiciona os alertas conforme o {{name}} amadurece.",
+      "Compartilhe o QR Code do prontuário com qualquer veterinário — leitura instantânea, sem precisar imprimir nada.",
+      "Quanto mais entradas no diário do {{name}}, mais preciso fica o prontuário. Foto, peso e humor contam.",
+      "O prontuário gerado é uma síntese dos dados — sempre confirme decisões clínicas com um veterinário de confiança.",
+      "Vacinas previstas pra raça {{breed}} aparecem mesmo antes de serem aplicadas, com data sugerida pela IA.",
+      "Ao detectar inconsistências (ex: peso fora da curva da raça), o prontuário sinaliza pra você revisar o registro."
+    ]
   },
   "pdfCommon": {
     "printOrSave": "Imprimir ou salvar PDF",

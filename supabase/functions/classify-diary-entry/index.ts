@@ -175,6 +175,136 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // 6.5. Auto-save scheduled events — fire-and-forget
+    //
+    // O prompt instrui a IA a tagear date+time futuros em consultations,
+    // vaccines, exams, etc. Aqui detectamos esses casos e criamos a row
+    // em scheduled_events pra que o evento apareça na agenda do pet.
+    //
+    // Tipos suportados (mapeados pra event_type da tabela):
+    //   consultation → consultation
+    //   return_visit → return_visit
+    //   vaccine      → vaccine
+    //   exam         → exam
+    //   surgery      → surgery
+    //   medication   → medication_dose (quando tem date+time específicos)
+    //   grooming     → grooming
+    //   travel       → travel_checklist
+    //
+    // Critério: extracted_data.date é YYYY-MM-DD futuro (> hoje no fuso UTC)
+    // OU extracted_data.next_visit é uma data futura.
+    // Mapeia classification.type (do classificador IA) → event_type da agenda.
+    // Cobre os 36 tipos do CHECK constraint após migração 20260430.
+    const SCHEDULABLE_TYPES_MAP: Record<string, string> = {
+      // Saúde
+      consultation:    'consultation',
+      return_visit:    'return_visit',
+      vaccine:         'vaccine',
+      exam:            'exam',
+      surgery:         'surgery',
+      // Medicação
+      medication:      'medication_dose',
+      // Cuidados / serviços
+      grooming:        'grooming',
+      boarding:        'boarding',
+      pet_sitter:      'pet_sitter',
+      dog_walker:      'dog_walker',
+      training:        'training',
+      // Alimentação (vincula troca de ração futura à agenda)
+      food:            'food_change',
+      // Viagem
+      travel:          'travel_checklist',
+      // Administrativo
+      plan:            'plan_payment',
+      insurance:       'insurance_renewal',
+    };
+
+    if (user?.id) {
+      const supabaseEvents = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      const todayMidnightUtc = new Date();
+      todayMidnightUtc.setUTCHours(0, 0, 0, 0);
+
+      for (const c of (result.classifications ?? []) as Array<{
+        type: string;
+        confidence: number;
+        extracted_data: Record<string, unknown>;
+      }>) {
+        const eventType = SCHEDULABLE_TYPES_MAP[c.type];
+        if (!eventType || c.confidence < 0.6) continue;
+
+        const d = c.extracted_data ?? {};
+
+        // Resolve a data: prioriza `date`, depois `next_visit`.
+        const rawDate = String(d.date ?? d.next_visit ?? '').trim();
+        if (!rawDate || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) continue;
+
+        // Resolve hora: aceita HH:MM ou HH:MM:SS, default 09:00 (manhã)
+        // quando ausente. Se ausente, marca all_day=true.
+        const rawTime = String(d.time ?? '').trim();
+        const hasTime = /^\d{2}:\d{2}(:\d{2})?$/.test(rawTime);
+        const time    = hasTime ? (rawTime.length === 5 ? `${rawTime}:00` : rawTime) : '09:00:00';
+
+        const scheduledFor = new Date(`${rawDate}T${time}`);
+        if (Number.isNaN(scheduledFor.getTime())) continue;
+
+        // Filtro: só agenda se for futuro (>= hoje 00:00 UTC).
+        if (scheduledFor < todayMidnightUtc) continue;
+
+        // Título amigável: usa label da extracted_data quando houver, senão fallback por tipo.
+        const title = String(
+          d.title ??
+          d.name ??
+          d.vaccine_name ??
+          d.exam_type ??
+          d.medication_name ??
+          d.summary ??
+          { consultation: 'Consulta veterinária',
+            return_visit: 'Retorno veterinário',
+            vaccine: 'Vacina',
+            exam: 'Exame',
+            surgery: 'Cirurgia',
+            medication: 'Medicação',
+            grooming: 'Banho e tosa',
+            boarding: 'Hotel pet',
+            pet_sitter: 'Pet sitter',
+            dog_walker: 'Dog walker',
+            training: 'Adestramento',
+            food: 'Troca de ração',
+            travel: 'Viagem',
+            plan: 'Pagamento de plano',
+            insurance: 'Renovação de seguro' }[c.type] ?? 'Compromisso',
+        );
+
+        const description = String(d.description ?? d.notes ?? '').trim() || null;
+        const professional = String(d.veterinarian ?? d.professional ?? d.vet_name ?? '').trim() || null;
+        const location = String(d.location ?? d.clinic ?? d.place ?? '').trim() || null;
+
+        supabaseEvents
+          .from('scheduled_events')
+          .insert({
+            pet_id,
+            user_id:     user.id,
+            event_type:  eventType,
+            title,
+            description,
+            professional,
+            location,
+            scheduled_for: scheduledFor.toISOString(),
+            all_day:       !hasTime,
+            status:        'scheduled',
+            is_active:     true,
+          })
+          .then(() => {
+            console.log(
+              `[classify-diary-entry] scheduled event created | pet:${pet_id} | type:${eventType} | for:${scheduledFor.toISOString()} | title:"${title}"`,
+            );
+          })
+          .catch((err: unknown) => {
+            console.warn('[classify-diary-entry] scheduled_events insert skipped:', String(err));
+          });
+      }
+    }
+
     // 7. Record anonymized training data — fire-and-forget
     if (user?.id) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);

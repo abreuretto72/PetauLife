@@ -19,6 +19,11 @@ import {
   PawPrint, Plane, Trophy, Mic, BookOpen,
   TrendingUp, Stethoscope, AlertCircle,
   Clock, Check, X,
+  // Tipos novos (15) — mapeados em EVENT_ICONS abaixo
+  Sparkles, Salad, UtensilsCrossed, Ear,
+  Footprints, Home, BedDouble, Building2,
+  FileText, FileWarning, Truck, Apple,
+  Dumbbell,
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -61,29 +66,63 @@ const PRIMARY_ICONS: Record<string, React.ElementType> = {
 };
 
 const EVENT_ICONS: Record<string, React.ElementType> = {
-  consultation:       Stethoscope,
-  return_visit:       Stethoscope,
-  exam:               ClipboardList,
-  surgery:            AlertCircle,
-  physiotherapy:      TrendingUp,
-  vaccine:            Syringe,
-  travel_vaccine:     Syringe,
-  medication_dose:    Pill,
-  medication_series:  Pill,
-  deworming:          Pill,
-  antiparasitic:      Pill,
-  grooming:           Scissors,
-  nail_trim:          Scissors,
-  dental_cleaning:    Scissors,
-  microchip:          BookOpen,
-  plan_renewal:       RefreshCw,
-  insurance_renewal:  RefreshCw,
-  plan_payment:       Receipt,
-  training:           Trophy,
-  behaviorist:        Trophy,
-  socialization:      PawPrint,
-  travel_checklist:   Plane,
-  custom:             Bell,
+  // Saúde
+  consultation:        Stethoscope,
+  return_visit:        Stethoscope,
+  exam:                ClipboardList,
+  surgery:             AlertCircle,
+  physiotherapy:       TrendingUp,
+  alternative_therapy: Sparkles,
+  vaccine:             Syringe,
+  travel_vaccine:      Syringe,
+  nutrition_consult:   Salad,
+
+  // Medicação
+  medication_dose:     Pill,
+  medication_series:   Pill,
+  deworming:           Pill,
+  antiparasitic:       Pill,
+
+  // Estética / cuidados
+  grooming:            Scissors,
+  nail_trim:           Scissors,
+  ear_cleaning:        Ear,
+  dental_cleaning:     Scissors,
+  microchip:           BookOpen,
+
+  // Alimentação
+  food_change:         UtensilsCrossed,
+  diet_start:          Apple,
+
+  // Cuidados delegados (tutor)
+  pet_sitter:          Home,
+  dog_walker:          Footprints,
+  boarding:            BedDouble,
+  daycare:             Building2,
+
+  // Comportamento
+  training:            Trophy,
+  behaviorist:         Trophy,
+  sport_class:         Dumbbell,
+  socialization:       PawPrint,
+
+  // Documentação / lembretes
+  asa_expiry:          FileWarning,
+  prescription_expiry: FileText,
+  municipal_license:   FileText,
+  product_expiry:      FileWarning,
+
+  // Financeiro
+  plan_renewal:        RefreshCw,
+  insurance_renewal:   RefreshCw,
+  plan_payment:        Receipt,
+
+  // Viagens
+  travel_checklist:    Plane,
+  pet_transport:       Truck,
+
+  // Fallback
+  custom:              Bell,
 };
 
 const WEEKDAY_KEYS = [

@@ -658,14 +658,35 @@ const PRIMARY_TO_CAT: Record<string, AgendaCategory> = {
 };
 
 const EVENT_TO_CAT: Record<string, AgendaCategory> = {
+  // Saúde / medicina
   consultation: 'saude', exam: 'saude', surgery: 'saude', return_visit: 'saude',
-  physiotherapy: 'saude', vaccine: 'saude', travel_vaccine: 'saude',
+  physiotherapy: 'saude', alternative_therapy: 'saude',
+  vaccine: 'saude', travel_vaccine: 'saude',
+  nutrition_consult: 'saude',
+
+  // Medicação
   medication_dose: 'medicacao', medication_series: 'medicacao',
   deworming: 'medicacao', antiparasitic: 'medicacao',
-  grooming: 'cuidados', nail_trim: 'cuidados', dental_cleaning: 'cuidados', microchip: 'cuidados',
+
+  // Cuidados / estética / serviços / alimentação
+  grooming: 'cuidados', nail_trim: 'cuidados', ear_cleaning: 'cuidados',
+  dental_cleaning: 'cuidados', microchip: 'cuidados',
+  food_change: 'cuidados', diet_start: 'cuidados',
+  pet_sitter: 'cuidados', dog_walker: 'cuidados',
+  boarding: 'cuidados', daycare: 'cuidados',
+
+  // Financeiro
   plan_renewal: 'financeiro', insurance_renewal: 'financeiro', plan_payment: 'financeiro',
+
+  // Momento / comportamento / viagens
   training: 'momento', behaviorist: 'momento', socialization: 'momento',
-  travel_checklist: 'momento', custom: 'lembrete',
+  sport_class: 'momento',
+  travel_checklist: 'momento', pet_transport: 'momento',
+
+  // Lembretes / vencimentos / fallback
+  asa_expiry: 'lembrete', prescription_expiry: 'lembrete',
+  municipal_license: 'lembrete', product_expiry: 'lembrete',
+  custom: 'lembrete',
 };
 
 export const DOT_PRIORITY: AgendaCategory[] = [
