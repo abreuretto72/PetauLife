@@ -36,6 +36,21 @@ Essas 11 regras valem em qualquer arquivo, qualquer tarefa. Cada violação é b
 10. **Fontes customizadas são proibidas.** Apenas fonte do sistema (SF Pro/Roboto). Nunca `fontStyle: 'italic'` em texto corrido. Tamanho mínimo: 12px labels, 14px corpo.
 11. **Clicável primário = ametista sólido.** Todo CTA principal (botão de ação, stat box, submit, confirmar) usa `backgroundColor: colors.click` sólido + texto/ícones em `#FFFFFF`. Nunca `LinearGradient`, nunca fundo translúcido, nunca cor diferente. Referência: `components/pets/PetListHeader.addBtn` + `components/PetCard.statBox`. Exceções: botões destrutivos (`colors.danger`), secundários/cancelar (borda sem fundo), chips de filtro/toggles (não são CTAs primários), seletores polissêmicos por função (ex: `components/diary/InputSelector.tsx` tem uma cor por método de input).
 
+12. **Elementos ancorados ao rodapé respeitam safe area, sempre.** É **PROIBIDO** usar `bottom: rs(N)` ou `paddingBottom: rs(N)` hardcoded em qualquer elemento `position: 'absolute'` ou barra fixa de ação no rodapé — esse anti-padrão causa botões invadindo a barra de gestos do Android e o home indicator do iOS. Use SEMPRE as ferramentas oficiais:
+    - **`<Fab/>`** (`components/ui/Fab.tsx`) para todo botão flutuante (FAB) — single import, único uso.
+    - **`<BottomActionBar/>`** (`components/ui/BottomActionBar.tsx`) para barras fixas de ação no rodapé de modais, sheets e telas full-screen (botões "Salvar", "Confirmar", "Continuar").
+    - **`useFloatingBottom()`** (`hooks/useFloatingBottom.ts`) quando precisar do offset bruto pra casos especiais.
+
+    Nunca recriar `position: 'absolute' + bottom: rs(N)` manualmente. Referência: `app/(app)/partnerships/index.tsx` (Fab) + `components/lenses/AddFriendSheet.tsx` (BottomActionBar).
+
+    **Dentro de `<Modal>` do React Native:** o SafeAreaProvider do app raiz NÃO propaga pro Modal (cria nova hierarquia de view). Sempre que usar `BottomActionBar` ou `useFloatingBottom` dentro de um Modal, envelope o conteúdo com `<SafeAreaProvider initialMetrics={initialWindowMetrics}>`. Sem isso, `useSafeAreaInsets()` retorna zeros — o `useFloatingBottom` tem fallback defensivo (~24 Android, ~16 iOS), mas o wrap garante valores exatos. Referência: `components/lenses/AddFriendSheet.tsx`.
+
+13. **Speech-to-Text passa SEMPRE pelo singleton `lib/sttSession`.** É **PROIBIDO** chamar `useSpeechRecognitionEvent` ou `ExpoSpeechRecognitionModule.start/stop` diretamente em qualquer componente. Existe **um único** subscriber dos eventos nativos no app: `components/STTBridge.tsx`, montado em `app/(app)/_layout.tsx`. Hooks-cliente (`useSimpleSTT`, `useSTT` do diário) registram um owner com Symbol único no singleton via `startSession(owner)` / `stopSession(ownerId)`.
+
+    Por que: cada chamada de `useSpeechRecognitionEvent` registra um listener separado. Sem essa regra, microfone do diário "vaza" pra Input de busca e mic-stuck (auto-restart cruzado). Histórico do bug: 2026-04-30.
+
+    Padrão correto: criar Symbol no `useRef`, montar `STTOwner { id, onResult, onSessionEnded, onError }`, chamar `startSession(owner, opts)` / `stopSession(ownerIdRef.current)`. Cleanup no unmount sempre via `stopSession`.
+
 ---
 
 ## Database workflow (universal)

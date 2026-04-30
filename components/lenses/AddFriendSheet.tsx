@@ -14,6 +14,8 @@
  *   6. Salvar
  */
 import React, { useCallback, useState } from 'react';
+import { BottomActionBar } from '../ui/BottomActionBar';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import {
   Modal, View, Text, StyleSheet, TouchableOpacity, Pressable, ScrollView,
   TextInput, Image, ActivityIndicator,
@@ -210,6 +212,10 @@ export function AddFriendSheet({ visible, onClose, petId }: Props) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+      {/* Re-monta SafeAreaProvider dentro do Modal — sem isso, useSafeAreaInsets()
+          retorna zeros e o BottomActionBar cola na barra de gestos do Android.
+          initialWindowMetrics evita flicker até o nativo medir os insets. */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <Pressable style={s.backdrop} onPress={handleClose}>
         <Pressable style={s.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={s.handleBar} />
@@ -344,6 +350,12 @@ export function AddFriendSheet({ visible, onClose, petId }: Props) {
               )}
             </View>
 
+          </ScrollView>
+
+          {/* Salvar — fixo no rodapé com safe area garantida pelo BottomActionBar.
+              Antes ficava dentro do ScrollView e podia invadir a barra do sistema
+              quando o conteúdo era curto e o teclado fechava. */}
+          <BottomActionBar backgroundColor={colors.bgCard} hideBorder>
             <TouchableOpacity
               style={[s.saveBtn, saving && s.saveBtnDisabled]}
               onPress={handleSave}
@@ -359,9 +371,10 @@ export function AddFriendSheet({ visible, onClose, petId }: Props) {
                 </>
               )}
             </TouchableOpacity>
-          </ScrollView>
+          </BottomActionBar>
         </Pressable>
       </Pressable>
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -400,7 +413,7 @@ const s = StyleSheet.create({
   },
   scrollBody: {
     padding: spacing.lg,
-    paddingBottom: rs(36),
+    // sem paddingBottom — o BottomActionBar abaixo cuida do espaço final
   },
 
   label: {
@@ -534,7 +547,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.click,
     paddingVertical: rs(14),
     borderRadius: radii.lg,
-    marginTop: rs(20),
+    // marginTop removido — está dentro do BottomActionBar agora.
   },
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: {
