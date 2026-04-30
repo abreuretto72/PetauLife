@@ -47,14 +47,11 @@ function jsonResp(data: unknown, status = 200) {
   });
 }
 
-/** Política mínima da senha temporária — alinha com app (8 chars, 1 upper, 1 num, 1 esp). */
+/** Política mínima — só 8 caracteres. Sem exigência de maiúscula/número/especial. */
 function validatePassword(pwd: string): { ok: boolean; reason?: string } {
   if (typeof pwd !== 'string' || pwd.length < MIN_PASSWORD_LEN) {
     return { ok: false, reason: `senha precisa ter no mínimo ${MIN_PASSWORD_LEN} caracteres` };
   }
-  if (!/[A-Z]/.test(pwd)) return { ok: false, reason: 'senha precisa de 1 letra maiúscula' };
-  if (!/[0-9]/.test(pwd)) return { ok: false, reason: 'senha precisa de 1 número' };
-  if (!/[^A-Za-z0-9]/.test(pwd)) return { ok: false, reason: 'senha precisa de 1 caractere especial' };
   return { ok: true };
 }
 

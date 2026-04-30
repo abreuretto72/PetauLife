@@ -69,17 +69,11 @@ export function TeamManager({ members, pendingInvites }: Props) {
     });
   }
 
-  /** Sugere uma senha temporária válida com 12 chars (1 maiúscula, 1 num, 1 esp). */
+  /** Sugere uma senha aleatória de 10 chars (alfanumérica, sem regra rígida). */
   function suggestPassword() {
-    const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lower  = 'abcdefghijkmnpqrstuvwxyz';
-    const digits = '23456789';
-    const specs  = '!@#$%&*?';
-    const all    = upper + lower + digits + specs;
-    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
-    let pwd = pick(upper) + pick(lower) + pick(digits) + pick(specs);
-    while (pwd.length < 12) pwd += pick(all);
-    pwd = pwd.split('').sort(() => Math.random() - 0.5).join('');
+    const all = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let pwd = '';
+    for (let i = 0; i < 10; i++) pwd += all[Math.floor(Math.random() * all.length)];
     setPassword(pwd);
     setShowPassword(true);
   }
@@ -186,7 +180,7 @@ export function TeamManager({ members, pendingInvites }: Props) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="Min 8 chars, 1 maiúscula, 1 número, 1 especial"
+                    placeholder="Mínimo 8 caracteres"
                     className="input pr-10"
                     disabled={pending}
                     autoComplete="new-password"

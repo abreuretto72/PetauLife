@@ -71,10 +71,10 @@ export async function createAdminDirect(opts: {
   full_name?: string;
   role: AdminRole;
 }): Promise<CreateDirectResult> {
-  if (!opts.email?.trim())    return { ok: false, error: 'e-mail obrigatório' };
-  if (!opts.password)         return { ok: false, error: 'senha obrigatória' };
-  if (opts.password.length < 8) return { ok: false, error: 'senha mínima de 8 caracteres' };
-  if (!opts.role)             return { ok: false, error: 'perfil obrigatório' };
+  if (!opts.email?.trim())      return { ok: false, error: 'e-mail obrigatório' };
+  if (!opts.password)           return { ok: false, error: 'senha obrigatória' };
+  if (opts.password.length < 8) return { ok: false, error: 'senha precisa ter no mínimo 8 caracteres' };
+  if (!opts.role)               return { ok: false, error: 'perfil obrigatório' };
 
   const supabase = await createSupabaseServerClient();
   const session = await supabase.auth.getSession();
