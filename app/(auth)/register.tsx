@@ -8,8 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
+
+// URLs canônicas dos documentos legais — pasta docs/legal/ servida via GitHub Pages
+const PRIVACY_URL = 'https://abreuretto72.github.io/auExpert/legal/privacy.html';
+const TERMS_URL   = 'https://abreuretto72.github.io/auExpert/legal/terms.html';
 import {
   ArrowRight,
   ChevronLeft,
@@ -270,7 +275,7 @@ export default function RegisterScreen() {
               style={styles.consentLink}
               onPress={(ev) => {
                 ev.stopPropagation();
-                router.push('/(app)/terms');
+                void Linking.openURL(TERMS_URL);
               }}
             >
               {t('auth.readTerms')}
@@ -280,7 +285,7 @@ export default function RegisterScreen() {
               style={styles.consentLink}
               onPress={(ev) => {
                 ev.stopPropagation();
-                router.push('/(app)/privacy');
+                void Linking.openURL(PRIVACY_URL);
               }}
             >
               {t('auth.readPrivacy')}
