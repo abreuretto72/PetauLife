@@ -12,9 +12,9 @@
   --color-text:         #E5E9F0;
   --color-text-muted:   #9AA7B4;
   --color-text-dim:     #6B7B8C;
-  --color-accent:       #F29542;
-  --color-accent-hover: #FFA85A;
-  --color-accent-bg:    rgba(242, 149, 66, 0.12);
+  --color-accent:       #8F7FA8;
+  --color-accent-hover: #A698BD;
+  --color-accent-bg:    rgba(143, 127, 168, 0.14);
   --color-success:      #4ADE80;
   --color-danger:       #F87171;
 
@@ -73,30 +73,26 @@ body {
 }
 
 .site-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: inline-flex;
+  align-items: baseline;
   text-decoration: none;
+  font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.site-logo-au {
+  font-style: italic;
+  font-weight: 400;
   color: var(--color-text);
-  font-weight: 600;
-  font-size: 18px;
 }
 
-.site-logo-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--color-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: white;
-  font-weight: 700;
-}
-
-.site-logo .site-logo-brand {
-  color: var(--color-accent);
+.site-logo-expert {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 1px;
 }
 
 .site-nav {

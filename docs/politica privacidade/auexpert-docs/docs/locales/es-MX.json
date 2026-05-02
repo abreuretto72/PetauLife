@@ -3,8 +3,8 @@
     "brand": "auExpert",
     "tagline": "Gestor de Mascotas con Inteligencia Artificial",
     "company": "Multiverso Digital",
-    "version": "Versión 1.0",
-    "effectiveDate": "Fecha de vigencia: 20 de abril de 2026",
+    "version": "Versión 1.1",
+    "effectiveDate": "Fecha de vigencia: 2 de mayo de 2026",
     "developedBy": "Desarrollado por Multiverso Digital"
   },
   "nav": {
@@ -33,13 +33,13 @@
   },
   "footer": {
     "copyright": "© 2026 Multiverso Digital. Todos los derechos reservados.",
-    "contact": "contato@multiversodigital.com.br"
+    "contact": "contato@auexpert.com.br"
   },
   "privacy": {
     "pageTitle": "Política de Privacidad — auExpert",
     "eyebrow": "Documento legal",
     "title": "Política de Privacidad",
-    "meta": "Versión 1.0 · Vigencia: 20 de abril de 2026 · Desarrollado por Multiverso Digital",
+    "meta": "Versión 1.1 · Vigencia: 2 de mayo de 2026 · Desarrollado por Multiverso Digital",
     "intro": "Esta Política de Privacidad describe cómo recopilamos, usamos, almacenamos, compartimos y protegemos la información personal de los usuarios de la aplicación auExpert, disponible en las plataformas iOS y Android.",
     "sections": [
       {
@@ -49,7 +49,7 @@
         "items": [
           "Razón Social: Multiverso Digital",
           "País de operación: Brasil",
-          "Correo electrónico de contacto: contato@multiversodigital.com.br",
+          "Correo electrónico de contacto: contato@auexpert.com.br",
           "Canal de atención: Disponible dentro de la aplicación auExpert"
         ]
       },
@@ -122,7 +122,7 @@
               "Solo se utilizan datos sin identificación del tutor o de la mascota para este fin",
               "Los datos son anonimizados de forma irreversible antes de ser usados en el entrenamiento",
               "El objetivo es crear una IA especializada en perros y gatos para beneficiar a todos los usuarios de auExpert",
-              "El usuario puede oponerse a este uso en cualquier momento, poniéndose en contacto por el correo contato@multiversodigital.com.br",
+              "El usuario puede oponerse a este uso en cualquier momento, poniéndose en contacto por el correo contato@auexpert.com.br",
               "Los datos anonimizados podrán conservarse permanentemente para esta finalidad, incluso después del cierre de la cuenta"
             ]
           },
@@ -235,7 +235,7 @@
           "Oposición al uso en IA: oponerte al uso de datos anonimizados para entrenamiento de modelos de IA",
           "Información sobre compartición: saber con quién compartimos tus datos"
         ],
-        "outro": "Para ejercer cualquiera de estos derechos, ponte en contacto por el correo contato@multiversodigital.com.br o por el canal de soporte dentro de la aplicación. Responderemos en hasta 15 días hábiles."
+        "outro": "Para ejercer cualquiera de estos derechos, ponte en contacto por el correo contato@auexpert.com.br o por el canal de soporte dentro de la aplicación. Responderemos en hasta 15 días hábiles."
       },
       {
         "number": "9",
@@ -291,7 +291,7 @@
               "Se utilizarán datos anonimizados y sin identificación de mascotas para entrenamiento",
               "Ningún dato que permita identificar al tutor o a la mascota individualmente será utilizado",
               "El objetivo es mejorar continuamente las recomendaciones de salud y comportamiento para todos los usuarios",
-              "El usuario puede oponerse a este uso poniéndose en contacto por el correo contato@multiversodigital.com.br"
+              "El usuario puede oponerse a este uso poniéndose en contacto por el correo contato@auexpert.com.br"
             ]
           },
           {
@@ -303,20 +303,123 @@
       },
       {
         "number": "12",
+        "title": "Funcionalidades para Profesionales y Acceso Veterinario",
+        "intro": "auExpert permite que los tutores inviten a profesionales calificados — veterinarios, adiestradores, peluqueros caninos, paseadores, transportistas y otras categorías relacionadas — para que accedan al historial clínico de sus mascotas, mediante invitación explícita.",
+        "subsections": [
+          {
+            "number": "12.1",
+            "title": "Registro del profesional y categorías soportadas",
+            "intro": "Los profesionales se registran por separado, declarando colegio profesional (CRMV/equivalente) y número de matrícula cuando aplique. Las 19 categorías actualmente soportadas incluyen veterinarios, técnicos veterinarios, adiestradores, peluqueros, paseadores, pet sitters, transportistas, fotógrafos pet, entre otras.",
+            "items": [
+              "El registro se valida con documento profesional escaneado por OCR y revisado por el equipo.",
+              "Los profesionales NUNCA pueden registrar mascotas — solo los tutores. Los profesionales solo ven mascotas cuyo tutor los invitó explícitamente.",
+              "Cada invitación genera un enlace de acceso con expiración y puede ser revocado en cualquier momento por el tutor."
+            ]
+          },
+          {
+            "number": "12.2",
+            "title": "Acceso al expediente clínico y agentes de inteligencia artificial",
+            "intro": "Los profesionales autorizados por el tutor tienen acceso de lectura al historial clínico de la mascota. Los veterinarios autorizados pueden además usar 7 agentes de IA para generación asistida de documentos:",
+            "items": [
+              "Anamnesis — recolección estructurada del historial del paciente",
+              "Expediente clínico — registro clínico completo",
+              "Receta — prescripción con verificación de interacciones medicamentosas",
+              "Certificado de Salud Animal",
+              "Consentimiento Informado (co-firmado por el tutor)",
+              "Notificación sanitaria — enfermedades de declaración obligatoria",
+              "Reporte de alta — alta hospitalaria con plan de cuidados en casa"
+            ],
+            "outro": "Los documentos generados por los agentes son solo apoyo a la decisión clínica y nunca sustituyen el juicio profesional. La responsabilidad integral del contenido recae en el profesional que firma digitalmente el documento."
+          },
+          {
+            "number": "12.3",
+            "title": "Auditoría y revocación de acceso",
+            "intro": "Todos los accesos profesionales se registran en bitácora de auditoría con fecha, hora, profesional y acción realizada. El tutor puede consultar esta auditoría, revocar accesos individuales en cualquier momento y eliminar al profesional de forma permanente. La revocación tiene efecto inmediato.",
+            "items": [
+              "La bitácora incluye: profesional, acción, mascota objetivo, marca de tiempo y agente IA usado cuando aplique.",
+              "Los documentos ya firmados no se borran — siguen disponibles al tutor incluso tras la revocación.",
+              "Los consentimientos firmados por el tutor conservan validez legal independientemente de revocación posterior."
+            ]
+          }
+        ]
+      },
+      {
+        "number": "13",
+        "title": "Módulo de Viajes con Mascota",
+        "intro": "auExpert ofrece un módulo de viajes que ayuda al tutor a planear y dar seguimiento a viajes con su mascota, dentro de México o al extranjero. Este módulo recolecta y procesa datos específicos para cumplir sus finalidades.",
+        "subsections": [
+          {
+            "number": "13.1",
+            "title": "Datos recolectados por el módulo de viajes",
+            "intro": "Para generar itinerarios y listas adecuadas, el módulo recolecta:",
+            "items": [
+              "Origen, destino, fechas, modo de transporte (avión, auto, autobús, tren, barco) y número de acompañantes",
+              "Dirección del hotel o alojamiento (geocodificada a latitud/longitud vía OpenStreetMap Nominatim y Google Maps)",
+              "Ubicación actual del dispositivo (GPS), solo cuando el tutor pide expresamente buscar profesionales cercanos o activa el SOS veterinario",
+              "Gastos del viaje en moneda local (convertidos con tipos de cambio públicos)",
+              "Documentos digitalizados pertinentes al viaje (certificados, comprobantes de vacunación internacional)"
+            ]
+          },
+          {
+            "number": "13.2",
+            "title": "Concierge IA y enriquecimiento de lista",
+            "intro": "La inteligencia artificial Concierge consulta fuentes oficiales y públicas para sugerir requisitos de entrada del destino (vacunas obligatorias, microchip ISO, antirrábica con ventana mínima, certificados oficiales, pruebas de titulación) y genera un cronograma sugerido pre-viaje. Hay items curados para 25 países; para otros destinos la IA genera lista bajo demanda con caché de 90 días.",
+            "outro": "Los itinerarios y listas generados por la IA son SUGERENCIAS basadas en información pública. La verificación oficial en consulado, embajada y veterinario sigue siendo responsabilidad integral del tutor. Los requisitos de entrada pueden cambiar sin previo aviso."
+          },
+          {
+            "number": "13.3",
+            "title": "SOS Veterinario y traducción durante el viaje",
+            "intro": "Durante el viaje, el tutor puede activar funciones adicionales:",
+            "items": [
+              "SOS Veterinario — busca veterinarios o clínicas cercanas vía GPS y ofrece compartir automáticamente el expediente traducido al idioma local. NO sustituye llamada de emergencia local oficial.",
+              "Walkie-talkie traductor — graba audio del tutor y lo traduce por IA al idioma del veterinario del destino, y viceversa.",
+              "Traducción del expediente — versión del historial clínico en el idioma local con caché de 60 días.",
+              "Memorial — al final del viaje, la IA genera un memorial fotográfico con narración basada en las memorias registradas, exclusivamente para uso personal del tutor."
+            ],
+            "outro": "Las compras de boletos, alojamientos y seguros se hacen en sitios de terceros. No somos responsables por transacciones fuera de la aplicación, embarques negados por documentación incompleta ni por indicaciones divergentes de compañías de transporte."
+          }
+        ]
+      },
+      {
+        "number": "14",
+        "title": "Breed Intelligence — Feed Comunitario por Raza",
+        "intro": "auExpert ofrece Breed Intelligence, un feed comunitario donde los tutores comparten memorias y donde la IA genera artículos clínicos personalizados por la raza de la mascota.",
+        "subsections": [
+          {
+            "number": "14.1",
+            "title": "Publicaciones de tutores y moderación por IA",
+            "intro": "Cuando el tutor decide publicar contenido en Breed Intelligence, el contenido (texto, foto o narración de la IA) se vuelve visible para tutores que tengan mascota de la MISMA raza. El alcance está restringido a la comunidad de la raza — nunca abierto al internet público.",
+            "items": [
+              "Toda publicación pasa por moderación automática de IA antes de publicarse (verificación de texto e imagen).",
+              "Las publicaciones pueden ser despublicadas por el tutor en cualquier momento. La despublicación remueve el contenido del feed.",
+              "Los comentarios también son moderados por IA. Nos reservamos el derecho a remover contenido que viole estos Términos sin aviso previo.",
+              "Las publicaciones pueden ser traducidas bajo demanda a otros idiomas soportados, con caché de la traducción."
+            ]
+          },
+          {
+            "number": "14.2",
+            "title": "Editorials clínicos generados por IA",
+            "intro": "La IA genera artículos clínicos cortos con cobertura por raza y especie (Editorials), publicados regularmente en el feed. Estos artículos se generan a partir de fuentes públicas veterinarias y pasan por verificación de tema antes de la publicación. Las ilustraciones de los Editorials son producidas por modelos de generación de imagen con verificación visual de tema.",
+            "outro": "Los Editorials son informativos y nunca sustituyen consulta veterinaria. En caso de duda sobre la salud de la mascota, consulta siempre a un médico veterinario."
+          }
+        ]
+      },
+      {
+        "number": "15",
         "title": "Protección de Menores de Edad",
         "intro": "auExpert no está dirigido a menores de 18 años. No recopilamos intencionalmente datos personales de menores de edad. Si identificamos que hemos recopilado datos de un menor sin el consentimiento de los responsables legales, eliminaremos esa información inmediatamente."
       },
       {
-        "number": "13",
+        "number": "16",
         "title": "Cambios a esta Política de Privacidad",
         "intro": "Multiverso Digital se reserva el derecho de actualizar esta Política de Privacidad periódicamente. En caso de cambios relevantes, el usuario será notificado con al menos 30 días de antelación mediante notificación en la aplicación y/o correo electrónico. El uso continuado de la aplicación después de la vigencia de los cambios constituye aceptación de las nuevas condiciones."
       },
       {
-        "number": "14",
+        "number": "17",
         "title": "Contacto y Encargado de Datos (DPO)",
         "intro": "Para ejercer tus derechos, aclarar dudas o registrar reclamaciones relacionadas con la privacidad:",
         "items": [
-          "Correo electrónico: contato@multiversodigital.com.br",
+          "Correo electrónico: contato@auexpert.com.br",
           "Soporte: Disponible dentro de la aplicación auExpert, sección \"Ayuda y Soporte\"",
           "Plazo de respuesta: hasta 15 días hábiles"
         ],
@@ -328,7 +431,7 @@
     "pageTitle": "Términos de Uso — auExpert",
     "eyebrow": "Documento legal",
     "title": "Términos de Uso",
-    "meta": "Versión 1.0 · Vigencia: 20 de abril de 2026 · Desarrollado por Multiverso Digital",
+    "meta": "Versión 1.1 · Vigencia: 2 de mayo de 2026 · Desarrollado por Multiverso Digital",
     "intro": "Estos Términos de Uso constituyen un contrato jurídicamente vinculante entre tú (Usuario) y Multiverso Digital, desarrolladora y operadora de la aplicación auExpert.",
     "sections": [
       {
@@ -550,7 +653,7 @@
           {
             "number": "12.1",
             "title": "Por iniciativa del usuario",
-            "intro": "El usuario puede cerrar su cuenta en cualquier momento, accediendo a las configuraciones de la aplicación o poniéndose en contacto con el soporte por el correo contato@multiversodigital.com.br."
+            "intro": "El usuario puede cerrar su cuenta en cualquier momento, accediendo a las configuraciones de la aplicación o poniéndose en contacto con el soporte por el correo contato@auexpert.com.br."
           },
           {
             "number": "12.2",
@@ -568,6 +671,43 @@
       },
       {
         "number": "13",
+        "title": "Funcionalidades Profesionales",
+        "intro": "auExpert ofrece un módulo dedicado a profesionales (veterinarios, adiestradores, peluqueros, paseadores, transportistas y otras 19 categorías) que se registran por separado y actúan solo sobre mascotas a las que fueron invitados por el tutor.",
+        "items": [
+          "Los profesionales NO pueden registrar mascotas, comprar planes para mascotas ni actuar en nombre del tutor — solo atender mascotas delegadas.",
+          "Los veterinarios autorizados pueden usar 7 agentes de IA (anamnesis, expediente clínico, receta, certificado de salud, consentimiento informado, notificación sanitaria, alta) como apoyo a la generación de documentos clínicos. Los documentos generados son apoyo a la decisión y la responsabilidad integral del contenido es del profesional que firma digitalmente.",
+          "El Consentimiento Informado requiere co-firma del tutor y del veterinario para tener validez.",
+          "El tutor puede revocar el acceso del profesional en cualquier momento, con efecto inmediato. Los documentos ya firmados siguen disponibles para el tutor incluso después de la revocación.",
+          "El registro de profesionales es gratuito durante la fase actual del producto. Multiverso Digital puede introducir cobro en el futuro con aviso previo mínimo de 30 días."
+        ]
+      },
+      {
+        "number": "14",
+        "title": "Módulo de Viajes con Mascota",
+        "intro": "El módulo de viajes ayuda en la planeación y seguimiento de viajes con mascota, pero auExpert NO es una agencia de viajes ni gestor de documentos.",
+        "items": [
+          "Itinerarios, listas y cronogramas generados por el Concierge IA son SUGERENCIAS basadas en fuentes públicas. La confirmación oficial en consulado, embajada, SENASICA y veterinario es responsabilidad integral del tutor.",
+          "Los requisitos de entrada en otros países pueden cambiar sin previo aviso. auExpert no se responsabiliza por embarques negados, deportaciones, cuarentenas ni multas derivadas de documentación incompleta.",
+          "Las compras de boletos, alojamientos, seguros y servicios de terceros se hacen en sitios externos. No somos responsables por esas transacciones.",
+          "El SOS Veterinario busca profesionales cercanos vía GPS y ofrece el expediente traducido — NO sustituye llamada de emergencia local oficial. En emergencia grave, llama al número de emergencia local (911 en México o equivalente en el destino).",
+          "La ubicación del dispositivo se procesa solo cuando el tutor pide expresamente buscar profesionales cercanos o activa el SOS — nunca hay rastreo continuo.",
+          "Los memoriales de viaje generados por la IA usan solo medios y narraciones creadas por el tutor en ese perfil de mascota, exclusivamente para uso personal."
+        ]
+      },
+      {
+        "number": "15",
+        "title": "Breed Intelligence — Contenido Comunitario",
+        "intro": "Breed Intelligence es un feed comunitario donde los tutores publican mensajes visibles a otros tutores de la misma raza de mascota, y donde la IA publica Editorials clínicos. El uso de esta funcionalidad se rige por las reglas siguientes.",
+        "items": [
+          "Al publicar un mensaje, el tutor otorga a auExpert una licencia no exclusiva, gratuita y revocable para mostrar ese contenido dentro de la comunidad de la raza correspondiente. El contenido NUNCA se vende a terceros.",
+          "Está prohibido publicar: datos personales identificables de terceros (placas, direcciones, teléfonos, rostros sin consentimiento), contenido agresivo, comercial no autorizado, sexual, violento o que viole derechos de terceros.",
+          "Todo el contenido pasa por moderación con IA. Las publicaciones rechazadas no llegan al feed. El tutor puede despublicar sus propios mensajes en cualquier momento.",
+          "Los Editorials generados por IA son artículos informativos con base en fuentes veterinarias públicas. NO sustituyen consulta veterinaria — en caso de duda sobre salud, consulta a un veterinario.",
+          "auExpert puede remover contenido, suspender o cerrar cuentas que violen estas reglas, con o sin aviso previo, a su discreción."
+        ]
+      },
+      {
+        "number": "16",
         "title": "Ley Aplicable y Resolución de Disputas",
         "intro": "Estos Términos se rigen por las leyes de la República Federativa de Brasil, en especial:",
         "items": [
@@ -579,7 +719,7 @@
         "outro": "Las partes eligen el fuero de la comarca de São Paulo/SP para dirimir cualesquiera controversias derivadas de estos Términos, con renuncia expresa a cualquier otro fuero, por más privilegiado que sea."
       },
       {
-        "number": "14",
+        "number": "17",
         "title": "Disposiciones Generales",
         "items": [
           "Integralidad: Estos Términos, juntamente con la Política de Privacidad, constituyen el acuerdo integral entre las partes",
@@ -590,11 +730,11 @@
         ]
       },
       {
-        "number": "15",
+        "number": "18",
         "title": "Contacto",
         "intro": "Para cuestiones relacionadas con estos Términos de Uso:",
         "items": [
-          "Correo electrónico: contato@multiversodigital.com.br",
+          "Correo electrónico: contato@auexpert.com.br",
           "Soporte: Disponible dentro de la aplicación auExpert, sección \"Ayuda y Soporte\"",
           "Plazo de respuesta: hasta 10 días hábiles"
         ]
