@@ -3,8 +3,8 @@
     "brand": "auExpert",
     "tagline": "AI-Powered Pet Manager",
     "company": "Multiverso Digital",
-    "version": "Version 1.0",
-    "effectiveDate": "Effective date: April 20, 2026",
+    "version": "Version 1.1",
+    "effectiveDate": "Effective date: May 2, 2026",
     "developedBy": "Developed by Multiverso Digital"
   },
   "nav": {
@@ -33,13 +33,13 @@
   },
   "footer": {
     "copyright": "© 2026 Multiverso Digital. All rights reserved.",
-    "contact": "contato@multiversodigital.com.br"
+    "contact": "contato@auexpert.com.br"
   },
   "privacy": {
     "pageTitle": "Privacy Policy — auExpert",
     "eyebrow": "Legal document",
     "title": "Privacy Policy",
-    "meta": "Version 1.0 · Effective: April 20, 2026 · Developed by Multiverso Digital",
+    "meta": "Version 1.1 · Effective: May 2, 2026 · Developed by Multiverso Digital",
     "intro": "This Privacy Policy describes how we collect, use, store, share, and protect the personal information of users of the auExpert application, available on iOS and Android platforms.",
     "sections": [
       {
@@ -49,7 +49,7 @@
         "items": [
           "Company Name: Multiverso Digital",
           "Country of operation: Brazil",
-          "Contact email: contato@multiversodigital.com.br",
+          "Contact email: contato@auexpert.com.br",
           "Support channel: Available within the auExpert application"
         ]
       },
@@ -122,7 +122,7 @@
               "Only data without identification of the tutor or the pet is used for this purpose",
               "Data is irreversibly anonymized before being used in training",
               "The goal is to create an AI specialized in dogs and cats to benefit all auExpert users",
-              "The user may object to this use at any time by contacting us at contato@multiversodigital.com.br",
+              "The user may object to this use at any time by contacting us at contato@auexpert.com.br",
               "Anonymized data may be retained permanently for this purpose, even after account termination"
             ]
           },
@@ -235,7 +235,7 @@
           "Objection to AI use: to object to the use of anonymized data for AI model training",
           "Information about sharing: to know with whom we share your data"
         ],
-        "outro": "To exercise any of these rights, contact us at contato@multiversodigital.com.br or through the support channel within the application. We will respond within 15 business days."
+        "outro": "To exercise any of these rights, contact us at contato@auexpert.com.br or through the support channel within the application. We will respond within 15 business days."
       },
       {
         "number": "9",
@@ -291,7 +291,7 @@
               "Anonymized data without pet identification will be used for training",
               "No data that allows identification of the tutor or pet individually will be used",
               "The goal is to continuously improve health and behavior recommendations for all users",
-              "The user may object to this use by contacting contato@multiversodigital.com.br"
+              "The user may object to this use by contacting contato@auexpert.com.br"
             ]
           },
           {
@@ -303,20 +303,123 @@
       },
       {
         "number": "12",
+        "title": "Professional Features and Veterinary Access",
+        "intro": "auExpert allows tutors to invite qualified professionals — veterinarians, dog trainers, groomers, dog walkers, transporters, and other related categories — to access their pets' clinical history, by explicit invitation.",
+        "subsections": [
+          {
+            "number": "12.1",
+            "title": "Professional registration and supported categories",
+            "intro": "Professionals register separately, declaring their professional council (CRMV/equivalent) and registration number when applicable. The 19 categories currently supported include veterinarians, veterinary technicians, trainers, groomers, dog walkers, pet sitters, transporters, pet photographers, pet product designers, and others.",
+            "items": [
+              "Registration is validated via OCR-scanned professional documents and reviewed by the team.",
+              "Professionals can NEVER register pets — only tutors can. Professionals only see pets whose tutor explicitly invited them.",
+              "Each invitation creates an access link with expiration and can be revoked at any time by the tutor."
+            ]
+          },
+          {
+            "number": "12.2",
+            "title": "Access to clinical records and AI agents",
+            "intro": "Professionals authorized by the tutor have read access to the pet's clinical history (vaccinations, consultations, exams, medications, allergies, weight, symptoms) through a SECURITY DEFINER function that respects the invitation scope. Authorized veterinarians can additionally use 7 AI agents for assisted document generation:",
+            "items": [
+              "Anamnesis — structured patient history collection",
+              "Clinical record — full clinical record (CFMV 1.236/2018)",
+              "Prescription — prescriptions with drug interaction checking",
+              "ASA — Animal Health Certificate",
+              "ICT — Informed Consent Term (co-signed by the tutor)",
+              "Sanitary Notification — mandatory reporting of notifiable diseases",
+              "Discharge Report — hospital discharge with home care plan"
+            ],
+            "outro": "Documents generated by the agents are merely clinical decision support and never replace professional judgment. Full responsibility for content rests with the professional who digitally signs the document."
+          },
+          {
+            "number": "12.3",
+            "title": "Auditing and access revocation",
+            "intro": "All professional accesses are recorded in an audit log with date, time, professional, and action performed. The tutor can view this audit log, revoke individual access at any time, and permanently remove the professional. Revocation takes immediate effect.",
+            "items": [
+              "Audit log includes: professional, action, target pet, timestamp, AI agent used when applicable.",
+              "Already-signed documents are not deleted — they remain available to the tutor even after revocation.",
+              "ICTs signed by the tutor preserve legal validity regardless of subsequent revocation."
+            ]
+          }
+        ]
+      },
+      {
+        "number": "13",
+        "title": "Travel Module with Pet",
+        "intro": "auExpert offers a travel module that helps tutors plan and follow up on trips with their pets, domestically or internationally. This module collects and processes specific data to fulfill its purposes.",
+        "subsections": [
+          {
+            "number": "13.1",
+            "title": "Data collected by the travel module",
+            "intro": "To generate appropriate itineraries and checklists, the module collects:",
+            "items": [
+              "Origin, destination, dates, transport mode (plane, car, bus, train, ship), and number of companions",
+              "Hotel or accommodation address (geocoded to latitude/longitude via OpenStreetMap Nominatim and Google Maps Geocoding)",
+              "Current device location (GPS), only when the tutor explicitly requests a search for nearby professionals or triggers the veterinary SOS",
+              "Travel-related expenses with local currency (converted via public exchange rates)",
+              "Travel-related digitized documents (certificates, CVIs, international vaccination records)"
+            ]
+          },
+          {
+            "number": "13.2",
+            "title": "AI Concierge and checklist enrichment",
+            "intro": "The Concierge AI consults official and public sources to suggest destination entry requirements (mandatory vaccinations, ISO microchip, rabies vaccination with minimum window, official certificates, titer tests) and generates a suggested pre-travel timeline. Curated items exist for 25 countries; for other destinations, the AI generates an on-demand checklist cached for 90 days.",
+            "outro": "The itineraries and checklists generated by the AI are SUGGESTIONS based on public information. Official verification with the consulate, embassy, and veterinarian remains the tutor's full responsibility. Entry requirements may change without notice."
+          },
+          {
+            "number": "13.3",
+            "title": "Veterinary SOS and translation during the trip",
+            "intro": "During the trip, the tutor can trigger additional features:",
+            "items": [
+              "Veterinary SOS — searches for nearby veterinarians or clinics via GPS and offers automatic sharing of the clinical record translated into the local language. Does NOT replace official local emergency call.",
+              "Translator walkie-talkie — records the tutor's audio and translates it via AI into the language of the destination veterinarian, and vice versa.",
+              "Clinical record translation — version of the clinical history in the local language with 60-day cache.",
+              "Memorial — at the end of the trip, the AI generates a photo memorial with narration based on logged memories, exclusively for the tutor's personal use."
+            ],
+            "outro": "Tickets, lodging, and insurance purchases are made on third-party sites. We are not responsible for transactions outside the application, denied boardings due to incomplete documentation, or divergent guidance from transport companies."
+          }
+        ]
+      },
+      {
+        "number": "14",
+        "title": "Breed Intelligence — Breed-based Community Feed",
+        "intro": "auExpert offers Breed Intelligence, a community feed where tutors share memories and where the AI generates clinical articles personalized by pet breed.",
+        "subsections": [
+          {
+            "number": "14.1",
+            "title": "Tutor posts and AI moderation",
+            "intro": "When a tutor chooses to publish a post on Breed Intelligence, the content (text, photo, or AI narration) becomes visible to tutors who own a pet of the SAME breed. The reach is restricted to the breed community — never open to the public internet.",
+            "items": [
+              "Every post is moderated by AI before publication (text and image verification).",
+              "Posts can be unpublished by the tutor at any time. Unpublishing removes the post from the feed and makes it inaccessible to other tutors.",
+              "Comments are also AI-moderated. We reserve the right to remove content that violates these Terms without prior notice.",
+              "Published posts can be translated on demand into other supported languages, with translation caching."
+            ]
+          },
+          {
+            "number": "14.2",
+            "title": "AI-generated clinical editorials",
+            "intro": "The AI generates short clinical articles with breed and species coverage (Editorials), published regularly in the feed. These articles are generated from public veterinary sources and undergo topic verification before publication. Editorial illustrations are produced by image generation models with visual topic verification.",
+            "outro": "Editorials are informational and never replace veterinary consultation. When in doubt about your pet's health, always consult a licensed veterinarian."
+          }
+        ]
+      },
+      {
+        "number": "15",
         "title": "Protection of Minors",
         "intro": "auExpert is not directed at persons under 18 years of age. We do not intentionally collect personal data from minors. If we identify that we have collected data from a minor without consent from legal guardians, we will immediately delete such information."
       },
       {
-        "number": "13",
+        "number": "16",
         "title": "Changes to this Privacy Policy",
         "intro": "Multiverso Digital reserves the right to update this Privacy Policy periodically. In case of relevant changes, the user will be notified at least 30 days in advance through in-app notification and/or email. Continued use of the application after the effective date of changes constitutes acceptance of the new conditions."
       },
       {
-        "number": "14",
+        "number": "17",
         "title": "Contact and Data Protection Officer (DPO)",
         "intro": "To exercise your rights, clarify doubts, or file complaints related to privacy:",
         "items": [
-          "Email: contato@multiversodigital.com.br",
+          "Email: contato@auexpert.com.br",
           "Support: Available within the auExpert application, \"Help and Support\" section",
           "Response time: up to 15 business days"
         ],
@@ -328,7 +431,7 @@
     "pageTitle": "Terms of Use — auExpert",
     "eyebrow": "Legal document",
     "title": "Terms of Use",
-    "meta": "Version 1.0 · Effective: April 20, 2026 · Developed by Multiverso Digital",
+    "meta": "Version 1.1 · Effective: May 2, 2026 · Developed by Multiverso Digital",
     "intro": "These Terms of Use constitute a legally binding contract between you (User) and Multiverso Digital, developer and operator of the auExpert application.",
     "sections": [
       {
@@ -550,7 +653,7 @@
           {
             "number": "12.1",
             "title": "By user initiative",
-            "intro": "The user may terminate their account at any time by accessing the application's settings or contacting support at contato@multiversodigital.com.br."
+            "intro": "The user may terminate their account at any time by accessing the application's settings or contacting support at contato@auexpert.com.br."
           },
           {
             "number": "12.2",
@@ -568,6 +671,43 @@
       },
       {
         "number": "13",
+        "title": "Professional Features",
+        "intro": "auExpert offers a dedicated module for professionals (veterinarians, dog trainers, groomers, dog walkers, transporters, and 19 other categories) who register separately and only act on pets they have been invited to by the tutor.",
+        "items": [
+          "Professionals CANNOT register pets, purchase pet plans, or act on the tutor's behalf — only attend to delegated pets.",
+          "Authorized veterinarians can use 7 AI agents (anamnesis, clinical record, prescription, ASA, ICT, sanitary notification, discharge) for clinical document generation assistance. Generated documents are decision support and full responsibility for content rests with the professional who digitally signs them.",
+          "Informed Consent Terms require co-signature by both the tutor and the veterinarian to be valid.",
+          "The tutor can revoke professional access at any time, with immediate effect. Already-signed documents remain available to the tutor even after revocation.",
+          "Professional registration is free during the current product phase. Multiverso Digital may introduce charges in the future with at least 30 days' prior notice."
+        ]
+      },
+      {
+        "number": "14",
+        "title": "Travel Module with Pet",
+        "intro": "The travel module assists planning and follow-up of trips with pets, but auExpert is NOT a travel agency or document broker.",
+        "items": [
+          "Itineraries, checklists, and timelines generated by the Concierge AI are SUGGESTIONS based on public sources. Official confirmation with consulate, embassy, customs, and veterinarian is the tutor's full responsibility.",
+          "Entry requirements in other countries may change without notice. auExpert is not responsible for denied boardings, deportations, quarantines, or fines resulting from incomplete documentation.",
+          "Tickets, lodging, insurance, and third-party services are purchased on external sites. We are not responsible for those transactions.",
+          "Veterinary SOS searches for nearby professionals via GPS and offers the translated clinical record — it does NOT replace official local emergency calls. In a serious emergency, call your local emergency number (911 in the US or equivalent at the destination).",
+          "Device location is processed only when the tutor explicitly requests a search for nearby professionals or triggers SOS — there is never continuous tracking.",
+          "Travel memorials generated by the AI use only media and narratives created by the tutor in that pet's profile, exclusively for personal use."
+        ]
+      },
+      {
+        "number": "15",
+        "title": "Breed Intelligence — Community Content",
+        "intro": "Breed Intelligence is a community feed where tutors publish posts visible to other tutors of the same pet breed, and where the AI publishes clinical Editorials. The use of this feature is governed by the rules below.",
+        "items": [
+          "By publishing a post, the tutor grants auExpert a non-exclusive, royalty-free, and revocable license to display that content within the corresponding breed community. The content is NEVER sold to third parties.",
+          "It is forbidden to publish: identifiable personal data of third parties (plates, addresses, phones, faces without consent), aggressive content, unauthorized commercial content, sexual content, violent content, or content that violates third-party rights.",
+          "All content goes through AI moderation. Rejected posts do not reach the feed. Tutors can unpublish their own posts at any time.",
+          "AI-generated Editorials are informational articles based on public veterinary sources. They DO NOT replace veterinary consultation — when in doubt about health, consult a veterinarian.",
+          "auExpert may remove content, suspend, or terminate accounts that violate these rules, with or without prior notice, at its discretion."
+        ]
+      },
+      {
+        "number": "16",
         "title": "Applicable Law and Dispute Resolution",
         "intro": "These Terms are governed by the laws of the Federative Republic of Brazil, in particular:",
         "items": [
@@ -579,7 +719,7 @@
         "outro": "The parties elect the jurisdiction of São Paulo/SP to resolve any disputes arising from these Terms, with express waiver of any other jurisdiction, however privileged."
       },
       {
-        "number": "14",
+        "number": "17",
         "title": "General Provisions",
         "items": [
           "Entirety: These Terms, together with the Privacy Policy, constitute the entire agreement between the parties",
@@ -590,11 +730,11 @@
         ]
       },
       {
-        "number": "15",
+        "number": "18",
         "title": "Contact",
         "intro": "For questions related to these Terms of Use:",
         "items": [
-          "Email: contato@multiversodigital.com.br",
+          "Email: contato@auexpert.com.br",
           "Support: Available within the auExpert application, \"Help and Support\" section",
           "Response time: up to 10 business days"
         ]
